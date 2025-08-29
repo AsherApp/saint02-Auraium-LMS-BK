@@ -1,0 +1,3553 @@
+
+> endubackend@0.1.0 dev
+> tsx watch src/server.ts
+
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+🚀 Endubackend listening on port 4000
+🌍 Environment: development
+🔒 Security: Development mode
+Security Event: {
+  timestamp: '2025-08-18T17:52:09.101Z',
+  ip: '::1',
+  method: 'GET',
+  url: '/',
+  statusCode: 401,
+  userAgent: 'curl/8.7.1',
+  userEmail: 'anonymous'
+}
+6:53:33 PM [tsx] change in ./src/middlewares/auth.ts Restarting...
+c⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+🚀 Endubackend listening on port 4000
+🌍 Environment: development
+🔒 Security: Development mode
+6:54:31 PM [tsx] change in ./src/middlewares/auth.ts Restarting...
+c⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+🚀 Endubackend listening on port 4000
+🌍 Environment: development
+🔒 Security: Development mode
+6:55:48 PM [tsx] change in ./src/routes/auth.routes.ts Restarting...
+c⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+🚀 Endubackend listening on port 4000
+🌍 Environment: development
+🔒 Security: Development mode
+6:57:09 PM [tsx] change in ./src/routes/auth.routes.ts Restarting...
+c⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+🚀 Endubackend listening on port 4000
+🌍 Environment: development
+🔒 Security: Development mode
+6:57:16 PM [tsx] change in ./src/middlewares/auth.ts Restarting...
+c⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+🚀 Endubackend listening on port 4000
+🌍 Environment: development
+🔒 Security: Development mode
+6:57:28 PM [tsx] change in ./src/routes/auth.routes.ts Restarting...
+c⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+🚀 Endubackend listening on port 4000
+🌍 Environment: development
+🔒 Security: Development mode
+6:58:57 PM [tsx] change in ./src/routes/auth.routes.ts Restarting...
+c⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+🚀 Endubackend listening on port 4000
+🌍 Environment: development
+🔒 Security: Development mode
+7:00:28 PM [tsx] change in ./src/routes/auth.routes.ts Restarting...
+c⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+🚀 Endubackend listening on port 4000
+🌍 Environment: development
+🔒 Security: Development mode
+7:01:58 PM [tsx] change in ./src/routes/auth.routes.ts Restarting...
+c⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+🚀 Endubackend listening on port 4000
+🌍 Environment: development
+🔒 Security: Development mode
+7:03:31 PM [tsx] change in ./src/routes/auth.routes.ts Restarting...
+c⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+🚀 Endubackend listening on port 4000
+🌍 Environment: development
+🔒 Security: Development mode
+7:05:30 PM [tsx] change in ./src/routes/auth.routes.ts Restarting...
+c⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+🚀 Endubackend listening on port 4000
+🌍 Environment: development
+🔒 Security: Development mode
+7:08:04 PM [tsx] change in ./src/routes/auth.routes.ts Restarting...
+c⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+🚀 Endubackend listening on port 4000
+🌍 Environment: development
+🔒 Security: Development mode
+Fetching consolidated student data...
+Fetching consolidated student data...
+Raw student data: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "student_code": "DS25081701",
+    "password_hash": "$2b$10$o99afrYADxsR9OgXoYIJAOx1JiS27NC.zPbhGqao9YEK77vuLbJIS",
+    "first_name": "Damnada",
+    "last_name": "Seun",
+    "phone": null,
+    "date_of_birth": null,
+    "grade_level": null,
+    "parent_email": null,
+    "emergency_contact": null,
+    "notes": null,
+    "address": null,
+    "city": null,
+    "state": null,
+    "country": null,
+    "postal_code": null,
+    "emergency_contact_name": null,
+    "emergency_contact_phone": null,
+    "emergency_contact_relationship": null,
+    "academic_level": null,
+    "major": null,
+    "minor": null,
+    "graduation_year": null,
+    "gpa": null,
+    "academic_interests": null,
+    "career_goals": null,
+    "bio": null,
+    "avatar_url": null,
+    "linkedin_url": null,
+    "github_url": null,
+    "portfolio_url": null,
+    "timezone": null,
+    "preferred_language": null,
+    "accessibility_needs": null,
+    "dietary_restrictions": null,
+    "phone_number": null,
+    "enrollments": [
+      {
+        "id": "c1f017b9-21a7-43d4-9e5c-edf8c88699a4",
+        "status": "active",
+        "courses": {
+          "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+          "title": "Bee AI",
+          "status": "draft",
+          "description": "Test course 2"
+        },
+        "course_id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00",
+        "last_activity": "2025-08-17T21:33:02.253057+00:00",
+        "grade_percentage": null,
+        "progress_percentage": 0
+      }
+    ]
+  }
+]
+Processing student lxbrw23+4@gmail.com with 1 enrollments
+Getting progress for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36
+Raw student data: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "student_code": "DS25081701",
+    "password_hash": "$2b$10$o99afrYADxsR9OgXoYIJAOx1JiS27NC.zPbhGqao9YEK77vuLbJIS",
+    "first_name": "Damnada",
+    "last_name": "Seun",
+    "phone": null,
+    "date_of_birth": null,
+    "grade_level": null,
+    "parent_email": null,
+    "emergency_contact": null,
+    "notes": null,
+    "address": null,
+    "city": null,
+    "state": null,
+    "country": null,
+    "postal_code": null,
+    "emergency_contact_name": null,
+    "emergency_contact_phone": null,
+    "emergency_contact_relationship": null,
+    "academic_level": null,
+    "major": null,
+    "minor": null,
+    "graduation_year": null,
+    "gpa": null,
+    "academic_interests": null,
+    "career_goals": null,
+    "bio": null,
+    "avatar_url": null,
+    "linkedin_url": null,
+    "github_url": null,
+    "portfolio_url": null,
+    "timezone": null,
+    "preferred_language": null,
+    "accessibility_needs": null,
+    "dietary_restrictions": null,
+    "phone_number": null,
+    "enrollments": [
+      {
+        "id": "c1f017b9-21a7-43d4-9e5c-edf8c88699a4",
+        "status": "active",
+        "courses": {
+          "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+          "title": "Bee AI",
+          "status": "draft",
+          "description": "Test course 2"
+        },
+        "course_id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00",
+        "last_activity": "2025-08-17T21:33:02.253057+00:00",
+        "grade_percentage": null,
+        "progress_percentage": 0
+      }
+    ]
+  }
+]
+Processing student lxbrw23+4@gmail.com with 1 enrollments
+Getting progress for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36
+Progress error for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.calculate_student_progress with parameters p_course_id, p_student_email or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.calculate_student_progress(p_course_id, p_student_email) in the schema cache'
+}
+Progress error for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.calculate_student_progress with parameters p_course_id, p_student_email or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.calculate_student_progress(p_course_id, p_student_email) in the schema cache'
+}
+Final result for lxbrw23+4@gmail.com: {
+  id: '0d08ff74-11f2-42d9-88a8-e71689bb4c75',
+  email: 'lxbrw23+4@gmail.com',
+  name: 'Damnada Seun',
+  status: 'active',
+  student_code: 'DS25081701',
+  created_at: '2025-08-17T21:33:01.842+00:00',
+  total_courses: 1,
+  active_courses: 1,
+  completed_courses: 0,
+  overall_progress: 0,
+  overall_grade: null,
+  latest_activity: null,
+  first_enrollment: '2025-08-17T21:33:02.076Z',
+  courses: [
+    {
+      id: '56881257-6dd1-420a-a30e-d553045a3f36',
+      title: 'Bee AI',
+      status: 'draft',
+      enrolled_at: '2025-08-17T21:33:02.076+00:00'
+    }
+  ]
+}
+Final consolidated students: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "student_code": "DS25081701",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "total_courses": 1,
+    "active_courses": 1,
+    "completed_courses": 0,
+    "overall_progress": 0,
+    "overall_grade": null,
+    "latest_activity": null,
+    "first_enrollment": "2025-08-17T21:33:02.076Z",
+    "courses": [
+      {
+        "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "title": "Bee AI",
+        "status": "draft",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00"
+      }
+    ]
+  }
+]
+Final result for lxbrw23+4@gmail.com: {
+  id: '0d08ff74-11f2-42d9-88a8-e71689bb4c75',
+  email: 'lxbrw23+4@gmail.com',
+  name: 'Damnada Seun',
+  status: 'active',
+  student_code: 'DS25081701',
+  created_at: '2025-08-17T21:33:01.842+00:00',
+  total_courses: 1,
+  active_courses: 1,
+  completed_courses: 0,
+  overall_progress: 0,
+  overall_grade: null,
+  latest_activity: null,
+  first_enrollment: '2025-08-17T21:33:02.076Z',
+  courses: [
+    {
+      id: '56881257-6dd1-420a-a30e-d553045a3f36',
+      title: 'Bee AI',
+      status: 'draft',
+      enrolled_at: '2025-08-17T21:33:02.076+00:00'
+    }
+  ]
+}
+Final consolidated students: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "student_code": "DS25081701",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "total_courses": 1,
+    "active_courses": 1,
+    "completed_courses": 0,
+    "overall_progress": 0,
+    "overall_grade": null,
+    "latest_activity": null,
+    "first_enrollment": "2025-08-17T21:33:02.076Z",
+    "courses": [
+      {
+        "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "title": "Bee AI",
+        "status": "draft",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00"
+      }
+    ]
+  }
+]
+Security Event: {
+  timestamp: '2025-08-18T18:30:53.925Z',
+  ip: '::1',
+  method: 'GET',
+  url: '/status',
+  statusCode: 403,
+  userAgent: 'curl/8.7.1',
+  userEmail: 'lxbrw23+4@gmail.com'
+}
+Fetching consolidated student data...
+Fetching consolidated student data...
+Raw student data: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "student_code": "DS25081701",
+    "password_hash": "$2b$10$o99afrYADxsR9OgXoYIJAOx1JiS27NC.zPbhGqao9YEK77vuLbJIS",
+    "first_name": "Damnada",
+    "last_name": "Seun",
+    "phone": null,
+    "date_of_birth": null,
+    "grade_level": null,
+    "parent_email": null,
+    "emergency_contact": null,
+    "notes": null,
+    "address": null,
+    "city": null,
+    "state": null,
+    "country": null,
+    "postal_code": null,
+    "emergency_contact_name": null,
+    "emergency_contact_phone": null,
+    "emergency_contact_relationship": null,
+    "academic_level": null,
+    "major": null,
+    "minor": null,
+    "graduation_year": null,
+    "gpa": null,
+    "academic_interests": null,
+    "career_goals": null,
+    "bio": null,
+    "avatar_url": null,
+    "linkedin_url": null,
+    "github_url": null,
+    "portfolio_url": null,
+    "timezone": null,
+    "preferred_language": null,
+    "accessibility_needs": null,
+    "dietary_restrictions": null,
+    "phone_number": null,
+    "enrollments": [
+      {
+        "id": "c1f017b9-21a7-43d4-9e5c-edf8c88699a4",
+        "status": "active",
+        "courses": {
+          "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+          "title": "Bee AI",
+          "status": "draft",
+          "description": "Test course 2"
+        },
+        "course_id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00",
+        "last_activity": "2025-08-17T21:33:02.253057+00:00",
+        "grade_percentage": null,
+        "progress_percentage": 0
+      }
+    ]
+  }
+]
+Processing student lxbrw23+4@gmail.com with 1 enrollments
+Getting progress for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36
+Raw student data: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "student_code": "DS25081701",
+    "password_hash": "$2b$10$o99afrYADxsR9OgXoYIJAOx1JiS27NC.zPbhGqao9YEK77vuLbJIS",
+    "first_name": "Damnada",
+    "last_name": "Seun",
+    "phone": null,
+    "date_of_birth": null,
+    "grade_level": null,
+    "parent_email": null,
+    "emergency_contact": null,
+    "notes": null,
+    "address": null,
+    "city": null,
+    "state": null,
+    "country": null,
+    "postal_code": null,
+    "emergency_contact_name": null,
+    "emergency_contact_phone": null,
+    "emergency_contact_relationship": null,
+    "academic_level": null,
+    "major": null,
+    "minor": null,
+    "graduation_year": null,
+    "gpa": null,
+    "academic_interests": null,
+    "career_goals": null,
+    "bio": null,
+    "avatar_url": null,
+    "linkedin_url": null,
+    "github_url": null,
+    "portfolio_url": null,
+    "timezone": null,
+    "preferred_language": null,
+    "accessibility_needs": null,
+    "dietary_restrictions": null,
+    "phone_number": null,
+    "enrollments": [
+      {
+        "id": "c1f017b9-21a7-43d4-9e5c-edf8c88699a4",
+        "status": "active",
+        "courses": {
+          "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+          "title": "Bee AI",
+          "status": "draft",
+          "description": "Test course 2"
+        },
+        "course_id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00",
+        "last_activity": "2025-08-17T21:33:02.253057+00:00",
+        "grade_percentage": null,
+        "progress_percentage": 0
+      }
+    ]
+  }
+]
+Processing student lxbrw23+4@gmail.com with 1 enrollments
+Getting progress for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36
+Progress error for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.calculate_student_progress with parameters p_course_id, p_student_email or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.calculate_student_progress(p_course_id, p_student_email) in the schema cache'
+}
+Progress error for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.calculate_student_progress with parameters p_course_id, p_student_email or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.calculate_student_progress(p_course_id, p_student_email) in the schema cache'
+}
+Final result for lxbrw23+4@gmail.com: {
+  id: '0d08ff74-11f2-42d9-88a8-e71689bb4c75',
+  email: 'lxbrw23+4@gmail.com',
+  name: 'Damnada Seun',
+  status: 'active',
+  student_code: 'DS25081701',
+  created_at: '2025-08-17T21:33:01.842+00:00',
+  total_courses: 1,
+  active_courses: 1,
+  completed_courses: 0,
+  overall_progress: 0,
+  overall_grade: null,
+  latest_activity: null,
+  first_enrollment: '2025-08-17T21:33:02.076Z',
+  courses: [
+    {
+      id: '56881257-6dd1-420a-a30e-d553045a3f36',
+      title: 'Bee AI',
+      status: 'draft',
+      enrolled_at: '2025-08-17T21:33:02.076+00:00'
+    }
+  ]
+}
+Final consolidated students: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "student_code": "DS25081701",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "total_courses": 1,
+    "active_courses": 1,
+    "completed_courses": 0,
+    "overall_progress": 0,
+    "overall_grade": null,
+    "latest_activity": null,
+    "first_enrollment": "2025-08-17T21:33:02.076Z",
+    "courses": [
+      {
+        "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "title": "Bee AI",
+        "status": "draft",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00"
+      }
+    ]
+  }
+]
+Final result for lxbrw23+4@gmail.com: {
+  id: '0d08ff74-11f2-42d9-88a8-e71689bb4c75',
+  email: 'lxbrw23+4@gmail.com',
+  name: 'Damnada Seun',
+  status: 'active',
+  student_code: 'DS25081701',
+  created_at: '2025-08-17T21:33:01.842+00:00',
+  total_courses: 1,
+  active_courses: 1,
+  completed_courses: 0,
+  overall_progress: 0,
+  overall_grade: null,
+  latest_activity: null,
+  first_enrollment: '2025-08-17T21:33:02.076Z',
+  courses: [
+    {
+      id: '56881257-6dd1-420a-a30e-d553045a3f36',
+      title: 'Bee AI',
+      status: 'draft',
+      enrolled_at: '2025-08-17T21:33:02.076+00:00'
+    }
+  ]
+}
+Final consolidated students: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "student_code": "DS25081701",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "total_courses": 1,
+    "active_courses": 1,
+    "completed_courses": 0,
+    "overall_progress": 0,
+    "overall_grade": null,
+    "latest_activity": null,
+    "first_enrollment": "2025-08-17T21:33:02.076Z",
+    "courses": [
+      {
+        "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "title": "Bee AI",
+        "status": "draft",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00"
+      }
+    ]
+  }
+]
+Fetching consolidated student data...
+Raw student data: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "student_code": "DS25081701",
+    "password_hash": "$2b$10$o99afrYADxsR9OgXoYIJAOx1JiS27NC.zPbhGqao9YEK77vuLbJIS",
+    "first_name": "Damnada",
+    "last_name": "Seun",
+    "phone": null,
+    "date_of_birth": null,
+    "grade_level": null,
+    "parent_email": null,
+    "emergency_contact": null,
+    "notes": null,
+    "address": null,
+    "city": null,
+    "state": null,
+    "country": null,
+    "postal_code": null,
+    "emergency_contact_name": null,
+    "emergency_contact_phone": null,
+    "emergency_contact_relationship": null,
+    "academic_level": null,
+    "major": null,
+    "minor": null,
+    "graduation_year": null,
+    "gpa": null,
+    "academic_interests": null,
+    "career_goals": null,
+    "bio": null,
+    "avatar_url": null,
+    "linkedin_url": null,
+    "github_url": null,
+    "portfolio_url": null,
+    "timezone": null,
+    "preferred_language": null,
+    "accessibility_needs": null,
+    "dietary_restrictions": null,
+    "phone_number": null,
+    "enrollments": [
+      {
+        "id": "c1f017b9-21a7-43d4-9e5c-edf8c88699a4",
+        "status": "active",
+        "courses": {
+          "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+          "title": "Bee AI",
+          "status": "draft",
+          "description": "Test course 2"
+        },
+        "course_id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00",
+        "last_activity": "2025-08-17T21:33:02.253057+00:00",
+        "grade_percentage": null,
+        "progress_percentage": 0
+      }
+    ]
+  }
+]
+Processing student lxbrw23+4@gmail.com with 1 enrollments
+Getting progress for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36
+Progress error for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.calculate_student_progress with parameters p_course_id, p_student_email or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.calculate_student_progress(p_course_id, p_student_email) in the schema cache'
+}
+Final result for lxbrw23+4@gmail.com: {
+  id: '0d08ff74-11f2-42d9-88a8-e71689bb4c75',
+  email: 'lxbrw23+4@gmail.com',
+  name: 'Damnada Seun',
+  status: 'active',
+  student_code: 'DS25081701',
+  created_at: '2025-08-17T21:33:01.842+00:00',
+  total_courses: 1,
+  active_courses: 1,
+  completed_courses: 0,
+  overall_progress: 0,
+  overall_grade: null,
+  latest_activity: null,
+  first_enrollment: '2025-08-17T21:33:02.076Z',
+  courses: [
+    {
+      id: '56881257-6dd1-420a-a30e-d553045a3f36',
+      title: 'Bee AI',
+      status: 'draft',
+      enrolled_at: '2025-08-17T21:33:02.076+00:00'
+    }
+  ]
+}
+Final consolidated students: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "student_code": "DS25081701",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "total_courses": 1,
+    "active_courses": 1,
+    "completed_courses": 0,
+    "overall_progress": 0,
+    "overall_grade": null,
+    "latest_activity": null,
+    "first_enrollment": "2025-08-17T21:33:02.076Z",
+    "courses": [
+      {
+        "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "title": "Bee AI",
+        "status": "draft",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00"
+      }
+    ]
+  }
+]
+Fetching consolidated student data...
+Raw student data: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "student_code": "DS25081701",
+    "password_hash": "$2b$10$o99afrYADxsR9OgXoYIJAOx1JiS27NC.zPbhGqao9YEK77vuLbJIS",
+    "first_name": "Damnada",
+    "last_name": "Seun",
+    "phone": null,
+    "date_of_birth": null,
+    "grade_level": null,
+    "parent_email": null,
+    "emergency_contact": null,
+    "notes": null,
+    "address": null,
+    "city": null,
+    "state": null,
+    "country": null,
+    "postal_code": null,
+    "emergency_contact_name": null,
+    "emergency_contact_phone": null,
+    "emergency_contact_relationship": null,
+    "academic_level": null,
+    "major": null,
+    "minor": null,
+    "graduation_year": null,
+    "gpa": null,
+    "academic_interests": null,
+    "career_goals": null,
+    "bio": null,
+    "avatar_url": null,
+    "linkedin_url": null,
+    "github_url": null,
+    "portfolio_url": null,
+    "timezone": null,
+    "preferred_language": null,
+    "accessibility_needs": null,
+    "dietary_restrictions": null,
+    "phone_number": null,
+    "enrollments": [
+      {
+        "id": "c1f017b9-21a7-43d4-9e5c-edf8c88699a4",
+        "status": "active",
+        "courses": {
+          "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+          "title": "Bee AI",
+          "status": "draft",
+          "description": "Test course 2"
+        },
+        "course_id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00",
+        "last_activity": "2025-08-17T21:33:02.253057+00:00",
+        "grade_percentage": null,
+        "progress_percentage": 0
+      }
+    ]
+  }
+]
+Processing student lxbrw23+4@gmail.com with 1 enrollments
+Getting progress for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36
+Progress error for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.calculate_student_progress with parameters p_course_id, p_student_email or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.calculate_student_progress(p_course_id, p_student_email) in the schema cache'
+}
+Final result for lxbrw23+4@gmail.com: {
+  id: '0d08ff74-11f2-42d9-88a8-e71689bb4c75',
+  email: 'lxbrw23+4@gmail.com',
+  name: 'Damnada Seun',
+  status: 'active',
+  student_code: 'DS25081701',
+  created_at: '2025-08-17T21:33:01.842+00:00',
+  total_courses: 1,
+  active_courses: 1,
+  completed_courses: 0,
+  overall_progress: 0,
+  overall_grade: null,
+  latest_activity: null,
+  first_enrollment: '2025-08-17T21:33:02.076Z',
+  courses: [
+    {
+      id: '56881257-6dd1-420a-a30e-d553045a3f36',
+      title: 'Bee AI',
+      status: 'draft',
+      enrolled_at: '2025-08-17T21:33:02.076+00:00'
+    }
+  ]
+}
+Final consolidated students: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "student_code": "DS25081701",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "total_courses": 1,
+    "active_courses": 1,
+    "completed_courses": 0,
+    "overall_progress": 0,
+    "overall_grade": null,
+    "latest_activity": null,
+    "first_enrollment": "2025-08-17T21:33:02.076Z",
+    "courses": [
+      {
+        "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "title": "Bee AI",
+        "status": "draft",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00"
+      }
+    ]
+  }
+]
+Security Event: {
+  timestamp: '2025-08-18T18:35:32.680Z',
+  ip: '::1',
+  method: 'GET',
+  url: '/assignments',
+  statusCode: 401,
+  userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 OPR/120.0.0.0 (Edition std-2)',
+  userEmail: 'anonymous'
+}
+Security Event: {
+  timestamp: '2025-08-18T18:35:32.682Z',
+  ip: '::1',
+  method: 'GET',
+  url: '/assignments',
+  statusCode: 401,
+  userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 OPR/120.0.0.0 (Edition std-2)',
+  userEmail: 'anonymous'
+}
+Fetching consolidated student data...
+Raw student data: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "student_code": "DS25081701",
+    "password_hash": "$2b$10$o99afrYADxsR9OgXoYIJAOx1JiS27NC.zPbhGqao9YEK77vuLbJIS",
+    "first_name": "Damnada",
+    "last_name": "Seun",
+    "phone": null,
+    "date_of_birth": null,
+    "grade_level": null,
+    "parent_email": null,
+    "emergency_contact": null,
+    "notes": null,
+    "address": null,
+    "city": null,
+    "state": null,
+    "country": null,
+    "postal_code": null,
+    "emergency_contact_name": null,
+    "emergency_contact_phone": null,
+    "emergency_contact_relationship": null,
+    "academic_level": null,
+    "major": null,
+    "minor": null,
+    "graduation_year": null,
+    "gpa": null,
+    "academic_interests": null,
+    "career_goals": null,
+    "bio": null,
+    "avatar_url": null,
+    "linkedin_url": null,
+    "github_url": null,
+    "portfolio_url": null,
+    "timezone": null,
+    "preferred_language": null,
+    "accessibility_needs": null,
+    "dietary_restrictions": null,
+    "phone_number": null,
+    "enrollments": [
+      {
+        "id": "c1f017b9-21a7-43d4-9e5c-edf8c88699a4",
+        "status": "active",
+        "courses": {
+          "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+          "title": "Bee AI",
+          "status": "draft",
+          "description": "Test course 2"
+        },
+        "course_id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00",
+        "last_activity": "2025-08-17T21:33:02.253057+00:00",
+        "grade_percentage": null,
+        "progress_percentage": 0
+      }
+    ]
+  }
+]
+Processing student lxbrw23+4@gmail.com with 1 enrollments
+Getting progress for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36
+Progress error for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.calculate_student_progress with parameters p_course_id, p_student_email or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.calculate_student_progress(p_course_id, p_student_email) in the schema cache'
+}
+Final result for lxbrw23+4@gmail.com: {
+  id: '0d08ff74-11f2-42d9-88a8-e71689bb4c75',
+  email: 'lxbrw23+4@gmail.com',
+  name: 'Damnada Seun',
+  status: 'active',
+  student_code: 'DS25081701',
+  created_at: '2025-08-17T21:33:01.842+00:00',
+  total_courses: 1,
+  active_courses: 1,
+  completed_courses: 0,
+  overall_progress: 0,
+  overall_grade: null,
+  latest_activity: null,
+  first_enrollment: '2025-08-17T21:33:02.076Z',
+  courses: [
+    {
+      id: '56881257-6dd1-420a-a30e-d553045a3f36',
+      title: 'Bee AI',
+      status: 'draft',
+      enrolled_at: '2025-08-17T21:33:02.076+00:00'
+    }
+  ]
+}
+Final consolidated students: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "student_code": "DS25081701",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "total_courses": 1,
+    "active_courses": 1,
+    "completed_courses": 0,
+    "overall_progress": 0,
+    "overall_grade": null,
+    "latest_activity": null,
+    "first_enrollment": "2025-08-17T21:33:02.076Z",
+    "courses": [
+      {
+        "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "title": "Bee AI",
+        "status": "draft",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00"
+      }
+    ]
+  }
+]
+Fetching consolidated student data...
+Raw student data: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "student_code": "DS25081701",
+    "password_hash": "$2b$10$o99afrYADxsR9OgXoYIJAOx1JiS27NC.zPbhGqao9YEK77vuLbJIS",
+    "first_name": "Damnada",
+    "last_name": "Seun",
+    "phone": null,
+    "date_of_birth": null,
+    "grade_level": null,
+    "parent_email": null,
+    "emergency_contact": null,
+    "notes": null,
+    "address": null,
+    "city": null,
+    "state": null,
+    "country": null,
+    "postal_code": null,
+    "emergency_contact_name": null,
+    "emergency_contact_phone": null,
+    "emergency_contact_relationship": null,
+    "academic_level": null,
+    "major": null,
+    "minor": null,
+    "graduation_year": null,
+    "gpa": null,
+    "academic_interests": null,
+    "career_goals": null,
+    "bio": null,
+    "avatar_url": null,
+    "linkedin_url": null,
+    "github_url": null,
+    "portfolio_url": null,
+    "timezone": null,
+    "preferred_language": null,
+    "accessibility_needs": null,
+    "dietary_restrictions": null,
+    "phone_number": null,
+    "enrollments": [
+      {
+        "id": "c1f017b9-21a7-43d4-9e5c-edf8c88699a4",
+        "status": "active",
+        "courses": {
+          "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+          "title": "Bee AI",
+          "status": "draft",
+          "description": "Test course 2"
+        },
+        "course_id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00",
+        "last_activity": "2025-08-17T21:33:02.253057+00:00",
+        "grade_percentage": null,
+        "progress_percentage": 0
+      }
+    ]
+  }
+]
+Processing student lxbrw23+4@gmail.com with 1 enrollments
+Getting progress for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36
+Progress error for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.calculate_student_progress with parameters p_course_id, p_student_email or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.calculate_student_progress(p_course_id, p_student_email) in the schema cache'
+}
+Final result for lxbrw23+4@gmail.com: {
+  id: '0d08ff74-11f2-42d9-88a8-e71689bb4c75',
+  email: 'lxbrw23+4@gmail.com',
+  name: 'Damnada Seun',
+  status: 'active',
+  student_code: 'DS25081701',
+  created_at: '2025-08-17T21:33:01.842+00:00',
+  total_courses: 1,
+  active_courses: 1,
+  completed_courses: 0,
+  overall_progress: 0,
+  overall_grade: null,
+  latest_activity: null,
+  first_enrollment: '2025-08-17T21:33:02.076Z',
+  courses: [
+    {
+      id: '56881257-6dd1-420a-a30e-d553045a3f36',
+      title: 'Bee AI',
+      status: 'draft',
+      enrolled_at: '2025-08-17T21:33:02.076+00:00'
+    }
+  ]
+}
+Final consolidated students: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "student_code": "DS25081701",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "total_courses": 1,
+    "active_courses": 1,
+    "completed_courses": 0,
+    "overall_progress": 0,
+    "overall_grade": null,
+    "latest_activity": null,
+    "first_enrollment": "2025-08-17T21:33:02.076Z",
+    "courses": [
+      {
+        "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "title": "Bee AI",
+        "status": "draft",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00"
+      }
+    ]
+  }
+]
+Fetching consolidated student data...
+Raw student data: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "student_code": "DS25081701",
+    "password_hash": "$2b$10$o99afrYADxsR9OgXoYIJAOx1JiS27NC.zPbhGqao9YEK77vuLbJIS",
+    "first_name": "Damnada",
+    "last_name": "Seun",
+    "phone": null,
+    "date_of_birth": null,
+    "grade_level": null,
+    "parent_email": null,
+    "emergency_contact": null,
+    "notes": null,
+    "address": null,
+    "city": null,
+    "state": null,
+    "country": null,
+    "postal_code": null,
+    "emergency_contact_name": null,
+    "emergency_contact_phone": null,
+    "emergency_contact_relationship": null,
+    "academic_level": null,
+    "major": null,
+    "minor": null,
+    "graduation_year": null,
+    "gpa": null,
+    "academic_interests": null,
+    "career_goals": null,
+    "bio": null,
+    "avatar_url": null,
+    "linkedin_url": null,
+    "github_url": null,
+    "portfolio_url": null,
+    "timezone": null,
+    "preferred_language": null,
+    "accessibility_needs": null,
+    "dietary_restrictions": null,
+    "phone_number": null,
+    "enrollments": [
+      {
+        "id": "c1f017b9-21a7-43d4-9e5c-edf8c88699a4",
+        "status": "active",
+        "courses": {
+          "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+          "title": "Bee AI",
+          "status": "draft",
+          "description": "Test course 2"
+        },
+        "course_id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00",
+        "last_activity": "2025-08-17T21:33:02.253057+00:00",
+        "grade_percentage": null,
+        "progress_percentage": 0
+      }
+    ]
+  }
+]
+Processing student lxbrw23+4@gmail.com with 1 enrollments
+Getting progress for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36
+Progress error for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.calculate_student_progress with parameters p_course_id, p_student_email or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.calculate_student_progress(p_course_id, p_student_email) in the schema cache'
+}
+Final result for lxbrw23+4@gmail.com: {
+  id: '0d08ff74-11f2-42d9-88a8-e71689bb4c75',
+  email: 'lxbrw23+4@gmail.com',
+  name: 'Damnada Seun',
+  status: 'active',
+  student_code: 'DS25081701',
+  created_at: '2025-08-17T21:33:01.842+00:00',
+  total_courses: 1,
+  active_courses: 1,
+  completed_courses: 0,
+  overall_progress: 0,
+  overall_grade: null,
+  latest_activity: null,
+  first_enrollment: '2025-08-17T21:33:02.076Z',
+  courses: [
+    {
+      id: '56881257-6dd1-420a-a30e-d553045a3f36',
+      title: 'Bee AI',
+      status: 'draft',
+      enrolled_at: '2025-08-17T21:33:02.076+00:00'
+    }
+  ]
+}
+Final consolidated students: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "student_code": "DS25081701",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "total_courses": 1,
+    "active_courses": 1,
+    "completed_courses": 0,
+    "overall_progress": 0,
+    "overall_grade": null,
+    "latest_activity": null,
+    "first_enrollment": "2025-08-17T21:33:02.076Z",
+    "courses": [
+      {
+        "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "title": "Bee AI",
+        "status": "draft",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00"
+      }
+    ]
+  }
+]
+Security Event: {
+  timestamp: '2025-08-18T18:37:44.768Z',
+  ip: '::1',
+  method: 'GET',
+  url: '/',
+  statusCode: 401,
+  userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 OPR/120.0.0.0 (Edition std-2)',
+  userEmail: 'anonymous'
+}
+Security Event: {
+  timestamp: '2025-08-18T18:37:44.770Z',
+  ip: '::1',
+  method: 'GET',
+  url: '/',
+  statusCode: 401,
+  userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 OPR/120.0.0.0 (Edition std-2)',
+  userEmail: 'anonymous'
+}
+Security Event: {
+  timestamp: '2025-08-18T18:37:56.301Z',
+  ip: '::1',
+  method: 'GET',
+  url: '/',
+  statusCode: 401,
+  userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 OPR/120.0.0.0 (Edition std-2)',
+  userEmail: 'anonymous'
+}
+Fetching consolidated student data...
+Raw student data: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "student_code": "DS25081701",
+    "password_hash": "$2b$10$o99afrYADxsR9OgXoYIJAOx1JiS27NC.zPbhGqao9YEK77vuLbJIS",
+    "first_name": "Damnada",
+    "last_name": "Seun",
+    "phone": null,
+    "date_of_birth": null,
+    "grade_level": null,
+    "parent_email": null,
+    "emergency_contact": null,
+    "notes": null,
+    "address": null,
+    "city": null,
+    "state": null,
+    "country": null,
+    "postal_code": null,
+    "emergency_contact_name": null,
+    "emergency_contact_phone": null,
+    "emergency_contact_relationship": null,
+    "academic_level": null,
+    "major": null,
+    "minor": null,
+    "graduation_year": null,
+    "gpa": null,
+    "academic_interests": null,
+    "career_goals": null,
+    "bio": null,
+    "avatar_url": null,
+    "linkedin_url": null,
+    "github_url": null,
+    "portfolio_url": null,
+    "timezone": null,
+    "preferred_language": null,
+    "accessibility_needs": null,
+    "dietary_restrictions": null,
+    "phone_number": null,
+    "enrollments": [
+      {
+        "id": "c1f017b9-21a7-43d4-9e5c-edf8c88699a4",
+        "status": "active",
+        "courses": {
+          "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+          "title": "Bee AI",
+          "status": "draft",
+          "description": "Test course 2"
+        },
+        "course_id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00",
+        "last_activity": "2025-08-17T21:33:02.253057+00:00",
+        "grade_percentage": null,
+        "progress_percentage": 0
+      }
+    ]
+  }
+]
+Processing student lxbrw23+4@gmail.com with 1 enrollments
+Getting progress for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36
+Progress error for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.calculate_student_progress with parameters p_course_id, p_student_email or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.calculate_student_progress(p_course_id, p_student_email) in the schema cache'
+}
+Final result for lxbrw23+4@gmail.com: {
+  id: '0d08ff74-11f2-42d9-88a8-e71689bb4c75',
+  email: 'lxbrw23+4@gmail.com',
+  name: 'Damnada Seun',
+  status: 'active',
+  student_code: 'DS25081701',
+  created_at: '2025-08-17T21:33:01.842+00:00',
+  total_courses: 1,
+  active_courses: 1,
+  completed_courses: 0,
+  overall_progress: 0,
+  overall_grade: null,
+  latest_activity: null,
+  first_enrollment: '2025-08-17T21:33:02.076Z',
+  courses: [
+    {
+      id: '56881257-6dd1-420a-a30e-d553045a3f36',
+      title: 'Bee AI',
+      status: 'draft',
+      enrolled_at: '2025-08-17T21:33:02.076+00:00'
+    }
+  ]
+}
+Final consolidated students: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "student_code": "DS25081701",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "total_courses": 1,
+    "active_courses": 1,
+    "completed_courses": 0,
+    "overall_progress": 0,
+    "overall_grade": null,
+    "latest_activity": null,
+    "first_enrollment": "2025-08-17T21:33:02.076Z",
+    "courses": [
+      {
+        "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "title": "Bee AI",
+        "status": "draft",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00"
+      }
+    ]
+  }
+]
+Fetching consolidated student data...
+Raw student data: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "student_code": "DS25081701",
+    "password_hash": "$2b$10$o99afrYADxsR9OgXoYIJAOx1JiS27NC.zPbhGqao9YEK77vuLbJIS",
+    "first_name": "Damnada",
+    "last_name": "Seun",
+    "phone": null,
+    "date_of_birth": null,
+    "grade_level": null,
+    "parent_email": null,
+    "emergency_contact": null,
+    "notes": null,
+    "address": null,
+    "city": null,
+    "state": null,
+    "country": null,
+    "postal_code": null,
+    "emergency_contact_name": null,
+    "emergency_contact_phone": null,
+    "emergency_contact_relationship": null,
+    "academic_level": null,
+    "major": null,
+    "minor": null,
+    "graduation_year": null,
+    "gpa": null,
+    "academic_interests": null,
+    "career_goals": null,
+    "bio": null,
+    "avatar_url": null,
+    "linkedin_url": null,
+    "github_url": null,
+    "portfolio_url": null,
+    "timezone": null,
+    "preferred_language": null,
+    "accessibility_needs": null,
+    "dietary_restrictions": null,
+    "phone_number": null,
+    "enrollments": [
+      {
+        "id": "c1f017b9-21a7-43d4-9e5c-edf8c88699a4",
+        "status": "active",
+        "courses": {
+          "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+          "title": "Bee AI",
+          "status": "draft",
+          "description": "Test course 2"
+        },
+        "course_id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00",
+        "last_activity": "2025-08-17T21:33:02.253057+00:00",
+        "grade_percentage": null,
+        "progress_percentage": 0
+      }
+    ]
+  }
+]
+Processing student lxbrw23+4@gmail.com with 1 enrollments
+Getting progress for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36
+Progress error for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.calculate_student_progress with parameters p_course_id, p_student_email or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.calculate_student_progress(p_course_id, p_student_email) in the schema cache'
+}
+Final result for lxbrw23+4@gmail.com: {
+  id: '0d08ff74-11f2-42d9-88a8-e71689bb4c75',
+  email: 'lxbrw23+4@gmail.com',
+  name: 'Damnada Seun',
+  status: 'active',
+  student_code: 'DS25081701',
+  created_at: '2025-08-17T21:33:01.842+00:00',
+  total_courses: 1,
+  active_courses: 1,
+  completed_courses: 0,
+  overall_progress: 0,
+  overall_grade: null,
+  latest_activity: null,
+  first_enrollment: '2025-08-17T21:33:02.076Z',
+  courses: [
+    {
+      id: '56881257-6dd1-420a-a30e-d553045a3f36',
+      title: 'Bee AI',
+      status: 'draft',
+      enrolled_at: '2025-08-17T21:33:02.076+00:00'
+    }
+  ]
+}
+Final consolidated students: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "student_code": "DS25081701",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "total_courses": 1,
+    "active_courses": 1,
+    "completed_courses": 0,
+    "overall_progress": 0,
+    "overall_grade": null,
+    "latest_activity": null,
+    "first_enrollment": "2025-08-17T21:33:02.076Z",
+    "courses": [
+      {
+        "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "title": "Bee AI",
+        "status": "draft",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00"
+      }
+    ]
+  }
+]
+Fetching consolidated student data...
+Raw student data: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "student_code": "DS25081701",
+    "password_hash": "$2b$10$o99afrYADxsR9OgXoYIJAOx1JiS27NC.zPbhGqao9YEK77vuLbJIS",
+    "first_name": "Damnada",
+    "last_name": "Seun",
+    "phone": null,
+    "date_of_birth": null,
+    "grade_level": null,
+    "parent_email": null,
+    "emergency_contact": null,
+    "notes": null,
+    "address": null,
+    "city": null,
+    "state": null,
+    "country": null,
+    "postal_code": null,
+    "emergency_contact_name": null,
+    "emergency_contact_phone": null,
+    "emergency_contact_relationship": null,
+    "academic_level": null,
+    "major": null,
+    "minor": null,
+    "graduation_year": null,
+    "gpa": null,
+    "academic_interests": null,
+    "career_goals": null,
+    "bio": null,
+    "avatar_url": null,
+    "linkedin_url": null,
+    "github_url": null,
+    "portfolio_url": null,
+    "timezone": null,
+    "preferred_language": null,
+    "accessibility_needs": null,
+    "dietary_restrictions": null,
+    "phone_number": null,
+    "enrollments": [
+      {
+        "id": "c1f017b9-21a7-43d4-9e5c-edf8c88699a4",
+        "status": "active",
+        "courses": {
+          "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+          "title": "Bee AI",
+          "status": "draft",
+          "description": "Test course 2"
+        },
+        "course_id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00",
+        "last_activity": "2025-08-17T21:33:02.253057+00:00",
+        "grade_percentage": null,
+        "progress_percentage": 0
+      }
+    ]
+  }
+]
+Processing student lxbrw23+4@gmail.com with 1 enrollments
+Getting progress for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36
+Progress error for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.calculate_student_progress with parameters p_course_id, p_student_email or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.calculate_student_progress(p_course_id, p_student_email) in the schema cache'
+}
+Final result for lxbrw23+4@gmail.com: {
+  id: '0d08ff74-11f2-42d9-88a8-e71689bb4c75',
+  email: 'lxbrw23+4@gmail.com',
+  name: 'Damnada Seun',
+  status: 'active',
+  student_code: 'DS25081701',
+  created_at: '2025-08-17T21:33:01.842+00:00',
+  total_courses: 1,
+  active_courses: 1,
+  completed_courses: 0,
+  overall_progress: 0,
+  overall_grade: null,
+  latest_activity: null,
+  first_enrollment: '2025-08-17T21:33:02.076Z',
+  courses: [
+    {
+      id: '56881257-6dd1-420a-a30e-d553045a3f36',
+      title: 'Bee AI',
+      status: 'draft',
+      enrolled_at: '2025-08-17T21:33:02.076+00:00'
+    }
+  ]
+}
+Final consolidated students: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "student_code": "DS25081701",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "total_courses": 1,
+    "active_courses": 1,
+    "completed_courses": 0,
+    "overall_progress": 0,
+    "overall_grade": null,
+    "latest_activity": null,
+    "first_enrollment": "2025-08-17T21:33:02.076Z",
+    "courses": [
+      {
+        "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "title": "Bee AI",
+        "status": "draft",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00"
+      }
+    ]
+  }
+]
+Fetching consolidated student data...
+Raw student data: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "student_code": "DS25081701",
+    "password_hash": "$2b$10$o99afrYADxsR9OgXoYIJAOx1JiS27NC.zPbhGqao9YEK77vuLbJIS",
+    "first_name": "Damnada",
+    "last_name": "Seun",
+    "phone": null,
+    "date_of_birth": null,
+    "grade_level": null,
+    "parent_email": null,
+    "emergency_contact": null,
+    "notes": null,
+    "address": null,
+    "city": null,
+    "state": null,
+    "country": null,
+    "postal_code": null,
+    "emergency_contact_name": null,
+    "emergency_contact_phone": null,
+    "emergency_contact_relationship": null,
+    "academic_level": null,
+    "major": null,
+    "minor": null,
+    "graduation_year": null,
+    "gpa": null,
+    "academic_interests": null,
+    "career_goals": null,
+    "bio": null,
+    "avatar_url": null,
+    "linkedin_url": null,
+    "github_url": null,
+    "portfolio_url": null,
+    "timezone": null,
+    "preferred_language": null,
+    "accessibility_needs": null,
+    "dietary_restrictions": null,
+    "phone_number": null,
+    "enrollments": [
+      {
+        "id": "c1f017b9-21a7-43d4-9e5c-edf8c88699a4",
+        "status": "active",
+        "courses": {
+          "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+          "title": "Bee AI",
+          "status": "draft",
+          "description": "Test course 2"
+        },
+        "course_id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00",
+        "last_activity": "2025-08-17T21:33:02.253057+00:00",
+        "grade_percentage": null,
+        "progress_percentage": 0
+      }
+    ]
+  }
+]
+Processing student lxbrw23+4@gmail.com with 1 enrollments
+Getting progress for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36
+Progress error for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.calculate_student_progress with parameters p_course_id, p_student_email or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.calculate_student_progress(p_course_id, p_student_email) in the schema cache'
+}
+Final result for lxbrw23+4@gmail.com: {
+  id: '0d08ff74-11f2-42d9-88a8-e71689bb4c75',
+  email: 'lxbrw23+4@gmail.com',
+  name: 'Damnada Seun',
+  status: 'active',
+  student_code: 'DS25081701',
+  created_at: '2025-08-17T21:33:01.842+00:00',
+  total_courses: 1,
+  active_courses: 1,
+  completed_courses: 0,
+  overall_progress: 0,
+  overall_grade: null,
+  latest_activity: null,
+  first_enrollment: '2025-08-17T21:33:02.076Z',
+  courses: [
+    {
+      id: '56881257-6dd1-420a-a30e-d553045a3f36',
+      title: 'Bee AI',
+      status: 'draft',
+      enrolled_at: '2025-08-17T21:33:02.076+00:00'
+    }
+  ]
+}
+Final consolidated students: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "student_code": "DS25081701",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "total_courses": 1,
+    "active_courses": 1,
+    "completed_courses": 0,
+    "overall_progress": 0,
+    "overall_grade": null,
+    "latest_activity": null,
+    "first_enrollment": "2025-08-17T21:33:02.076Z",
+    "courses": [
+      {
+        "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "title": "Bee AI",
+        "status": "draft",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00"
+      }
+    ]
+  }
+]
+Fetching consolidated student data...
+Raw student data: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "student_code": "DS25081701",
+    "password_hash": "$2b$10$o99afrYADxsR9OgXoYIJAOx1JiS27NC.zPbhGqao9YEK77vuLbJIS",
+    "first_name": "Damnada",
+    "last_name": "Seun",
+    "phone": null,
+    "date_of_birth": null,
+    "grade_level": null,
+    "parent_email": null,
+    "emergency_contact": null,
+    "notes": null,
+    "address": null,
+    "city": null,
+    "state": null,
+    "country": null,
+    "postal_code": null,
+    "emergency_contact_name": null,
+    "emergency_contact_phone": null,
+    "emergency_contact_relationship": null,
+    "academic_level": null,
+    "major": null,
+    "minor": null,
+    "graduation_year": null,
+    "gpa": null,
+    "academic_interests": null,
+    "career_goals": null,
+    "bio": null,
+    "avatar_url": null,
+    "linkedin_url": null,
+    "github_url": null,
+    "portfolio_url": null,
+    "timezone": null,
+    "preferred_language": null,
+    "accessibility_needs": null,
+    "dietary_restrictions": null,
+    "phone_number": null,
+    "enrollments": [
+      {
+        "id": "c1f017b9-21a7-43d4-9e5c-edf8c88699a4",
+        "status": "active",
+        "courses": {
+          "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+          "title": "Bee AI",
+          "status": "draft",
+          "description": "Test course 2"
+        },
+        "course_id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00",
+        "last_activity": "2025-08-17T21:33:02.253057+00:00",
+        "grade_percentage": null,
+        "progress_percentage": 0
+      }
+    ]
+  }
+]
+Processing student lxbrw23+4@gmail.com with 1 enrollments
+Getting progress for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36
+Progress error for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.calculate_student_progress with parameters p_course_id, p_student_email or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.calculate_student_progress(p_course_id, p_student_email) in the schema cache'
+}
+Final result for lxbrw23+4@gmail.com: {
+  id: '0d08ff74-11f2-42d9-88a8-e71689bb4c75',
+  email: 'lxbrw23+4@gmail.com',
+  name: 'Damnada Seun',
+  status: 'active',
+  student_code: 'DS25081701',
+  created_at: '2025-08-17T21:33:01.842+00:00',
+  total_courses: 1,
+  active_courses: 1,
+  completed_courses: 0,
+  overall_progress: 0,
+  overall_grade: null,
+  latest_activity: null,
+  first_enrollment: '2025-08-17T21:33:02.076Z',
+  courses: [
+    {
+      id: '56881257-6dd1-420a-a30e-d553045a3f36',
+      title: 'Bee AI',
+      status: 'draft',
+      enrolled_at: '2025-08-17T21:33:02.076+00:00'
+    }
+  ]
+}
+Final consolidated students: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "student_code": "DS25081701",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "total_courses": 1,
+    "active_courses": 1,
+    "completed_courses": 0,
+    "overall_progress": 0,
+    "overall_grade": null,
+    "latest_activity": null,
+    "first_enrollment": "2025-08-17T21:33:02.076Z",
+    "courses": [
+      {
+        "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "title": "Bee AI",
+        "status": "draft",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00"
+      }
+    ]
+  }
+]
+Fetching consolidated student data...
+Raw student data: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "student_code": "DS25081701",
+    "password_hash": "$2b$10$o99afrYADxsR9OgXoYIJAOx1JiS27NC.zPbhGqao9YEK77vuLbJIS",
+    "first_name": "Damnada",
+    "last_name": "Seun",
+    "phone": null,
+    "date_of_birth": null,
+    "grade_level": null,
+    "parent_email": null,
+    "emergency_contact": null,
+    "notes": null,
+    "address": null,
+    "city": null,
+    "state": null,
+    "country": null,
+    "postal_code": null,
+    "emergency_contact_name": null,
+    "emergency_contact_phone": null,
+    "emergency_contact_relationship": null,
+    "academic_level": null,
+    "major": null,
+    "minor": null,
+    "graduation_year": null,
+    "gpa": null,
+    "academic_interests": null,
+    "career_goals": null,
+    "bio": null,
+    "avatar_url": null,
+    "linkedin_url": null,
+    "github_url": null,
+    "portfolio_url": null,
+    "timezone": null,
+    "preferred_language": null,
+    "accessibility_needs": null,
+    "dietary_restrictions": null,
+    "phone_number": null,
+    "enrollments": [
+      {
+        "id": "c1f017b9-21a7-43d4-9e5c-edf8c88699a4",
+        "status": "active",
+        "courses": {
+          "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+          "title": "Bee AI",
+          "status": "draft",
+          "description": "Test course 2"
+        },
+        "course_id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00",
+        "last_activity": "2025-08-17T21:33:02.253057+00:00",
+        "grade_percentage": null,
+        "progress_percentage": 0
+      }
+    ]
+  }
+]
+Processing student lxbrw23+4@gmail.com with 1 enrollments
+Getting progress for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36
+Progress error for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.calculate_student_progress with parameters p_course_id, p_student_email or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.calculate_student_progress(p_course_id, p_student_email) in the schema cache'
+}
+Final result for lxbrw23+4@gmail.com: {
+  id: '0d08ff74-11f2-42d9-88a8-e71689bb4c75',
+  email: 'lxbrw23+4@gmail.com',
+  name: 'Damnada Seun',
+  status: 'active',
+  student_code: 'DS25081701',
+  created_at: '2025-08-17T21:33:01.842+00:00',
+  total_courses: 1,
+  active_courses: 1,
+  completed_courses: 0,
+  overall_progress: 0,
+  overall_grade: null,
+  latest_activity: null,
+  first_enrollment: '2025-08-17T21:33:02.076Z',
+  courses: [
+    {
+      id: '56881257-6dd1-420a-a30e-d553045a3f36',
+      title: 'Bee AI',
+      status: 'draft',
+      enrolled_at: '2025-08-17T21:33:02.076+00:00'
+    }
+  ]
+}
+Final consolidated students: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "student_code": "DS25081701",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "total_courses": 1,
+    "active_courses": 1,
+    "completed_courses": 0,
+    "overall_progress": 0,
+    "overall_grade": null,
+    "latest_activity": null,
+    "first_enrollment": "2025-08-17T21:33:02.076Z",
+    "courses": [
+      {
+        "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "title": "Bee AI",
+        "status": "draft",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00"
+      }
+    ]
+  }
+]
+Fetching consolidated student data...
+Raw student data: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "student_code": "DS25081701",
+    "password_hash": "$2b$10$o99afrYADxsR9OgXoYIJAOx1JiS27NC.zPbhGqao9YEK77vuLbJIS",
+    "first_name": "Damnada",
+    "last_name": "Seun",
+    "phone": null,
+    "date_of_birth": null,
+    "grade_level": null,
+    "parent_email": null,
+    "emergency_contact": null,
+    "notes": null,
+    "address": null,
+    "city": null,
+    "state": null,
+    "country": null,
+    "postal_code": null,
+    "emergency_contact_name": null,
+    "emergency_contact_phone": null,
+    "emergency_contact_relationship": null,
+    "academic_level": null,
+    "major": null,
+    "minor": null,
+    "graduation_year": null,
+    "gpa": null,
+    "academic_interests": null,
+    "career_goals": null,
+    "bio": null,
+    "avatar_url": null,
+    "linkedin_url": null,
+    "github_url": null,
+    "portfolio_url": null,
+    "timezone": null,
+    "preferred_language": null,
+    "accessibility_needs": null,
+    "dietary_restrictions": null,
+    "phone_number": null,
+    "enrollments": [
+      {
+        "id": "c1f017b9-21a7-43d4-9e5c-edf8c88699a4",
+        "status": "active",
+        "courses": {
+          "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+          "title": "Bee AI",
+          "status": "draft",
+          "description": "Test course 2"
+        },
+        "course_id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00",
+        "last_activity": "2025-08-17T21:33:02.253057+00:00",
+        "grade_percentage": null,
+        "progress_percentage": 0
+      }
+    ]
+  }
+]
+Processing student lxbrw23+4@gmail.com with 1 enrollments
+Getting progress for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36
+Progress error for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.calculate_student_progress with parameters p_course_id, p_student_email or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.calculate_student_progress(p_course_id, p_student_email) in the schema cache'
+}
+Final result for lxbrw23+4@gmail.com: {
+  id: '0d08ff74-11f2-42d9-88a8-e71689bb4c75',
+  email: 'lxbrw23+4@gmail.com',
+  name: 'Damnada Seun',
+  status: 'active',
+  student_code: 'DS25081701',
+  created_at: '2025-08-17T21:33:01.842+00:00',
+  total_courses: 1,
+  active_courses: 1,
+  completed_courses: 0,
+  overall_progress: 0,
+  overall_grade: null,
+  latest_activity: null,
+  first_enrollment: '2025-08-17T21:33:02.076Z',
+  courses: [
+    {
+      id: '56881257-6dd1-420a-a30e-d553045a3f36',
+      title: 'Bee AI',
+      status: 'draft',
+      enrolled_at: '2025-08-17T21:33:02.076+00:00'
+    }
+  ]
+}
+Final consolidated students: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "student_code": "DS25081701",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "total_courses": 1,
+    "active_courses": 1,
+    "completed_courses": 0,
+    "overall_progress": 0,
+    "overall_grade": null,
+    "latest_activity": null,
+    "first_enrollment": "2025-08-17T21:33:02.076Z",
+    "courses": [
+      {
+        "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "title": "Bee AI",
+        "status": "draft",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00"
+      }
+    ]
+  }
+]
+Fetching consolidated student data...
+Raw student data: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "student_code": "DS25081701",
+    "password_hash": "$2b$10$o99afrYADxsR9OgXoYIJAOx1JiS27NC.zPbhGqao9YEK77vuLbJIS",
+    "first_name": "Damnada",
+    "last_name": "Seun",
+    "phone": null,
+    "date_of_birth": null,
+    "grade_level": null,
+    "parent_email": null,
+    "emergency_contact": null,
+    "notes": null,
+    "address": null,
+    "city": null,
+    "state": null,
+    "country": null,
+    "postal_code": null,
+    "emergency_contact_name": null,
+    "emergency_contact_phone": null,
+    "emergency_contact_relationship": null,
+    "academic_level": null,
+    "major": null,
+    "minor": null,
+    "graduation_year": null,
+    "gpa": null,
+    "academic_interests": null,
+    "career_goals": null,
+    "bio": null,
+    "avatar_url": null,
+    "linkedin_url": null,
+    "github_url": null,
+    "portfolio_url": null,
+    "timezone": null,
+    "preferred_language": null,
+    "accessibility_needs": null,
+    "dietary_restrictions": null,
+    "phone_number": null,
+    "enrollments": [
+      {
+        "id": "c1f017b9-21a7-43d4-9e5c-edf8c88699a4",
+        "status": "active",
+        "courses": {
+          "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+          "title": "Bee AI",
+          "status": "draft",
+          "description": "Test course 2"
+        },
+        "course_id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00",
+        "last_activity": "2025-08-17T21:33:02.253057+00:00",
+        "grade_percentage": null,
+        "progress_percentage": 0
+      }
+    ]
+  }
+]
+Processing student lxbrw23+4@gmail.com with 1 enrollments
+Getting progress for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36
+Progress error for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.calculate_student_progress with parameters p_course_id, p_student_email or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.calculate_student_progress(p_course_id, p_student_email) in the schema cache'
+}
+Final result for lxbrw23+4@gmail.com: {
+  id: '0d08ff74-11f2-42d9-88a8-e71689bb4c75',
+  email: 'lxbrw23+4@gmail.com',
+  name: 'Damnada Seun',
+  status: 'active',
+  student_code: 'DS25081701',
+  created_at: '2025-08-17T21:33:01.842+00:00',
+  total_courses: 1,
+  active_courses: 1,
+  completed_courses: 0,
+  overall_progress: 0,
+  overall_grade: null,
+  latest_activity: null,
+  first_enrollment: '2025-08-17T21:33:02.076Z',
+  courses: [
+    {
+      id: '56881257-6dd1-420a-a30e-d553045a3f36',
+      title: 'Bee AI',
+      status: 'draft',
+      enrolled_at: '2025-08-17T21:33:02.076+00:00'
+    }
+  ]
+}
+Final consolidated students: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "student_code": "DS25081701",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "total_courses": 1,
+    "active_courses": 1,
+    "completed_courses": 0,
+    "overall_progress": 0,
+    "overall_grade": null,
+    "latest_activity": null,
+    "first_enrollment": "2025-08-17T21:33:02.076Z",
+    "courses": [
+      {
+        "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "title": "Bee AI",
+        "status": "draft",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00"
+      }
+    ]
+  }
+]
+Fetching consolidated student data...
+Raw student data: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "student_code": "DS25081701",
+    "password_hash": "$2b$10$o99afrYADxsR9OgXoYIJAOx1JiS27NC.zPbhGqao9YEK77vuLbJIS",
+    "first_name": "Damnada",
+    "last_name": "Seun",
+    "phone": null,
+    "date_of_birth": null,
+    "grade_level": null,
+    "parent_email": null,
+    "emergency_contact": null,
+    "notes": null,
+    "address": null,
+    "city": null,
+    "state": null,
+    "country": null,
+    "postal_code": null,
+    "emergency_contact_name": null,
+    "emergency_contact_phone": null,
+    "emergency_contact_relationship": null,
+    "academic_level": null,
+    "major": null,
+    "minor": null,
+    "graduation_year": null,
+    "gpa": null,
+    "academic_interests": null,
+    "career_goals": null,
+    "bio": null,
+    "avatar_url": null,
+    "linkedin_url": null,
+    "github_url": null,
+    "portfolio_url": null,
+    "timezone": null,
+    "preferred_language": null,
+    "accessibility_needs": null,
+    "dietary_restrictions": null,
+    "phone_number": null,
+    "enrollments": [
+      {
+        "id": "c1f017b9-21a7-43d4-9e5c-edf8c88699a4",
+        "status": "active",
+        "courses": {
+          "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+          "title": "Bee AI",
+          "status": "draft",
+          "description": "Test course 2"
+        },
+        "course_id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00",
+        "last_activity": "2025-08-17T21:33:02.253057+00:00",
+        "grade_percentage": null,
+        "progress_percentage": 0
+      }
+    ]
+  }
+]
+Processing student lxbrw23+4@gmail.com with 1 enrollments
+Getting progress for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36
+Progress error for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.calculate_student_progress with parameters p_course_id, p_student_email or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.calculate_student_progress(p_course_id, p_student_email) in the schema cache'
+}
+Final result for lxbrw23+4@gmail.com: {
+  id: '0d08ff74-11f2-42d9-88a8-e71689bb4c75',
+  email: 'lxbrw23+4@gmail.com',
+  name: 'Damnada Seun',
+  status: 'active',
+  student_code: 'DS25081701',
+  created_at: '2025-08-17T21:33:01.842+00:00',
+  total_courses: 1,
+  active_courses: 1,
+  completed_courses: 0,
+  overall_progress: 0,
+  overall_grade: null,
+  latest_activity: null,
+  first_enrollment: '2025-08-17T21:33:02.076Z',
+  courses: [
+    {
+      id: '56881257-6dd1-420a-a30e-d553045a3f36',
+      title: 'Bee AI',
+      status: 'draft',
+      enrolled_at: '2025-08-17T21:33:02.076+00:00'
+    }
+  ]
+}
+Final consolidated students: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "student_code": "DS25081701",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "total_courses": 1,
+    "active_courses": 1,
+    "completed_courses": 0,
+    "overall_progress": 0,
+    "overall_grade": null,
+    "latest_activity": null,
+    "first_enrollment": "2025-08-17T21:33:02.076Z",
+    "courses": [
+      {
+        "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "title": "Bee AI",
+        "status": "draft",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00"
+      }
+    ]
+  }
+]
+Fetching consolidated student data...
+Raw student data: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "student_code": "DS25081701",
+    "password_hash": "$2b$10$o99afrYADxsR9OgXoYIJAOx1JiS27NC.zPbhGqao9YEK77vuLbJIS",
+    "first_name": "Damnada",
+    "last_name": "Seun",
+    "phone": null,
+    "date_of_birth": null,
+    "grade_level": null,
+    "parent_email": null,
+    "emergency_contact": null,
+    "notes": null,
+    "address": null,
+    "city": null,
+    "state": null,
+    "country": null,
+    "postal_code": null,
+    "emergency_contact_name": null,
+    "emergency_contact_phone": null,
+    "emergency_contact_relationship": null,
+    "academic_level": null,
+    "major": null,
+    "minor": null,
+    "graduation_year": null,
+    "gpa": null,
+    "academic_interests": null,
+    "career_goals": null,
+    "bio": null,
+    "avatar_url": null,
+    "linkedin_url": null,
+    "github_url": null,
+    "portfolio_url": null,
+    "timezone": null,
+    "preferred_language": null,
+    "accessibility_needs": null,
+    "dietary_restrictions": null,
+    "phone_number": null,
+    "enrollments": [
+      {
+        "id": "c1f017b9-21a7-43d4-9e5c-edf8c88699a4",
+        "status": "active",
+        "courses": {
+          "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+          "title": "Bee AI",
+          "status": "draft",
+          "description": "Test course 2"
+        },
+        "course_id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00",
+        "last_activity": "2025-08-17T21:33:02.253057+00:00",
+        "grade_percentage": null,
+        "progress_percentage": 0
+      }
+    ]
+  }
+]
+Processing student lxbrw23+4@gmail.com with 1 enrollments
+Getting progress for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36
+Progress error for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.calculate_student_progress with parameters p_course_id, p_student_email or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.calculate_student_progress(p_course_id, p_student_email) in the schema cache'
+}
+Final result for lxbrw23+4@gmail.com: {
+  id: '0d08ff74-11f2-42d9-88a8-e71689bb4c75',
+  email: 'lxbrw23+4@gmail.com',
+  name: 'Damnada Seun',
+  status: 'active',
+  student_code: 'DS25081701',
+  created_at: '2025-08-17T21:33:01.842+00:00',
+  total_courses: 1,
+  active_courses: 1,
+  completed_courses: 0,
+  overall_progress: 0,
+  overall_grade: null,
+  latest_activity: null,
+  first_enrollment: '2025-08-17T21:33:02.076Z',
+  courses: [
+    {
+      id: '56881257-6dd1-420a-a30e-d553045a3f36',
+      title: 'Bee AI',
+      status: 'draft',
+      enrolled_at: '2025-08-17T21:33:02.076+00:00'
+    }
+  ]
+}
+Final consolidated students: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "student_code": "DS25081701",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "total_courses": 1,
+    "active_courses": 1,
+    "completed_courses": 0,
+    "overall_progress": 0,
+    "overall_grade": null,
+    "latest_activity": null,
+    "first_enrollment": "2025-08-17T21:33:02.076Z",
+    "courses": [
+      {
+        "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "title": "Bee AI",
+        "status": "draft",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00"
+      }
+    ]
+  }
+]
+Fetching consolidated student data...
+Raw student data: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "student_code": "DS25081701",
+    "password_hash": "$2b$10$o99afrYADxsR9OgXoYIJAOx1JiS27NC.zPbhGqao9YEK77vuLbJIS",
+    "first_name": "Damnada",
+    "last_name": "Seun",
+    "phone": null,
+    "date_of_birth": null,
+    "grade_level": null,
+    "parent_email": null,
+    "emergency_contact": null,
+    "notes": null,
+    "address": null,
+    "city": null,
+    "state": null,
+    "country": null,
+    "postal_code": null,
+    "emergency_contact_name": null,
+    "emergency_contact_phone": null,
+    "emergency_contact_relationship": null,
+    "academic_level": null,
+    "major": null,
+    "minor": null,
+    "graduation_year": null,
+    "gpa": null,
+    "academic_interests": null,
+    "career_goals": null,
+    "bio": null,
+    "avatar_url": null,
+    "linkedin_url": null,
+    "github_url": null,
+    "portfolio_url": null,
+    "timezone": null,
+    "preferred_language": null,
+    "accessibility_needs": null,
+    "dietary_restrictions": null,
+    "phone_number": null,
+    "enrollments": [
+      {
+        "id": "c1f017b9-21a7-43d4-9e5c-edf8c88699a4",
+        "status": "active",
+        "courses": {
+          "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+          "title": "Bee AI",
+          "status": "draft",
+          "description": "Test course 2"
+        },
+        "course_id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00",
+        "last_activity": "2025-08-17T21:33:02.253057+00:00",
+        "grade_percentage": null,
+        "progress_percentage": 0
+      }
+    ]
+  }
+]
+Processing student lxbrw23+4@gmail.com with 1 enrollments
+Getting progress for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36
+Progress error for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.calculate_student_progress with parameters p_course_id, p_student_email or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.calculate_student_progress(p_course_id, p_student_email) in the schema cache'
+}
+Final result for lxbrw23+4@gmail.com: {
+  id: '0d08ff74-11f2-42d9-88a8-e71689bb4c75',
+  email: 'lxbrw23+4@gmail.com',
+  name: 'Damnada Seun',
+  status: 'active',
+  student_code: 'DS25081701',
+  created_at: '2025-08-17T21:33:01.842+00:00',
+  total_courses: 1,
+  active_courses: 1,
+  completed_courses: 0,
+  overall_progress: 0,
+  overall_grade: null,
+  latest_activity: null,
+  first_enrollment: '2025-08-17T21:33:02.076Z',
+  courses: [
+    {
+      id: '56881257-6dd1-420a-a30e-d553045a3f36',
+      title: 'Bee AI',
+      status: 'draft',
+      enrolled_at: '2025-08-17T21:33:02.076+00:00'
+    }
+  ]
+}
+Final consolidated students: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "student_code": "DS25081701",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "total_courses": 1,
+    "active_courses": 1,
+    "completed_courses": 0,
+    "overall_progress": 0,
+    "overall_grade": null,
+    "latest_activity": null,
+    "first_enrollment": "2025-08-17T21:33:02.076Z",
+    "courses": [
+      {
+        "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "title": "Bee AI",
+        "status": "draft",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00"
+      }
+    ]
+  }
+]
+Fetching consolidated student data...
+Raw student data: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "student_code": "DS25081701",
+    "password_hash": "$2b$10$o99afrYADxsR9OgXoYIJAOx1JiS27NC.zPbhGqao9YEK77vuLbJIS",
+    "first_name": "Damnada",
+    "last_name": "Seun",
+    "phone": null,
+    "date_of_birth": null,
+    "grade_level": null,
+    "parent_email": null,
+    "emergency_contact": null,
+    "notes": null,
+    "address": null,
+    "city": null,
+    "state": null,
+    "country": null,
+    "postal_code": null,
+    "emergency_contact_name": null,
+    "emergency_contact_phone": null,
+    "emergency_contact_relationship": null,
+    "academic_level": null,
+    "major": null,
+    "minor": null,
+    "graduation_year": null,
+    "gpa": null,
+    "academic_interests": null,
+    "career_goals": null,
+    "bio": null,
+    "avatar_url": null,
+    "linkedin_url": null,
+    "github_url": null,
+    "portfolio_url": null,
+    "timezone": null,
+    "preferred_language": null,
+    "accessibility_needs": null,
+    "dietary_restrictions": null,
+    "phone_number": null,
+    "enrollments": [
+      {
+        "id": "c1f017b9-21a7-43d4-9e5c-edf8c88699a4",
+        "status": "active",
+        "courses": {
+          "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+          "title": "Bee AI",
+          "status": "draft",
+          "description": "Test course 2"
+        },
+        "course_id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00",
+        "last_activity": "2025-08-17T21:33:02.253057+00:00",
+        "grade_percentage": null,
+        "progress_percentage": 0
+      }
+    ]
+  }
+]
+Processing student lxbrw23+4@gmail.com with 1 enrollments
+Getting progress for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36
+Progress error for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.calculate_student_progress with parameters p_course_id, p_student_email or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.calculate_student_progress(p_course_id, p_student_email) in the schema cache'
+}
+Final result for lxbrw23+4@gmail.com: {
+  id: '0d08ff74-11f2-42d9-88a8-e71689bb4c75',
+  email: 'lxbrw23+4@gmail.com',
+  name: 'Damnada Seun',
+  status: 'active',
+  student_code: 'DS25081701',
+  created_at: '2025-08-17T21:33:01.842+00:00',
+  total_courses: 1,
+  active_courses: 1,
+  completed_courses: 0,
+  overall_progress: 0,
+  overall_grade: null,
+  latest_activity: null,
+  first_enrollment: '2025-08-17T21:33:02.076Z',
+  courses: [
+    {
+      id: '56881257-6dd1-420a-a30e-d553045a3f36',
+      title: 'Bee AI',
+      status: 'draft',
+      enrolled_at: '2025-08-17T21:33:02.076+00:00'
+    }
+  ]
+}
+Final consolidated students: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "student_code": "DS25081701",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "total_courses": 1,
+    "active_courses": 1,
+    "completed_courses": 0,
+    "overall_progress": 0,
+    "overall_grade": null,
+    "latest_activity": null,
+    "first_enrollment": "2025-08-17T21:33:02.076Z",
+    "courses": [
+      {
+        "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "title": "Bee AI",
+        "status": "draft",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00"
+      }
+    ]
+  }
+]
+Fetching consolidated student data...
+Raw student data: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "student_code": "DS25081701",
+    "password_hash": "$2b$10$o99afrYADxsR9OgXoYIJAOx1JiS27NC.zPbhGqao9YEK77vuLbJIS",
+    "first_name": "Damnada",
+    "last_name": "Seun",
+    "phone": null,
+    "date_of_birth": null,
+    "grade_level": null,
+    "parent_email": null,
+    "emergency_contact": null,
+    "notes": null,
+    "address": null,
+    "city": null,
+    "state": null,
+    "country": null,
+    "postal_code": null,
+    "emergency_contact_name": null,
+    "emergency_contact_phone": null,
+    "emergency_contact_relationship": null,
+    "academic_level": null,
+    "major": null,
+    "minor": null,
+    "graduation_year": null,
+    "gpa": null,
+    "academic_interests": null,
+    "career_goals": null,
+    "bio": null,
+    "avatar_url": null,
+    "linkedin_url": null,
+    "github_url": null,
+    "portfolio_url": null,
+    "timezone": null,
+    "preferred_language": null,
+    "accessibility_needs": null,
+    "dietary_restrictions": null,
+    "phone_number": null,
+    "enrollments": [
+      {
+        "id": "c1f017b9-21a7-43d4-9e5c-edf8c88699a4",
+        "status": "active",
+        "courses": {
+          "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+          "title": "Bee AI",
+          "status": "draft",
+          "description": "Test course 2"
+        },
+        "course_id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00",
+        "last_activity": "2025-08-17T21:33:02.253057+00:00",
+        "grade_percentage": null,
+        "progress_percentage": 0
+      }
+    ]
+  }
+]
+Processing student lxbrw23+4@gmail.com with 1 enrollments
+Getting progress for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36
+Progress error for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.calculate_student_progress with parameters p_course_id, p_student_email or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.calculate_student_progress(p_course_id, p_student_email) in the schema cache'
+}
+Final result for lxbrw23+4@gmail.com: {
+  id: '0d08ff74-11f2-42d9-88a8-e71689bb4c75',
+  email: 'lxbrw23+4@gmail.com',
+  name: 'Damnada Seun',
+  status: 'active',
+  student_code: 'DS25081701',
+  created_at: '2025-08-17T21:33:01.842+00:00',
+  total_courses: 1,
+  active_courses: 1,
+  completed_courses: 0,
+  overall_progress: 0,
+  overall_grade: null,
+  latest_activity: null,
+  first_enrollment: '2025-08-17T21:33:02.076Z',
+  courses: [
+    {
+      id: '56881257-6dd1-420a-a30e-d553045a3f36',
+      title: 'Bee AI',
+      status: 'draft',
+      enrolled_at: '2025-08-17T21:33:02.076+00:00'
+    }
+  ]
+}
+Final consolidated students: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "student_code": "DS25081701",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "total_courses": 1,
+    "active_courses": 1,
+    "completed_courses": 0,
+    "overall_progress": 0,
+    "overall_grade": null,
+    "latest_activity": null,
+    "first_enrollment": "2025-08-17T21:33:02.076Z",
+    "courses": [
+      {
+        "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "title": "Bee AI",
+        "status": "draft",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00"
+      }
+    ]
+  }
+]
+Fetching consolidated student data...
+Raw student data: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "student_code": "DS25081701",
+    "password_hash": "$2b$10$o99afrYADxsR9OgXoYIJAOx1JiS27NC.zPbhGqao9YEK77vuLbJIS",
+    "first_name": "Damnada",
+    "last_name": "Seun",
+    "phone": null,
+    "date_of_birth": null,
+    "grade_level": null,
+    "parent_email": null,
+    "emergency_contact": null,
+    "notes": null,
+    "address": null,
+    "city": null,
+    "state": null,
+    "country": null,
+    "postal_code": null,
+    "emergency_contact_name": null,
+    "emergency_contact_phone": null,
+    "emergency_contact_relationship": null,
+    "academic_level": null,
+    "major": null,
+    "minor": null,
+    "graduation_year": null,
+    "gpa": null,
+    "academic_interests": null,
+    "career_goals": null,
+    "bio": null,
+    "avatar_url": null,
+    "linkedin_url": null,
+    "github_url": null,
+    "portfolio_url": null,
+    "timezone": null,
+    "preferred_language": null,
+    "accessibility_needs": null,
+    "dietary_restrictions": null,
+    "phone_number": null,
+    "enrollments": [
+      {
+        "id": "c1f017b9-21a7-43d4-9e5c-edf8c88699a4",
+        "status": "active",
+        "courses": {
+          "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+          "title": "Bee AI",
+          "status": "draft",
+          "description": "Test course 2"
+        },
+        "course_id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00",
+        "last_activity": "2025-08-17T21:33:02.253057+00:00",
+        "grade_percentage": null,
+        "progress_percentage": 0
+      }
+    ]
+  }
+]
+Processing student lxbrw23+4@gmail.com with 1 enrollments
+Getting progress for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36
+Progress error for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.calculate_student_progress with parameters p_course_id, p_student_email or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.calculate_student_progress(p_course_id, p_student_email) in the schema cache'
+}
+Final result for lxbrw23+4@gmail.com: {
+  id: '0d08ff74-11f2-42d9-88a8-e71689bb4c75',
+  email: 'lxbrw23+4@gmail.com',
+  name: 'Damnada Seun',
+  status: 'active',
+  student_code: 'DS25081701',
+  created_at: '2025-08-17T21:33:01.842+00:00',
+  total_courses: 1,
+  active_courses: 1,
+  completed_courses: 0,
+  overall_progress: 0,
+  overall_grade: null,
+  latest_activity: null,
+  first_enrollment: '2025-08-17T21:33:02.076Z',
+  courses: [
+    {
+      id: '56881257-6dd1-420a-a30e-d553045a3f36',
+      title: 'Bee AI',
+      status: 'draft',
+      enrolled_at: '2025-08-17T21:33:02.076+00:00'
+    }
+  ]
+}
+Final consolidated students: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "student_code": "DS25081701",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "total_courses": 1,
+    "active_courses": 1,
+    "completed_courses": 0,
+    "overall_progress": 0,
+    "overall_grade": null,
+    "latest_activity": null,
+    "first_enrollment": "2025-08-17T21:33:02.076Z",
+    "courses": [
+      {
+        "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "title": "Bee AI",
+        "status": "draft",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00"
+      }
+    ]
+  }
+]
+Fetching consolidated student data...
+Raw student data: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "student_code": "DS25081701",
+    "password_hash": "$2b$10$o99afrYADxsR9OgXoYIJAOx1JiS27NC.zPbhGqao9YEK77vuLbJIS",
+    "first_name": "Damnada",
+    "last_name": "Seun",
+    "phone": null,
+    "date_of_birth": null,
+    "grade_level": null,
+    "parent_email": null,
+    "emergency_contact": null,
+    "notes": null,
+    "address": null,
+    "city": null,
+    "state": null,
+    "country": null,
+    "postal_code": null,
+    "emergency_contact_name": null,
+    "emergency_contact_phone": null,
+    "emergency_contact_relationship": null,
+    "academic_level": null,
+    "major": null,
+    "minor": null,
+    "graduation_year": null,
+    "gpa": null,
+    "academic_interests": null,
+    "career_goals": null,
+    "bio": null,
+    "avatar_url": null,
+    "linkedin_url": null,
+    "github_url": null,
+    "portfolio_url": null,
+    "timezone": null,
+    "preferred_language": null,
+    "accessibility_needs": null,
+    "dietary_restrictions": null,
+    "phone_number": null,
+    "enrollments": [
+      {
+        "id": "c1f017b9-21a7-43d4-9e5c-edf8c88699a4",
+        "status": "active",
+        "courses": {
+          "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+          "title": "Bee AI",
+          "status": "draft",
+          "description": "Test course 2"
+        },
+        "course_id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00",
+        "last_activity": "2025-08-17T21:33:02.253057+00:00",
+        "grade_percentage": null,
+        "progress_percentage": 0
+      }
+    ]
+  }
+]
+Processing student lxbrw23+4@gmail.com with 1 enrollments
+Getting progress for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36
+Progress error for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.calculate_student_progress with parameters p_course_id, p_student_email or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.calculate_student_progress(p_course_id, p_student_email) in the schema cache'
+}
+Final result for lxbrw23+4@gmail.com: {
+  id: '0d08ff74-11f2-42d9-88a8-e71689bb4c75',
+  email: 'lxbrw23+4@gmail.com',
+  name: 'Damnada Seun',
+  status: 'active',
+  student_code: 'DS25081701',
+  created_at: '2025-08-17T21:33:01.842+00:00',
+  total_courses: 1,
+  active_courses: 1,
+  completed_courses: 0,
+  overall_progress: 0,
+  overall_grade: null,
+  latest_activity: null,
+  first_enrollment: '2025-08-17T21:33:02.076Z',
+  courses: [
+    {
+      id: '56881257-6dd1-420a-a30e-d553045a3f36',
+      title: 'Bee AI',
+      status: 'draft',
+      enrolled_at: '2025-08-17T21:33:02.076+00:00'
+    }
+  ]
+}
+Final consolidated students: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "student_code": "DS25081701",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "total_courses": 1,
+    "active_courses": 1,
+    "completed_courses": 0,
+    "overall_progress": 0,
+    "overall_grade": null,
+    "latest_activity": null,
+    "first_enrollment": "2025-08-17T21:33:02.076Z",
+    "courses": [
+      {
+        "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "title": "Bee AI",
+        "status": "draft",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00"
+      }
+    ]
+  }
+]
+Fetching consolidated student data...
+Raw student data: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "student_code": "DS25081701",
+    "password_hash": "$2b$10$o99afrYADxsR9OgXoYIJAOx1JiS27NC.zPbhGqao9YEK77vuLbJIS",
+    "first_name": "Damnada",
+    "last_name": "Seun",
+    "phone": null,
+    "date_of_birth": null,
+    "grade_level": null,
+    "parent_email": null,
+    "emergency_contact": null,
+    "notes": null,
+    "address": null,
+    "city": null,
+    "state": null,
+    "country": null,
+    "postal_code": null,
+    "emergency_contact_name": null,
+    "emergency_contact_phone": null,
+    "emergency_contact_relationship": null,
+    "academic_level": null,
+    "major": null,
+    "minor": null,
+    "graduation_year": null,
+    "gpa": null,
+    "academic_interests": null,
+    "career_goals": null,
+    "bio": null,
+    "avatar_url": null,
+    "linkedin_url": null,
+    "github_url": null,
+    "portfolio_url": null,
+    "timezone": null,
+    "preferred_language": null,
+    "accessibility_needs": null,
+    "dietary_restrictions": null,
+    "phone_number": null,
+    "enrollments": [
+      {
+        "id": "c1f017b9-21a7-43d4-9e5c-edf8c88699a4",
+        "status": "active",
+        "courses": {
+          "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+          "title": "Bee AI",
+          "status": "draft",
+          "description": "Test course 2"
+        },
+        "course_id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00",
+        "last_activity": "2025-08-17T21:33:02.253057+00:00",
+        "grade_percentage": null,
+        "progress_percentage": 0
+      }
+    ]
+  }
+]
+Processing student lxbrw23+4@gmail.com with 1 enrollments
+Getting progress for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36
+Progress error for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.calculate_student_progress with parameters p_course_id, p_student_email or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.calculate_student_progress(p_course_id, p_student_email) in the schema cache'
+}
+Final result for lxbrw23+4@gmail.com: {
+  id: '0d08ff74-11f2-42d9-88a8-e71689bb4c75',
+  email: 'lxbrw23+4@gmail.com',
+  name: 'Damnada Seun',
+  status: 'active',
+  student_code: 'DS25081701',
+  created_at: '2025-08-17T21:33:01.842+00:00',
+  total_courses: 1,
+  active_courses: 1,
+  completed_courses: 0,
+  overall_progress: 0,
+  overall_grade: null,
+  latest_activity: null,
+  first_enrollment: '2025-08-17T21:33:02.076Z',
+  courses: [
+    {
+      id: '56881257-6dd1-420a-a30e-d553045a3f36',
+      title: 'Bee AI',
+      status: 'draft',
+      enrolled_at: '2025-08-17T21:33:02.076+00:00'
+    }
+  ]
+}
+Final consolidated students: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "student_code": "DS25081701",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "total_courses": 1,
+    "active_courses": 1,
+    "completed_courses": 0,
+    "overall_progress": 0,
+    "overall_grade": null,
+    "latest_activity": null,
+    "first_enrollment": "2025-08-17T21:33:02.076Z",
+    "courses": [
+      {
+        "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "title": "Bee AI",
+        "status": "draft",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00"
+      }
+    ]
+  }
+]
+Fetching consolidated student data...
+Raw student data: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "student_code": "DS25081701",
+    "password_hash": "$2b$10$o99afrYADxsR9OgXoYIJAOx1JiS27NC.zPbhGqao9YEK77vuLbJIS",
+    "first_name": "Damnada",
+    "last_name": "Seun",
+    "phone": null,
+    "date_of_birth": null,
+    "grade_level": null,
+    "parent_email": null,
+    "emergency_contact": null,
+    "notes": null,
+    "address": null,
+    "city": null,
+    "state": null,
+    "country": null,
+    "postal_code": null,
+    "emergency_contact_name": null,
+    "emergency_contact_phone": null,
+    "emergency_contact_relationship": null,
+    "academic_level": null,
+    "major": null,
+    "minor": null,
+    "graduation_year": null,
+    "gpa": null,
+    "academic_interests": null,
+    "career_goals": null,
+    "bio": null,
+    "avatar_url": null,
+    "linkedin_url": null,
+    "github_url": null,
+    "portfolio_url": null,
+    "timezone": null,
+    "preferred_language": null,
+    "accessibility_needs": null,
+    "dietary_restrictions": null,
+    "phone_number": null,
+    "enrollments": [
+      {
+        "id": "c1f017b9-21a7-43d4-9e5c-edf8c88699a4",
+        "status": "active",
+        "courses": {
+          "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+          "title": "Bee AI",
+          "status": "draft",
+          "description": "Test course 2"
+        },
+        "course_id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00",
+        "last_activity": "2025-08-17T21:33:02.253057+00:00",
+        "grade_percentage": null,
+        "progress_percentage": 0
+      }
+    ]
+  }
+]
+Processing student lxbrw23+4@gmail.com with 1 enrollments
+Getting progress for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36
+Progress error for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.calculate_student_progress with parameters p_course_id, p_student_email or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.calculate_student_progress(p_course_id, p_student_email) in the schema cache'
+}
+Final result for lxbrw23+4@gmail.com: {
+  id: '0d08ff74-11f2-42d9-88a8-e71689bb4c75',
+  email: 'lxbrw23+4@gmail.com',
+  name: 'Damnada Seun',
+  status: 'active',
+  student_code: 'DS25081701',
+  created_at: '2025-08-17T21:33:01.842+00:00',
+  total_courses: 1,
+  active_courses: 1,
+  completed_courses: 0,
+  overall_progress: 0,
+  overall_grade: null,
+  latest_activity: null,
+  first_enrollment: '2025-08-17T21:33:02.076Z',
+  courses: [
+    {
+      id: '56881257-6dd1-420a-a30e-d553045a3f36',
+      title: 'Bee AI',
+      status: 'draft',
+      enrolled_at: '2025-08-17T21:33:02.076+00:00'
+    }
+  ]
+}
+Final consolidated students: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "student_code": "DS25081701",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "total_courses": 1,
+    "active_courses": 1,
+    "completed_courses": 0,
+    "overall_progress": 0,
+    "overall_grade": null,
+    "latest_activity": null,
+    "first_enrollment": "2025-08-17T21:33:02.076Z",
+    "courses": [
+      {
+        "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "title": "Bee AI",
+        "status": "draft",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00"
+      }
+    ]
+  }
+]
+Fetching consolidated student data...
+Fetching consolidated student data...
+Raw student data: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "student_code": "DS25081701",
+    "password_hash": "$2b$10$o99afrYADxsR9OgXoYIJAOx1JiS27NC.zPbhGqao9YEK77vuLbJIS",
+    "first_name": "Damnada",
+    "last_name": "Seun",
+    "phone": null,
+    "date_of_birth": null,
+    "grade_level": null,
+    "parent_email": null,
+    "emergency_contact": null,
+    "notes": null,
+    "address": null,
+    "city": null,
+    "state": null,
+    "country": null,
+    "postal_code": null,
+    "emergency_contact_name": null,
+    "emergency_contact_phone": null,
+    "emergency_contact_relationship": null,
+    "academic_level": null,
+    "major": null,
+    "minor": null,
+    "graduation_year": null,
+    "gpa": null,
+    "academic_interests": null,
+    "career_goals": null,
+    "bio": null,
+    "avatar_url": null,
+    "linkedin_url": null,
+    "github_url": null,
+    "portfolio_url": null,
+    "timezone": null,
+    "preferred_language": null,
+    "accessibility_needs": null,
+    "dietary_restrictions": null,
+    "phone_number": null,
+    "enrollments": [
+      {
+        "id": "c1f017b9-21a7-43d4-9e5c-edf8c88699a4",
+        "status": "active",
+        "courses": {
+          "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+          "title": "Bee AI",
+          "status": "draft",
+          "description": "Test course 2"
+        },
+        "course_id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00",
+        "last_activity": "2025-08-17T21:33:02.253057+00:00",
+        "grade_percentage": null,
+        "progress_percentage": 0
+      }
+    ]
+  }
+]
+Processing student lxbrw23+4@gmail.com with 1 enrollments
+Getting progress for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36
+Raw student data: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "student_code": "DS25081701",
+    "password_hash": "$2b$10$o99afrYADxsR9OgXoYIJAOx1JiS27NC.zPbhGqao9YEK77vuLbJIS",
+    "first_name": "Damnada",
+    "last_name": "Seun",
+    "phone": null,
+    "date_of_birth": null,
+    "grade_level": null,
+    "parent_email": null,
+    "emergency_contact": null,
+    "notes": null,
+    "address": null,
+    "city": null,
+    "state": null,
+    "country": null,
+    "postal_code": null,
+    "emergency_contact_name": null,
+    "emergency_contact_phone": null,
+    "emergency_contact_relationship": null,
+    "academic_level": null,
+    "major": null,
+    "minor": null,
+    "graduation_year": null,
+    "gpa": null,
+    "academic_interests": null,
+    "career_goals": null,
+    "bio": null,
+    "avatar_url": null,
+    "linkedin_url": null,
+    "github_url": null,
+    "portfolio_url": null,
+    "timezone": null,
+    "preferred_language": null,
+    "accessibility_needs": null,
+    "dietary_restrictions": null,
+    "phone_number": null,
+    "enrollments": [
+      {
+        "id": "c1f017b9-21a7-43d4-9e5c-edf8c88699a4",
+        "status": "active",
+        "courses": {
+          "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+          "title": "Bee AI",
+          "status": "draft",
+          "description": "Test course 2"
+        },
+        "course_id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00",
+        "last_activity": "2025-08-17T21:33:02.253057+00:00",
+        "grade_percentage": null,
+        "progress_percentage": 0
+      }
+    ]
+  }
+]
+Processing student lxbrw23+4@gmail.com with 1 enrollments
+Getting progress for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36
+Progress error for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.calculate_student_progress with parameters p_course_id, p_student_email or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.calculate_student_progress(p_course_id, p_student_email) in the schema cache'
+}
+Progress error for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.calculate_student_progress with parameters p_course_id, p_student_email or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.calculate_student_progress(p_course_id, p_student_email) in the schema cache'
+}
+Final result for lxbrw23+4@gmail.com: {
+  id: '0d08ff74-11f2-42d9-88a8-e71689bb4c75',
+  email: 'lxbrw23+4@gmail.com',
+  name: 'Damnada Seun',
+  status: 'active',
+  student_code: 'DS25081701',
+  created_at: '2025-08-17T21:33:01.842+00:00',
+  total_courses: 1,
+  active_courses: 1,
+  completed_courses: 0,
+  overall_progress: 0,
+  overall_grade: null,
+  latest_activity: null,
+  first_enrollment: '2025-08-17T21:33:02.076Z',
+  courses: [
+    {
+      id: '56881257-6dd1-420a-a30e-d553045a3f36',
+      title: 'Bee AI',
+      status: 'draft',
+      enrolled_at: '2025-08-17T21:33:02.076+00:00'
+    }
+  ]
+}
+Final consolidated students: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "student_code": "DS25081701",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "total_courses": 1,
+    "active_courses": 1,
+    "completed_courses": 0,
+    "overall_progress": 0,
+    "overall_grade": null,
+    "latest_activity": null,
+    "first_enrollment": "2025-08-17T21:33:02.076Z",
+    "courses": [
+      {
+        "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "title": "Bee AI",
+        "status": "draft",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00"
+      }
+    ]
+  }
+]
+Final result for lxbrw23+4@gmail.com: {
+  id: '0d08ff74-11f2-42d9-88a8-e71689bb4c75',
+  email: 'lxbrw23+4@gmail.com',
+  name: 'Damnada Seun',
+  status: 'active',
+  student_code: 'DS25081701',
+  created_at: '2025-08-17T21:33:01.842+00:00',
+  total_courses: 1,
+  active_courses: 1,
+  completed_courses: 0,
+  overall_progress: 0,
+  overall_grade: null,
+  latest_activity: null,
+  first_enrollment: '2025-08-17T21:33:02.076Z',
+  courses: [
+    {
+      id: '56881257-6dd1-420a-a30e-d553045a3f36',
+      title: 'Bee AI',
+      status: 'draft',
+      enrolled_at: '2025-08-17T21:33:02.076+00:00'
+    }
+  ]
+}
+Final consolidated students: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "student_code": "DS25081701",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "total_courses": 1,
+    "active_courses": 1,
+    "completed_courses": 0,
+    "overall_progress": 0,
+    "overall_grade": null,
+    "latest_activity": null,
+    "first_enrollment": "2025-08-17T21:33:02.076Z",
+    "courses": [
+      {
+        "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "title": "Bee AI",
+        "status": "draft",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00"
+      }
+    ]
+  }
+]
+Fetching consolidated student data...
+Raw student data: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "student_code": "DS25081701",
+    "password_hash": "$2b$10$o99afrYADxsR9OgXoYIJAOx1JiS27NC.zPbhGqao9YEK77vuLbJIS",
+    "first_name": "Damnada",
+    "last_name": "Seun",
+    "phone": null,
+    "date_of_birth": null,
+    "grade_level": null,
+    "parent_email": null,
+    "emergency_contact": null,
+    "notes": null,
+    "address": null,
+    "city": null,
+    "state": null,
+    "country": null,
+    "postal_code": null,
+    "emergency_contact_name": null,
+    "emergency_contact_phone": null,
+    "emergency_contact_relationship": null,
+    "academic_level": null,
+    "major": null,
+    "minor": null,
+    "graduation_year": null,
+    "gpa": null,
+    "academic_interests": null,
+    "career_goals": null,
+    "bio": null,
+    "avatar_url": null,
+    "linkedin_url": null,
+    "github_url": null,
+    "portfolio_url": null,
+    "timezone": null,
+    "preferred_language": null,
+    "accessibility_needs": null,
+    "dietary_restrictions": null,
+    "phone_number": null,
+    "enrollments": [
+      {
+        "id": "c1f017b9-21a7-43d4-9e5c-edf8c88699a4",
+        "status": "active",
+        "courses": {
+          "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+          "title": "Bee AI",
+          "status": "draft",
+          "description": "Test course 2"
+        },
+        "course_id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00",
+        "last_activity": "2025-08-17T21:33:02.253057+00:00",
+        "grade_percentage": null,
+        "progress_percentage": 0
+      }
+    ]
+  }
+]
+Processing student lxbrw23+4@gmail.com with 1 enrollments
+Getting progress for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36
+Progress error for lxbrw23+4@gmail.com in course 56881257-6dd1-420a-a30e-d553045a3f36: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.calculate_student_progress with parameters p_course_id, p_student_email or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.calculate_student_progress(p_course_id, p_student_email) in the schema cache'
+}
+Final result for lxbrw23+4@gmail.com: {
+  id: '0d08ff74-11f2-42d9-88a8-e71689bb4c75',
+  email: 'lxbrw23+4@gmail.com',
+  name: 'Damnada Seun',
+  status: 'active',
+  student_code: 'DS25081701',
+  created_at: '2025-08-17T21:33:01.842+00:00',
+  total_courses: 1,
+  active_courses: 1,
+  completed_courses: 0,
+  overall_progress: 0,
+  overall_grade: null,
+  latest_activity: null,
+  first_enrollment: '2025-08-17T21:33:02.076Z',
+  courses: [
+    {
+      id: '56881257-6dd1-420a-a30e-d553045a3f36',
+      title: 'Bee AI',
+      status: 'draft',
+      enrolled_at: '2025-08-17T21:33:02.076+00:00'
+    }
+  ]
+}
+Final consolidated students: [
+  {
+    "id": "0d08ff74-11f2-42d9-88a8-e71689bb4c75",
+    "email": "lxbrw23+4@gmail.com",
+    "name": "Damnada Seun",
+    "status": "active",
+    "student_code": "DS25081701",
+    "created_at": "2025-08-17T21:33:01.842+00:00",
+    "total_courses": 1,
+    "active_courses": 1,
+    "completed_courses": 0,
+    "overall_progress": 0,
+    "overall_grade": null,
+    "latest_activity": null,
+    "first_enrollment": "2025-08-17T21:33:02.076Z",
+    "courses": [
+      {
+        "id": "56881257-6dd1-420a-a30e-d553045a3f36",
+        "title": "Bee AI",
+        "status": "draft",
+        "enrolled_at": "2025-08-17T21:33:02.076+00:00"
+      }
+    ]
+  }
+]
