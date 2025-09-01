@@ -11,7 +11,7 @@ router.get('/:userEmail', requireAuth, async (req, res) => {
     const { userEmail } = req.params;
     const { limit = 50 } = req.query;
 
-    if (user.email !== userEmail) {
+    if (user?.email !== userEmail) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -47,7 +47,7 @@ router.post('/:notificationId/read', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Notification not found' });
     }
 
-    if (notification.user_email !== user.email) {
+    if (notification.user_email !== user?.email) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -71,7 +71,7 @@ router.post('/:userEmail/read-all', requireAuth, async (req, res) => {
     const { user } = req;
     const { userEmail } = req.params;
 
-    if (user.email !== userEmail) {
+    if (user?.email !== userEmail) {
       return res.status(403).json({ error: 'Access denied' });
     }
 

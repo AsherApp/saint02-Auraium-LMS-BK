@@ -265,12 +265,12 @@ export default function NewTopicPage() {
               <Button
                 type="submit"
                 disabled={loading || !formData.title.trim() || !formData.content.trim() || !formData.category_id}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                variant="default"
               >
                 {loading ? "Creating..." : "Create Topic"}
               </Button>
               <Link href="/forum">
-                <Button variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                <Button variant="outline">
                   Cancel
                 </Button>
               </Link>

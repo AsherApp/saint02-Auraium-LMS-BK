@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { FluidTabs, useFluidTabs } from "@/components/ui/fluid-tabs"
 import { useAuthStore } from "@/store/auth-store"
 import { http } from "@/services/http"
 import { useToast } from "@/hooks/use-toast"
@@ -166,7 +167,7 @@ export default function ForumPage() {
         </div>
         {user?.role === 'teacher' && (
           <Link href="/forum/new-topic">
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Button variant="default">
               <Plus className="h-4 w-4 mr-2" />
               New Discussion
             </Button>
@@ -240,20 +241,37 @@ export default function ForumPage() {
         </div>
       </GlassCard>
 
-      {/* Discussions Tabs */}
+      {/* Forum Navigation */}
+      <div className="w-full flex justify-center py-4">
+        <FluidTabs
+          tabs={[
+            { 
+              id: 'all', 
+              label: 'All Discussions', 
+              icon: <MessageCircle className="h-4 w-4" />, 
+              badge: discussions?.length || 0 
+            },
+            { 
+              id: 'pinned', 
+              label: 'Pinned', 
+              icon: <Pin className="h-4 w-4" />, 
+              badge: discussions?.filter(d => d.is_pinned)?.length || 0 
+            },
+            { 
+              id: 'locked', 
+              label: 'Locked', 
+              icon: <Eye className="h-4 w-4" />, 
+              badge: discussions?.filter(d => d.is_locked)?.length || 0 
+            }
+          ]}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          variant="default"
+          width="wide"
+        />
+      </div>
+
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="bg-white/5 border-white/10">
-          <TabsTrigger value="all" className="text-white data-[state=active]:bg-white/10">
-            All Discussions
-          </TabsTrigger>
-          <TabsTrigger value="pinned" className="text-white data-[state=active]:bg-white/10">
-            <Pin className="h-4 w-4 mr-2" />
-            Pinned
-          </TabsTrigger>
-          <TabsTrigger value="locked" className="text-white data-[state=active]:bg-white/10">
-            Locked
-          </TabsTrigger>
-        </TabsList>
 
         <TabsContent value={activeTab} className="space-y-4">
           {loading ? (
@@ -272,7 +290,7 @@ export default function ForumPage() {
               </p>
               {user?.role === 'teacher' && (
                 <Link href="/forum/new-topic">
-                  <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                  <Button variant="default">
                     <Plus className="h-4 w-4 mr-2" />
                     Create First Discussion
                   </Button>

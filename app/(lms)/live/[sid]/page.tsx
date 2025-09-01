@@ -195,7 +195,7 @@ export default function LiveSessionPage() {
           <div className="text-red-300">Error: {error}</div>
           <div className="flex gap-3 mt-3">
             <Button 
-              className="bg-blue-600/80 hover:bg-blue-600 text-white" 
+              variant="default" 
               onClick={() => window.location.reload()}
             >
               <RefreshCw className="h-4 w-4 mr-2" />
@@ -231,13 +231,13 @@ export default function LiveSessionPage() {
         : "bg-white/10 text-slate-200"
 
   return (
-    <main className="p-4 md:p-6 space-y-4">
-      <GlassCard className="p-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+    <main className="p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 max-w-full overflow-hidden">
+      <GlassCard className="p-3 sm:p-4 md:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <Button
               variant="secondary"
-              className="bg-white/10 text-white hover:bg-white/20"
+              size="sm"
               onClick={() => router.back()}
             >
               <ArrowLeft className="h-4 w-4 mr-1" />
@@ -265,7 +265,7 @@ export default function LiveSessionPage() {
                   <Button
                     onClick={handleStartSession}
                     disabled={startingSession}
-                    className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1 h-8"
+                    variant="success" size="sm"
                   >
                     {startingSession ? 'Starting...' : 'Start Class'}
                   </Button>
@@ -275,7 +275,7 @@ export default function LiveSessionPage() {
                   <Button
                     onClick={handleEndSession}
                     disabled={endingSession}
-                    className="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1 h-8"
+                    variant="destructive" size="sm"
                   >
                     {endingSession ? 'Ending...' : 'End Class'}
                   </Button>
@@ -314,7 +314,7 @@ export default function LiveSessionPage() {
               This live session has ended.
             </p>
             <Button 
-              className="bg-white/10 text-white hover:bg-white/20"
+              variant="secondary"
               onClick={() => router.back()}
             >
               Go Back
@@ -409,7 +409,7 @@ export default function LiveSessionPage() {
                           <Button
                             size="sm"
                             onClick={() => setFullScreenWhiteboard(true)}
-                            className="bg-blue-600/80 hover:bg-blue-600 text-white"
+                            variant="default"
                           >
                             <Palette className="h-4 w-4 mr-1" />
                             Open Full Screen

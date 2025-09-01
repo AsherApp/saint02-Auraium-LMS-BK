@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { FluidTabs, useFluidTabs } from "@/components/ui/fluid-tabs"
 import { useAuthStore } from "@/store/auth-store"
 import { http } from "@/services/http"
 import { useToast } from "@/hooks/use-toast"
@@ -463,27 +464,43 @@ export default function StudentDetailPage() {
         </div>
       </GlassCard>
 
-      {/* Tabs */}
+      {/* Student Management Navigation */}
+      <div className="w-full flex justify-center py-4">
+        <FluidTabs
+          tabs={[
+            { 
+              id: 'overview', 
+              label: 'Overview', 
+              icon: <Eye className="h-4 w-4" />
+            },
+            { 
+              id: 'courses', 
+              label: 'Courses', 
+              icon: <BookOpen className="h-4 w-4" />, 
+              badge: enrollments?.length || 0 
+            },
+            { 
+              id: 'assignments', 
+              label: 'Assignments', 
+              icon: <FileText className="h-4 w-4" />, 
+              badge: assignments?.length || 0 
+            },
+            { 
+              id: 'activities', 
+              label: 'Activities', 
+              icon: <Activity className="h-4 w-4" />, 
+              badge: activities?.length || 0 
+            }
+          ]}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          variant="default"
+          width="wide"
+        />
+      </div>
+
       <GlassCard className="p-0 overflow-hidden">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4 bg-white/10 border-b border-white/20 rounded-none">
-            <TabsTrigger value="overview" className="data-[state=active]:bg-white/20 rounded-none">
-              <Eye className="h-4 w-4 mr-1" />
-              Overview
-            </TabsTrigger>
-            <TabsTrigger value="courses" className="data-[state=active]:bg-white/20 rounded-none">
-              <BookOpen className="h-4 w-4 mr-1" />
-              Courses
-            </TabsTrigger>
-            <TabsTrigger value="assignments" className="data-[state=active]:bg-white/20 rounded-none">
-              <FileText className="h-4 w-4 mr-1" />
-              Assignments
-            </TabsTrigger>
-            <TabsTrigger value="activities" className="data-[state=active]:bg-white/20 rounded-none">
-              <Activity className="h-4 w-4 mr-1" />
-              Activities
-            </TabsTrigger>
-          </TabsList>
 
           <TabsContent value="overview" className="p-6">
             <div className="space-y-6">

@@ -29,17 +29,17 @@ export function Hero() {
         <div className="absolute bottom-1/3 right-1/4 w-2 h-2 bg-cyan-300/20 rounded-full animate-bounce delay-1500"></div>
       </div>
 
-      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="text-center space-y-8">
+      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 xl:px-12">
+        <div className="text-center space-y-6 sm:space-y-8">
           {/* Main Hero Content */}
-          <div className="space-y-6">
-            <h1 className="text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tight text-white animate-fade-in">
+          <div className="space-y-4 sm:space-y-6">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl 2xl:text-9xl font-extrabold tracking-tight text-white animate-fade-in">
               Auraium
               <span className="bg-gradient-to-r from-blue-400 via-purple-500 to-cyan-400 bg-clip-text text-transparent">
                 LMS
               </span>
             </h1>
-            <p className="text-slate-300 text-xl md:text-2xl max-w-3xl mx-auto leading-relaxed animate-fade-in-delay">
+            <p className="text-slate-300 text-lg sm:text-xl md:text-2xl max-w-2xl sm:max-w-3xl mx-auto leading-relaxed animate-fade-in-delay px-2">
               Transform education with our modern learning platform. 
               <span className="text-blue-300 font-semibold"> Teachers</span> create engaging courses, 
               <span className="text-purple-300 font-semibold"> Students</span> learn at their own pace.

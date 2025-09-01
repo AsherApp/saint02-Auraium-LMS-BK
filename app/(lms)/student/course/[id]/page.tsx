@@ -7,6 +7,7 @@ import { useMemo, useState, useEffect } from "react"
 import { useParams } from "next/navigation"
 import { GlassCard } from "@/components/shared/glass-card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { FluidTabs, useFluidTabs } from "@/components/ui/fluid-tabs"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { BookOpen, PlayCircle, CheckCircle2, ClipboardList, FileText, MessageSquare, AlarmClock } from "lucide-react"
@@ -171,19 +172,26 @@ export default function StudentCourseDetailPage() {
         </div>
       </GlassCard>
 
-      {/* Tabs */}
+      {/* Course Navigation */}
       <div className="w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] bg-inherit">
         <div className="px-6">
+          <div className="w-full flex justify-center py-4">
+            <FluidTabs
+              tabs={[
+                { id: 'overview', label: 'Overview', icon: <BookOpen className="h-4 w-4" /> },
+                { id: 'curriculum', label: 'Curriculum', icon: <PlayCircle className="h-4 w-4" />, badge: modules?.length || 0 },
+                { id: 'assignments', label: 'Assignments', icon: <ClipboardList className="h-4 w-4" />, badge: assignments?.length || 0 },
+                { id: 'discussions', label: 'Discussions', icon: <MessageSquare className="h-4 w-4" /> },
+                { id: 'resources', label: 'Resources', icon: <FileText className="h-4 w-4" /> }
+              ]}
+              activeTab="curriculum"
+              onTabChange={() => {}}
+              variant="default"
+              width="content-match"
+            />
+          </div>
+          
           <Tabs defaultValue="curriculum" className="w-full">
-            <div className="w-full flex justify-center py-4">
-            <TabsList className="bg-white/10">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="curriculum">Curriculum</TabsTrigger>
-          <TabsTrigger value="assignments">Assignments</TabsTrigger>
-          <TabsTrigger value="discussions">Discussions</TabsTrigger>
-          <TabsTrigger value="resources">Resources</TabsTrigger>
-            </TabsList>
-            </div>
 
             <TabsContent value="overview" className="mt-4">
               <div className="w-full">

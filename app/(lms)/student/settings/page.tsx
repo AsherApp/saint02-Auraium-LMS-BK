@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { FluidTabs, useFluidTabs } from "@/components/ui/fluid-tabs"
 import { useAuthStore } from "@/store/auth-store"
 import { useSettingsFn } from "@/services/settings/hook"
 import { useToast } from "@/hooks/use-toast"
@@ -182,31 +183,44 @@ export default function StudentSettingsPage() {
         </Button>
       </div>
 
+      {/* Student Settings Navigation */}
+      <div className="w-full flex justify-center py-4">
+        <FluidTabs
+          tabs={[
+            { 
+              id: 'appearance', 
+              label: 'Appearance', 
+              icon: <Palette className="h-4 w-4" />
+            },
+            { 
+              id: 'notifications', 
+              label: 'Notifications', 
+              icon: <Bell className="h-4 w-4" />
+            },
+            { 
+              id: 'privacy', 
+              label: 'Privacy', 
+              icon: <Eye className="h-4 w-4" />
+            },
+            { 
+              id: 'preferences', 
+              label: 'Preferences', 
+              icon: <Globe className="h-4 w-4" />
+            },
+            { 
+              id: 'security', 
+              label: 'Security', 
+              icon: <GraduationCap className="h-4 w-4" />
+            }
+          ]}
+          activeTab="appearance"
+          onTabChange={() => {}}
+          variant="default"
+          width="content-match"
+        />
+      </div>
+
       <Tabs defaultValue="appearance" className="w-full">
-        <div className="w-full flex justify-center py-4">
-          <TabsList className="bg-white/10">
-            <TabsTrigger value="appearance" className="text-white data-[state=active]:bg-blue-600/80">
-              <Palette className="mr-2 h-4 w-4" />
-              Appearance
-            </TabsTrigger>
-            <TabsTrigger value="notifications" className="text-white data-[state=active]:bg-blue-600/80">
-              <Bell className="mr-2 h-4 w-4" />
-              Notifications
-            </TabsTrigger>
-            <TabsTrigger value="privacy" className="text-white data-[state=active]:bg-blue-600/80">
-              <Eye className="mr-2 h-4 w-4" />
-              Privacy
-            </TabsTrigger>
-            <TabsTrigger value="preferences" className="text-white data-[state=active]:bg-blue-600/80">
-              <Globe className="mr-2 h-4 w-4" />
-              Preferences
-            </TabsTrigger>
-            <TabsTrigger value="security" className="text-white data-[state=active]:bg-blue-600/80">
-              <GraduationCap className="mr-2 h-4 w-4" />
-              Security
-            </TabsTrigger>
-          </TabsList>
-        </div>
 
         <TabsContent value="appearance" className="mt-6">
           <GlassCard className="p-5 space-y-4">

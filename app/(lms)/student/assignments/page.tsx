@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { FluidTabs, useFluidTabs } from "@/components/ui/fluid-tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAuthStore } from "@/store/auth-store"
 import { AssignmentProAPI, type Assignment, type Submission } from "@/services/assignment-pro/api"
@@ -287,11 +288,30 @@ export default function StudentAssignmentsPage() {
         </div>
       </div>
 
+      {/* Main Navigation */}
+      <div className="flex justify-center mb-6">
+        <FluidTabs
+          tabs={[
+            { 
+              id: 'assignments', 
+              label: 'Assignments', 
+              icon: <ClipboardList className="h-4 w-4" />, 
+              badge: assignments.length 
+            },
+            { 
+              id: 'progress', 
+              label: 'My Progress', 
+              icon: <BarChart3 className="h-4 w-4" />
+            }
+          ]}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          variant="default"
+          width="wide"
+        />
+      </div>
+
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 bg-white/10">
-          <TabsTrigger value="assignments" className="text-white">Assignments</TabsTrigger>
-          <TabsTrigger value="progress" className="text-white">My Progress</TabsTrigger>
-        </TabsList>
 
         <TabsContent value="assignments" className="space-y-4">
           {/* Stats Cards */}

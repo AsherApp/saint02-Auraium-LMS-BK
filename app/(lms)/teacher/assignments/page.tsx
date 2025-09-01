@@ -32,6 +32,7 @@ import {
 import { DocumentViewer } from "@/components/shared/document-viewer"
 import { PresentationViewer } from "@/components/shared/presentation-viewer"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { FluidTabs, useFluidTabs } from "@/components/ui/fluid-tabs"
 
 type AssignmentWithStats = Assignment & {
   stats?: GradingStats
@@ -63,6 +64,12 @@ export default function TeacherAssignmentsPage() {
   const [filterType, setFilterType] = useState<"all" | "pending" | "graded" | "overdue">("all")
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [activeTab, setActiveTab] = useState<"assignments" | "submissions">("assignments")
+  
+  // Fluid tabs for main navigation
+  const mainTabs = useFluidTabs("assignments")
+  
+  // Fluid tabs for assignment filters
+  const filterTabs = useFluidTabs("all")
 
   // Check URL parameters for initial tab
   useEffect(() => {
@@ -346,18 +353,31 @@ export default function TeacherAssignmentsPage() {
         </Dialog>
       </div>
 
-      {/* Tabs */}
+      {/* Main Navigation */}
+      <div className="flex justify-center">
+        <FluidTabs
+          tabs={[
+            { 
+              id: 'assignments', 
+              label: 'Assignments', 
+              icon: <FileText className="h-4 w-4" />, 
+              badge: assignments.length 
+            },
+            { 
+              id: 'submissions', 
+              label: 'Submissions', 
+              icon: <Users className="h-4 w-4" />, 
+              badge: submissions.length 
+            }
+          ]}
+          activeTab={activeTab}
+          onTabChange={(tab) => setActiveTab(tab as "assignments" | "submissions")}
+          variant="default"
+          width="wide"
+        />
+      </div>
+
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "assignments" | "submissions")}>
-        <TabsList className="grid w-full grid-cols-2 bg-white/10 border-white/20">
-          <TabsTrigger value="assignments" className="text-slate-300 data-[state=active]:text-white data-[state=active]:bg-blue-600/80">
-            <FileText className="h-4 w-4 mr-2" />
-            Assignments ({assignments.length})
-          </TabsTrigger>
-          <TabsTrigger value="submissions" className="text-slate-300 data-[state=active]:text-white data-[state=active]:bg-blue-600/80">
-            <Users className="h-4 w-4 mr-2" />
-            Submissions ({submissions.length})
-          </TabsTrigger>
-        </TabsList>
 
         <TabsContent value="assignments" className="space-y-6">
           {/* Filters and Search */}
@@ -372,40 +392,18 @@ export default function TeacherAssignmentsPage() {
                   className="pl-10 bg-white/5 border-white/10 text-white placeholder-slate-400"
                 />
               </div>
-              <div className="flex gap-2">
-                <Button
-                  variant={filterType === "all" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setFilterType("all")}
-                  className={filterType === "all" ? "bg-blue-600/80 text-white" : "text-slate-300 hover:text-white hover:bg-white/10"}
-                >
-                  All
-                </Button>
-                <Button
-                  variant={filterType === "pending" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setFilterType("pending")}
-                  className={filterType === "pending" ? "bg-blue-600/80 text-white" : "text-slate-300 hover:text-white hover:bg-white/10"}
-                >
-                  Pending
-                </Button>
-                <Button
-                  variant={filterType === "graded" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setFilterType("graded")}
-                  className={filterType === "graded" ? "bg-blue-600/80 text-white" : "text-slate-300 hover:text-white hover:bg-white/10"}
-                >
-                  Graded
-                </Button>
-                <Button
-                  variant={filterType === "overdue" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setFilterType("overdue")}
-                  className={filterType === "overdue" ? "bg-blue-600/80 text-white" : "text-slate-300 hover:text-white hover:bg-white/10"}
-                >
-                  Overdue
-                </Button>
-              </div>
+              <FluidTabs
+                tabs={[
+                  { id: 'all', label: 'All', badge: assignments.length },
+                  { id: 'pending', label: 'Pending', badge: assignments.filter(a => !a.stats?.graded_count).length },
+                  { id: 'graded', label: 'Graded', badge: assignments.filter(a => a.stats?.graded_count).length },
+                  { id: 'overdue', label: 'Overdue', badge: assignments.filter(a => a.due_date && new Date(a.due_date) < new Date()).length }
+                ]}
+                activeTab={filterType}
+                onTabChange={(filter) => setFilterType(filter as "all" | "pending" | "graded" | "overdue")}
+                variant="compact"
+                width="wide"
+              />
             </div>
           </GlassCard>
 

@@ -125,24 +125,26 @@ export function AuthModal({ label = "Login", className, asPlainButton = false }:
     }
   }
 
+  const handleTriggerClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    console.log("AuthModal trigger clicked, current open state:", open)
+    setOpen(true)
+  }
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {asPlainButton ? (
-          <button
-            className={cn(
-              "inline-flex h-10 items-center justify-center rounded-md border border-white/20 bg-white/10 backdrop-blur px-6 text-white hover:bg-white/20 transition-all duration-200",
-              className,
-            )}
-            aria-label="Open authentication"
-          >
-            {label}
-          </button>
-        ) : (
-          <Button className={cn("bg-white/10 text-white hover:bg-white/20 transition-all duration-200", className)}>
-            {label}
-          </Button>
+      <DialogTrigger 
+        className={cn(
+          asPlainButton 
+            ? "inline-flex h-10 items-center justify-center rounded-md border border-white/20 bg-white/10 backdrop-blur px-6 text-white hover:bg-white/20 transition-all duration-200"
+            : "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all duration-200 disabled:pointer-events-none disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-2 h-10 px-4 py-2 bg-white/10 text-white hover:bg-white/20",
+          className
         )}
+        onClick={handleTriggerClick}
+        aria-label="Open authentication"
+      >
+        {label}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[480px] bg-white/10 backdrop-blur border-white/20 text-white p-0 overflow-hidden">
         <div className="relative">

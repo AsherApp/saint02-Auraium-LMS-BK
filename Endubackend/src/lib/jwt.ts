@@ -27,7 +27,16 @@ export async function generateToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): P
 export async function verifyToken(token: string): Promise<JWTPayload> {
   try {
     const { payload } = await jwtVerify(token, secret)
-    return payload as JWTPayload
+    return {
+      email: payload.email as string,
+      role: payload.role as 'teacher' | 'student',
+      name: payload.name as string,
+      student_code: payload.student_code as string,
+      subscription_status: payload.subscription_status as string,
+      max_students_allowed: payload.max_students_allowed as number,
+      iat: payload.iat,
+      exp: payload.exp
+    }
   } catch (error) {
     throw new Error('Invalid token')
   }
@@ -36,7 +45,16 @@ export async function verifyToken(token: string): Promise<JWTPayload> {
 export async function decodeToken(token: string): Promise<JWTPayload | null> {
   try {
     const { payload } = await jwtVerify(token, secret)
-    return payload as JWTPayload
+    return {
+      email: payload.email as string,
+      role: payload.role as 'teacher' | 'student',
+      name: payload.name as string,
+      student_code: payload.student_code as string,
+      subscription_status: payload.subscription_status as string,
+      max_students_allowed: payload.max_students_allowed as number,
+      iat: payload.iat,
+      exp: payload.exp
+    }
   } catch (error) {
     return null
   }

@@ -5,6 +5,7 @@ import { GlassCard } from "@/components/shared/glass-card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { FluidTabs, useFluidTabs } from "@/components/ui/fluid-tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Progress } from "@/components/ui/progress"
 import { useAuthStore } from "@/store/auth-store"
@@ -106,13 +107,40 @@ export default function TeacherPerformance() {
         </Button>
       </div>
 
+      {/* Performance Analytics Navigation */}
+      <div className="w-full flex justify-center py-4">
+        <FluidTabs
+          tabs={[
+            { 
+              id: 'analytics', 
+              label: 'Analytics', 
+              icon: <BarChart3 className="h-4 w-4" />
+            },
+            { 
+              id: 'progress', 
+              label: 'Student Progress', 
+              icon: <TrendingUp className="h-4 w-4" />, 
+              badge: progressData?.length || 0 
+            },
+            { 
+              id: 'engagement', 
+              label: 'Engagement', 
+              icon: <Activity className="h-4 w-4" />
+            },
+            { 
+              id: 'reports', 
+              label: 'Reports', 
+              icon: <Download className="h-4 w-4" />
+            }
+          ]}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          variant="default"
+          width="wide"
+        />
+      </div>
+
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 bg-white/10">
-          <TabsTrigger value="analytics" className="text-white">Analytics</TabsTrigger>
-          <TabsTrigger value="progress" className="text-white">Student Progress</TabsTrigger>
-          <TabsTrigger value="engagement" className="text-white">Engagement</TabsTrigger>
-          <TabsTrigger value="reports" className="text-white">Reports</TabsTrigger>
-        </TabsList>
 
         <TabsContent value="analytics" className="space-y-6">
           {/* Key Metrics */}

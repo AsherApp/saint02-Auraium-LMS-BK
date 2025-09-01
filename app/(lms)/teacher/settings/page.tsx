@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { FluidTabs, useFluidTabs } from "@/components/ui/fluid-tabs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
 import { 
@@ -209,47 +210,29 @@ export default function TeacherSettings() {
         </GlassCard>
       )}
 
-      {/* Settings Tabs */}
+      {/* Teacher Settings Navigation */}
+      <div className="w-full flex justify-center py-4">
+        <FluidTabs
+          tabs={[
+            { id: 'profile', label: 'Profile', icon: <User className="h-4 w-4" /> },
+            { id: 'billing', label: 'Billing', icon: <CreditCard className="h-4 w-4" /> },
+            { id: 'appearance', label: 'Appearance', icon: <Monitor className="h-4 w-4" /> },
+            { id: 'courses', label: 'Courses', icon: <BookOpen className="h-4 w-4" /> },
+            { id: 'grading', label: 'Grading', icon: <Award className="h-4 w-4" /> },
+            { id: 'live-classes', label: 'Live Classes', icon: <Video className="h-4 w-4" /> },
+            { id: 'notifications', label: 'Notifications', icon: <Bell className="h-4 w-4" /> },
+            { id: 'privacy', label: 'Privacy', icon: <Shield className="h-4 w-4" /> },
+            { id: 'advanced', label: 'Advanced', icon: <Zap className="h-4 w-4" /> }
+          ]}
+          activeTab="profile"
+          onTabChange={() => {}}
+          variant="compact"
+          width="full"
+        />
+      </div>
+
       <GlassCard className="p-6">
         <Tabs defaultValue="profile" className="w-full">
-          <TabsList className="grid w-full grid-cols-9 bg-white/10 border-white/20">
-            <TabsTrigger value="profile" className="text-white data-[state=active]:bg-blue-600/80">
-              <User className="h-4 w-4 mr-1" />
-              Profile
-            </TabsTrigger>
-            <TabsTrigger value="billing" className="text-white data-[state=active]:bg-blue-600/80">
-              <CreditCard className="h-4 w-4 mr-1" />
-              Billing
-            </TabsTrigger>
-            <TabsTrigger value="appearance" className="text-white data-[state=active]:bg-blue-600/80">
-              <Monitor className="h-4 w-4 mr-1" />
-              Appearance
-            </TabsTrigger>
-            <TabsTrigger value="courses" className="text-white data-[state=active]:bg-blue-600/80">
-              <BookOpen className="h-4 w-4 mr-1" />
-              Courses
-            </TabsTrigger>
-            <TabsTrigger value="grading" className="text-white data-[state=active]:bg-blue-600/80">
-              <Award className="h-4 w-4 mr-1" />
-              Grading
-            </TabsTrigger>
-            <TabsTrigger value="live-classes" className="text-white data-[state=active]:bg-blue-600/80">
-              <Video className="h-4 w-4 mr-1" />
-              Live Classes
-            </TabsTrigger>
-            <TabsTrigger value="notifications" className="text-white data-[state=active]:bg-blue-600/80">
-              <Bell className="h-4 w-4 mr-1" />
-              Notifications
-            </TabsTrigger>
-            <TabsTrigger value="privacy" className="text-white data-[state=active]:bg-blue-600/80">
-              <Shield className="h-4 w-4 mr-1" />
-              Privacy
-            </TabsTrigger>
-            <TabsTrigger value="advanced" className="text-white data-[state=active]:bg-blue-600/80">
-              <Zap className="h-4 w-4 mr-1" />
-              Advanced
-            </TabsTrigger>
-          </TabsList>
 
           <TabsContent value="profile" className="mt-6 space-y-6">
             <div className="space-y-6">

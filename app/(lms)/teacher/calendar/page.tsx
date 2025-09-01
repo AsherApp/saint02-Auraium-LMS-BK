@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { FluidTabs, useFluidTabs } from "@/components/ui/fluid-tabs"
 import { useToast } from "@/hooks/use-toast"
 import { http } from "@/services/http"
 import { useRouter } from "next/navigation"
@@ -320,7 +321,7 @@ export default function TeacherCalendar() {
         </div>
         <Button
           onClick={() => setShowCreateDialog(true)}
-          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+          variant="primary"
         >
           <Plus className="h-4 w-4 mr-2" />
           New Event
@@ -356,13 +357,34 @@ export default function TeacherCalendar() {
         </div>
       </GlassCard>
 
-      {/* Calendar View */}
+      {/* Calendar View Navigation */}
+      <div className="w-full flex justify-center py-4">
+        <FluidTabs
+          tabs={[
+            { 
+              id: 'month', 
+              label: 'Month', 
+              icon: <Calendar className="h-4 w-4" />
+            },
+            { 
+              id: 'week', 
+              label: 'Week', 
+              icon: <Clock className="h-4 w-4" />
+            },
+            { 
+              id: 'day', 
+              label: 'Day', 
+              icon: <Eye className="h-4 w-4" />
+            }
+          ]}
+          activeTab={viewMode}
+          onTabChange={(value: string) => setViewMode(value as 'month' | 'week' | 'day')}
+          variant="default"
+          width="wide"
+        />
+      </div>
+
       <Tabs value={viewMode} onValueChange={(value: string) => setViewMode(value as 'month' | 'week' | 'day')}>
-        <TabsList className="grid w-full grid-cols-3 bg-white/5 border-white/10">
-          <TabsTrigger value="month" className="data-[state=active]:bg-white/10">Month</TabsTrigger>
-          <TabsTrigger value="week" className="data-[state=active]:bg-white/10">Week</TabsTrigger>
-          <TabsTrigger value="day" className="data-[state=active]:bg-white/10">Day</TabsTrigger>
-        </TabsList>
 
         <TabsContent value="month" className="mt-6">
           <GlassCard className="p-6">
@@ -660,13 +682,12 @@ export default function TeacherCalendar() {
             <Button
               variant="outline"
               onClick={() => setShowCreateDialog(false)}
-              className="border-white/20 text-white hover:bg-white/10"
             >
               Cancel
             </Button>
             <Button
               onClick={handleCreateEvent}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+              variant="primary"
             >
               Create Event
             </Button>
@@ -755,7 +776,7 @@ export default function TeacherCalendar() {
                         router.push(`/live/${selectedEvent.live_session_id}`)
                         setSelectedEvent(null)
                       }}
-                      className="bg-red-600 hover:bg-red-700 text-white"
+                      variant="success"
                     >
                       <Play className="h-4 w-4 mr-2" />
                       Join Live Session

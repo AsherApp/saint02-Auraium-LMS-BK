@@ -5,27 +5,25 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-blue-500/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all duration-200 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-2",
   {
     variants: {
       variant: {
-        default:
-          "bg-primary text-primary-foreground shadow-xs hover:bg-primary/90",
-        destructive:
-          "bg-destructive text-white shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
-        outline:
-          "border bg-white shadow-xs hover:bg-gray-100 hover:text-gray-900 dark:bg-input/30 dark:border-gray-300 dark:hover:bg-input/50",
-        secondary:
-          "bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80",
-        ghost:
-          "hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-gray-100/50",
-        link: "text-primary underline-offset-4 hover:underline",
+        default: "bg-blue-600 hover:bg-blue-700 text-white shadow-sm",
+        primary: "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-sm",
+        secondary: "bg-white/10 hover:bg-white/20 text-white border border-white/20",
+        success: "bg-green-600 hover:bg-green-700 text-white shadow-sm",
+        warning: "bg-orange-600 hover:bg-orange-700 text-white shadow-sm",
+        destructive: "bg-red-600 hover:bg-red-700 text-white shadow-sm",
+        outline: "border-2 border-white/30 text-slate-300 hover:bg-white/10 bg-transparent",
+        ghost: "hover:bg-white/10 text-slate-300 bg-transparent",
+        link: "text-blue-400 underline-offset-4 hover:underline hover:text-blue-300 bg-transparent",
       },
       size: {
-        default: "h-9 px-4 py-2 has-[>svg]:px-3",
-        sm: "h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5",
-        lg: "h-10 rounded-md px-6 has-[>svg]:px-4",
-        icon: "size-9",
+        default: "h-10 px-4 py-2 has-[>svg]:px-3",
+        sm: "h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5 text-xs",
+        lg: "h-12 rounded-md px-6 has-[>svg]:px-4 text-base",
+        icon: "size-10",
       },
     },
     defaultVariants: {
@@ -52,10 +50,7 @@ function Button({
       data-slot="button"
       role="button"
       aria-label={props['aria-label'] || 'Button'}
-      className={cn(
-        buttonVariants({ variant, size, className }),
-        "focus:outline-none focus:ring-2 focus:ring-blue-300 font-bold text-base px-4 py-2 min-w-[44px] min-h-[44px]"
-      )}
+      className={cn(buttonVariants({ variant, size, className }))}
       {...props}
     />
   )

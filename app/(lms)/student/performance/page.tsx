@@ -5,6 +5,7 @@ import { GlassCard } from "@/components/shared/glass-card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { FluidTabs, useFluidTabs } from "@/components/ui/fluid-tabs"
 import { Progress } from "@/components/ui/progress"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAuthStore } from "@/store/auth-store"
@@ -25,7 +26,8 @@ import {
   FileText,
   MessageSquare,
   Video,
-  Play
+  Play,
+  Eye
 } from "lucide-react"
 
 interface CourseProgress {
@@ -294,13 +296,40 @@ export default function StudentPerformancePage() {
         </div>
       </div>
 
+      {/* Student Performance Navigation */}
+      <div className="w-full flex justify-center py-4">
+        <FluidTabs
+          tabs={[
+            { 
+              id: 'overview', 
+              label: 'Overview', 
+              icon: <Eye className="h-4 w-4" />
+            },
+            { 
+              id: 'courses', 
+              label: 'Course Progress', 
+              icon: <BookOpen className="h-4 w-4" />, 
+              badge: progressData?.length || 0 
+            },
+            { 
+              id: 'activities', 
+              label: 'Recent Activities', 
+              icon: <Activity className="h-4 w-4" />
+            },
+            { 
+              id: 'analytics', 
+              label: 'Analytics', 
+              icon: <BarChart3 className="h-4 w-4" />
+            }
+          ]}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          variant="default"
+          width="wide"
+        />
+      </div>
+
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 bg-white/10">
-          <TabsTrigger value="overview" className="text-white">Overview</TabsTrigger>
-          <TabsTrigger value="courses" className="text-white">Course Progress</TabsTrigger>
-          <TabsTrigger value="activities" className="text-white">Recent Activities</TabsTrigger>
-          <TabsTrigger value="analytics" className="text-white">Analytics</TabsTrigger>
-        </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
           {/* Key Metrics */}

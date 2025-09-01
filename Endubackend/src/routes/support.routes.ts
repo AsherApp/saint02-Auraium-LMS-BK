@@ -387,10 +387,12 @@ router.get('/admin/users', requireSupportStaff, asyncHandler(async (req, res) =>
   const promises: Promise<any>[] = []
 
   if (!role || role === 'teacher') {
-    promises.push(teachersQuery.range(offset, offset + Number(limit) - 1))
+    const teachersPromise = teachersQuery.range(offset, offset + Number(limit) - 1) as any
+    promises.push(teachersPromise)
   }
   if (!role || role === 'student') {
-    promises.push(studentsQuery.range(offset, offset + Number(limit) - 1))
+    const studentsPromise = studentsQuery.range(offset, offset + Number(limit) - 1) as any
+    promises.push(studentsPromise)
   }
 
   const results = await Promise.all(promises)

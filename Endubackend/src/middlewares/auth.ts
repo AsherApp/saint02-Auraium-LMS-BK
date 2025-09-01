@@ -19,8 +19,8 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
         if (userEmail) {
           // Check if this is a student endpoint and set appropriate role
           const isStudentEndpoint = req.path.includes('/student') || req.path.includes('/students')
-          const role = userRole || (isStudentEndpoint ? 'student' : 'teacher')
-          req.user = { email: userEmail, role }
+          const role = (userRole === 'teacher' || userRole === 'student') ? userRole : (isStudentEndpoint ? 'student' : 'teacher')
+          req.user = { email: userEmail, role: role as 'teacher' | 'student' }
           console.log('Dev bypass auth:', { email: userEmail, role })
           return next()
         }
@@ -49,7 +49,6 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
       req.user = { 
         email: payload.email, 
         role: payload.role || 'teacher',
-        name: payload.name,
         student_code: payload.student_code,
         subscription_status: payload.subscription_status,
         max_students_allowed: payload.max_students_allowed

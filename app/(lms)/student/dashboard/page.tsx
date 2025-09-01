@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { GlassCard } from "@/components/shared/glass-card"
+import { StatCard, QuickActionCard } from "@/components/shared/stat-card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
@@ -126,24 +127,25 @@ export default function StudentDashboardPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Student Header with Name and Code */}
       <StudentHeader />
       
       {/* Welcome Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-white mb-2">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-2 truncate">
             Welcome back, {user?.name || 'Student'}! 👋
           </h1>
-          <p className="text-slate-300">
+          <p className="text-slate-300 text-sm sm:text-base">
             Here's what's happening with your courses and assignments today.
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 shrink-0">
           <Button 
             onClick={() => window.location.href = '/student/courses'}
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+            variant="primary"
+            className="w-full sm:w-auto text-sm sm:text-base"
           >
             View Courses
           </Button>
@@ -151,99 +153,72 @@ export default function StudentDashboardPage() {
       </div>
 
       {/* Stats Overview */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <GlassCard className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-md bg-blue-600/20 text-blue-300">
-              <BookOpen className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="text-white font-semibold">{stats.totalCourses}</div>
-              <div className="text-slate-400 text-sm">Enrolled Courses</div>
-            </div>
-          </div>
-        </GlassCard>
+      <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <StatCard
+          title="Enrolled Courses"
+          value={stats.totalCourses}
+          description="Enrolled Courses"
+          icon={BookOpen}
+          iconColor="blue"
+          className="animate-fade-in-up"
+        />
         
-        <GlassCard className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-md bg-green-600/20 text-green-300">
-              <ListChecks className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="text-white font-semibold">{stats.totalAssignments}</div>
-              <div className="text-slate-400 text-sm">Total Assignments</div>
-            </div>
-          </div>
-        </GlassCard>
+        <StatCard
+          title="Total Assignments"
+          value={stats.totalAssignments}
+          description="Total Assignments"
+          icon={ListChecks}
+          iconColor="green"
+          className="animate-fade-in-up"
+        />
         
-        <GlassCard className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-md bg-purple-600/20 text-purple-300">
-              <Award className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="text-white font-semibold">{stats.completedAssignments}</div>
-              <div className="text-slate-400 text-sm">Completed</div>
-            </div>
-          </div>
-        </GlassCard>
+        <StatCard
+          title="Completed"
+          value={stats.completedAssignments}
+          description="Completed"
+          icon={Award}
+          iconColor="purple"
+          className="animate-fade-in-up"
+        />
         
-        <GlassCard className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-md bg-orange-600/20 text-orange-300">
-              <Clock className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="text-white font-semibold">{stats.upcomingAssignments}</div>
-              <div className="text-slate-400 text-sm">Upcoming</div>
-            </div>
-          </div>
-        </GlassCard>
+        <StatCard
+          title="Upcoming"
+          value={stats.upcomingAssignments}
+          description="Upcoming"
+          icon={Clock}
+          iconColor="orange"
+          className="animate-fade-in-up"
+        />
       </div>
 
       {/* Quick Actions */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Link href="/student/courses" className="block">
-          <GlassCard className="p-5 hover:bg-white/10 transition-colors">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-md bg-blue-600/20 text-blue-300">
-                <BookOpen className="h-5 w-5" />
-              </div>
-              <div>
-                <div className="text-white font-semibold">My Courses</div>
-                <div className="text-slate-300 text-sm">Access modules and lessons.</div>
-              </div>
-            </div>
-          </GlassCard>
-        </Link>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+        <QuickActionCard
+          title="My Courses"
+          description="Access modules and lessons."
+          icon={BookOpen}
+          iconColor="blue"
+          href="/student/courses"
+          className="animate-fade-in-up"
+        />
         
-        <Link href="/student/assignments" className="block">
-          <GlassCard className="p-5 hover:bg-white/10 transition-colors">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-md bg-green-600/20 text-green-300">
-                <ListChecks className="h-5 w-5" />
-              </div>
-              <div>
-                <div className="text-white font-semibold">Assignments</div>
-                <div className="text-slate-300 text-sm">View due tasks and submit work.</div>
-              </div>
-            </div>
-          </GlassCard>
-        </Link>
+        <QuickActionCard
+          title="Assignments"
+          description="View due tasks and submit work."
+          icon={ListChecks}
+          iconColor="green"
+          href="/student/assignments"
+          className="animate-fade-in-up"
+        />
         
-        <Link href="/student/live-class" className="block">
-          <GlassCard className="p-5 hover:bg-white/10 transition-colors">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-md bg-purple-600/20 text-purple-300">
-                <Users className="h-5 w-5" />
-              </div>
-              <div>
-                <div className="text-white font-semibold">Live Classes</div>
-                <div className="text-slate-300 text-sm">Join live sessions.</div>
-              </div>
-            </div>
-          </GlassCard>
-        </Link>
+        <QuickActionCard
+          title="Live Classes"
+          description="Join live sessions."
+          icon={Users}
+          iconColor="purple"
+          href="/student/live-class"
+          className="animate-fade-in-up"
+        />
       </div>
 
       {/* Recent Assignments */}

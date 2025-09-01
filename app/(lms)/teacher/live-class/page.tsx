@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { FluidTabs, useFluidTabs } from "@/components/ui/fluid-tabs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
 import { Video, Plus, Calendar, Clock, Users, Play, Loader2, Square, History, Zap, Clock3 } from "lucide-react"
@@ -33,6 +34,7 @@ export default function TeacherLiveClass() {
 
   // Tab state
   const [activeTab, setActiveTab] = useState("upcoming")
+  const tabs = useFluidTabs("upcoming")
   
   // Form state for creating new session
   const [showCreateForm, setShowCreateForm] = useState(false)
@@ -247,7 +249,7 @@ export default function TeacherLiveClass() {
         
         <div className="flex gap-2">
           <Link href={`/teacher/live-class/${session.id}`}>
-            <Button variant="outline" className="border-white/20 text-white hover:bg-white/10">
+            <Button variant="outline">
               View Details
             </Button>
           </Link>
@@ -255,7 +257,7 @@ export default function TeacherLiveClass() {
           {session.status === 'scheduled' && !session.isStarted && (
             <Button 
               onClick={() => handleStartSession(session.id)}
-              className="bg-green-600 hover:bg-green-700 text-white"
+              variant="success"
             >
               <Play className="h-4 w-4 mr-2" />
               Start Class
@@ -264,14 +266,14 @@ export default function TeacherLiveClass() {
           {session.status === 'active' && (
             <div className="flex gap-2">
               <Link href={`/live/${session.id}`}>
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                <Button variant="default">
                   <Video className="h-4 w-4 mr-2" />
                   Join Room
                 </Button>
               </Link>
               <Button 
                 onClick={() => handleEndSession(session.id)}
-                className="bg-red-600 hover:bg-red-700 text-white"
+                variant="destructive"
               >
                 <Square className="h-4 w-4 mr-2" />
                 End
@@ -305,7 +307,7 @@ export default function TeacherLiveClass() {
         </div>
         <Button 
           onClick={() => setShowCreateForm(true)}
-          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+          variant="primary"
         >
           <Plus className="h-4 w-4 mr-2" />
           Create Session
@@ -318,33 +320,37 @@ export default function TeacherLiveClass() {
         </GlassCard>
       )}
 
-      {/* Tabbed Interface */}
+      {/* Live Session Navigation */}
+      <div className="w-full flex justify-center py-4">
+        <FluidTabs
+          tabs={[
+            { 
+              id: 'upcoming', 
+              label: 'Upcoming', 
+              icon: <Clock3 className="h-4 w-4" />, 
+              badge: upcomingSessions.length 
+            },
+            { 
+              id: 'active', 
+              label: 'Active', 
+              icon: <Zap className="h-4 w-4" />, 
+              badge: activeSessions.length 
+            },
+            { 
+              id: 'past', 
+              label: 'Past', 
+              icon: <History className="h-4 w-4" />, 
+              badge: pastSessions.length 
+            }
+          ]}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          variant="default"
+          width="wide"
+        />
+      </div>
+
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <div className="w-full flex justify-center py-4">
-          <TabsList className="bg-white/10">
-            <TabsTrigger 
-              value="upcoming" 
-              className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-slate-300"
-            >
-              <Clock3 className="h-4 w-4 mr-2" />
-              Upcoming ({upcomingSessions.length})
-            </TabsTrigger>
-            <TabsTrigger 
-              value="active" 
-              className="data-[state=active]:bg-green-600 data-[state=active]:text-white text-slate-300"
-            >
-              <Zap className="h-4 w-4 mr-2" />
-              Active ({activeSessions.length})
-            </TabsTrigger>
-            <TabsTrigger 
-              value="past" 
-              className="data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-300"
-            >
-              <History className="h-4 w-4 mr-2" />
-              Past ({pastSessions.length})
-            </TabsTrigger>
-          </TabsList>
-        </div>
 
         {/* Upcoming Sessions Tab */}
         <TabsContent value="upcoming" className="space-y-4 mt-6">
@@ -357,7 +363,7 @@ export default function TeacherLiveClass() {
               </p>
               <Button 
                 onClick={() => setShowCreateForm(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                variant="default"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Schedule a Session
@@ -379,7 +385,7 @@ export default function TeacherLiveClass() {
               </p>
               <Button 
                 onClick={() => setShowCreateForm(true)}
-                className="bg-green-600 hover:bg-green-700 text-white"
+                variant="success"
               >
                 <Video className="h-4 w-4 mr-2" />
                 Start a Session
@@ -401,7 +407,7 @@ export default function TeacherLiveClass() {
               </p>
               <Button 
                 onClick={() => setShowCreateForm(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                variant="default"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Create Your First Session
@@ -431,7 +437,6 @@ export default function TeacherLiveClass() {
                   type="button"
                   variant={newSession.session_type === "general" ? "default" : "outline"}
                   onClick={() => handleSessionTypeChange("general")}
-                  className={newSession.session_type === "general" ? "bg-blue-600 text-white" : "border-white/20 text-white hover:bg-white/10"}
                 >
                   General
                 </Button>
@@ -439,18 +444,16 @@ export default function TeacherLiveClass() {
                   type="button"
                   variant={newSession.session_type === "course" ? "default" : "outline"}
                   onClick={() => handleSessionTypeChange("course")}
-                  className={newSession.session_type === "course" ? "bg-blue-600 text-white" : "border-white/20 text-white hover:bg-white/10"}
                 >
                   Course
-          </Button>
+                </Button>
                 <Button
                   type="button"
                   variant={newSession.session_type === "module" ? "default" : "outline"}
                   onClick={() => handleSessionTypeChange("module")}
-                  className={newSession.session_type === "module" ? "bg-blue-600 text-white" : "border-white/20 text-white hover:bg-white/10"}
                 >
                   Module
-          </Button>
+                </Button>
       </div>
     </div>
 
@@ -544,7 +547,7 @@ export default function TeacherLiveClass() {
               <Button 
                 onClick={handleCreateSession}
                 disabled={loading || !newSession.title || !newSession.start_at}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                variant="default"
               >
                 {loading ? (
                   <>
@@ -561,10 +564,9 @@ export default function TeacherLiveClass() {
               <Button 
                 variant="outline" 
                 onClick={() => setShowCreateForm(false)}
-                className="border-white/20 text-white hover:bg-white/10"
               >
                 Cancel
-        </Button>
+              </Button>
       </div>
           </div>
         </DialogContent>

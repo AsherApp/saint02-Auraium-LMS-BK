@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { FluidTabs, useFluidTabs } from "@/components/ui/fluid-tabs"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -818,18 +819,25 @@ export default function TeacherCourseDetailPage() {
         </div>
       </GlassCard>
 
-      {/* Tabs */}
+      {/* Course Navigation */}
       <div className="w-full">
+        <div className="w-full flex justify-center py-4">
+          <FluidTabs
+            tabs={[
+              { id: 'overview', label: 'Overview', icon: <BarChart2 className="h-4 w-4" /> },
+              { id: 'curriculum', label: 'Curriculum', icon: <BookOpen className="h-4 w-4" />, badge: modules?.length || 0 },
+              { id: 'students', label: 'Students', icon: <Users className="h-4 w-4" />, badge: rosterSvc.items?.length || 0 },
+              { id: 'assignments', label: 'Assignments', icon: <ClipboardList className="h-4 w-4" />, badge: assignments?.length || 0 },
+              { id: 'settings', label: 'Settings', icon: <SettingsIcon className="h-4 w-4" /> }
+            ]}
+            activeTab="curriculum"
+            onTabChange={() => {}}
+            variant="default"
+            width="content-match"
+          />
+        </div>
+        
         <Tabs defaultValue="curriculum" className="w-full">
-            <div className="w-full flex justify-center py-4">
-            <TabsList className="bg-white/10">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="curriculum">Curriculum</TabsTrigger>
-          <TabsTrigger value="students">Students</TabsTrigger>
-          <TabsTrigger value="assignments">Assignments</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
-            </TabsList>
-            </div>
 
             <TabsContent value="overview" className="mt-4">
               <div className="w-full">

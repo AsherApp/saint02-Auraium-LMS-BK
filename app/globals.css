@@ -1,15 +1,22 @@
-html {
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, Ubuntu, Cantarell,
-    Helvetica Neue, Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-}
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Base styles */
+/* Reset and base styles */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 html {
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, Ubuntu, Cantarell,
     Helvetica Neue, Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  scroll-behavior: smooth;
 }
 
 body {
@@ -18,30 +25,161 @@ body {
   min-height: 100vh;
   margin: 0;
   padding: 0;
+  overflow-x: hidden;
+  line-height: 1.6;
+}
+
+/* High-DPI optimizations */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  body {
+    font-weight: 400;
+    letter-spacing: 0.01em;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+}
+
+@media (-webkit-min-device-pixel-ratio: 3), (min-resolution: 288dpi) {
+  body {
+    font-weight: 300;
+    letter-spacing: 0.02em;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 500;
+    letter-spacing: -0.03em;
+  }
+}
+
+/* Responsive containers */
+.container-responsive {
+  width: 100%;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+@media (min-width: 640px) {
+  .container-responsive {
+    max-width: 640px;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .container-responsive {
+    max-width: 768px;
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container-responsive {
+    max-width: 1024px;
+    padding-left: 2.5rem;
+    padding-right: 2.5rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .container-responsive {
+    max-width: 1280px;
+    padding-left: 3rem;
+    padding-right: 3rem;
+  }
+}
+
+@media (min-width: 1536px) {
+  .container-responsive {
+    max-width: 1536px;
+    padding-left: 4rem;
+    padding-right: 4rem;
+  }
+}
+
+/* Ultra-wide screens */
+@media (min-width: 1920px) {
+  .container-responsive {
+    max-width: 1920px;
+    padding-left: 5rem;
+    padding-right: 5rem;
+  }
+}
+
+@media (min-width: 2560px) {
+  .container-responsive {
+    max-width: 2560px;
+    padding-left: 6rem;
+    padding-right: 6rem;
+  }
 }
 
 @custom-variant dark (&:is(.dark *));
 
-/* LiveKit Component Fixes */
+/* LiveKit Component Fixes - Responsive */
 .lk-video-conference {
   height: 100% !important;
   width: 100% !important;
   background: transparent !important;
+  min-height: 400px !important;
 }
 
 .lk-focus-layout {
   height: 100% !important;
   width: 100% !important;
+  min-height: 300px !important;
 }
 
 .lk-focus-layout-wrapper {
   height: 100% !important;
   width: 100% !important;
+  position: relative !important;
 }
 
 .lk-participant-tile {
   border-radius: 8px !important;
   overflow: hidden !important;
+  min-width: 200px !important;
+  min-height: 150px !important;
+}
+
+@media (max-width: 768px) {
+  .lk-video-conference {
+    min-height: 300px !important;
+  }
+  
+  .lk-participant-tile {
+    min-width: 150px !important;
+    min-height: 100px !important;
+  }
+  
+  .lk-control-bar {
+    padding: 8px !important;
+    gap: 8px !important;
+  }
+  
+  .lk-button {
+    min-width: 40px !important;
+    min-height: 40px !important;
+    padding: 8px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .lk-video-conference {
+    min-height: 250px !important;
+  }
+  
+  .lk-participant-tile {
+    min-width: 120px !important;
+    min-height: 90px !important;
+  }
 }
 
 /* Custom Animations */
