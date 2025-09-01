@@ -73,7 +73,7 @@ router.get('/', requireAuth, async (req, res) => {
     const transformedAssignments = assignments?.map(assignment => ({
       id: assignment.id,
       courseId: assignment.course_id,
-      courseTitle: assignment.courses?.title || '',
+      courseTitle: (assignment.courses as any)?.title || '',
       title: assignment.title,
       description: assignment.description || '',
       instructions: assignment.instructions,
@@ -157,7 +157,7 @@ router.get('/:id', requireAuth, async (req, res) => {
     // Check access permissions
     if (userRole === 'teacher') {
       // Teacher can only access their own assignments
-      if (assignment.courses.teacher_email !== userEmail) {
+      if ((assignment.courses as any).teacher_email !== userEmail) {
         return res.status(403).json({ error: 'Access denied' });
       }
     } else if (userRole === 'student') {
@@ -214,7 +214,7 @@ router.get('/:id', requireAuth, async (req, res) => {
     const transformedAssignment = {
       id: assignment.id,
       courseId: assignment.course_id,
-      courseTitle: assignment.courses?.title || '',
+      courseTitle: (assignment.courses as any)?.title || '',
       title: assignment.title,
       description: assignment.description || '',
       instructions: assignment.instructions,
@@ -359,7 +359,7 @@ router.put('/:id', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Assignment not found' });
     }
 
-    if (assignment.courses.teacher_email !== teacherEmail) {
+    if ((assignment.courses as any).teacher_email !== teacherEmail) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -403,7 +403,7 @@ router.delete('/:id', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Assignment not found' });
     }
 
-    if (assignment.courses.teacher_email !== teacherEmail) {
+    if ((assignment.courses as any).teacher_email !== teacherEmail) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -506,7 +506,7 @@ router.get('/course/:courseId', requireAuth, async (req, res) => {
     const transformedAssignments = assignments?.map(assignment => ({
       id: assignment.id,
       courseId: assignment.course_id,
-      courseTitle: assignment.courses?.title || '',
+      courseTitle: (assignment.courses as any)?.title || '',
       title: assignment.title,
       description: assignment.description || '',
       instructions: assignment.instructions,
@@ -558,7 +558,7 @@ router.post('/:id/grade', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Assignment not found' });
     }
 
-    if (assignment.courses.teacher_email !== teacherEmail) {
+    if ((assignment.courses as any).teacher_email !== teacherEmail) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -610,7 +610,7 @@ router.get('/:id/submissions', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Assignment not found' });
     }
 
-    if (assignment.courses.teacher_email !== teacherEmail) {
+    if ((assignment.courses as any).teacher_email !== teacherEmail) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -675,7 +675,7 @@ router.get('/:id/submissions/detailed', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Assignment not found' });
     }
 
-    if (assignment.courses.teacher_email !== teacherEmail) {
+    if ((assignment.courses as any).teacher_email !== teacherEmail) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -800,7 +800,7 @@ router.post('/:id/duplicate', requireAuth, async (req, res) => {
     const transformedAssignment = {
       id: duplicatedAssignment.id,
       courseId: duplicatedAssignment.course_id,
-      courseTitle: course.title || '',
+      courseTitle: (course as any).title || '',
       title: duplicatedAssignment.title,
       description: duplicatedAssignment.description || '',
       instructions: duplicatedAssignment.instructions,
@@ -850,7 +850,7 @@ router.get('/:id/grading-stats', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Assignment not found' });
     }
 
-    if (assignment.courses.teacher_email !== teacherEmail) {
+    if ((assignment.courses as any).teacher_email !== teacherEmail) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -868,7 +868,7 @@ router.get('/:id/grading-stats', requireAuth, async (req, res) => {
     const totalSubmissions = submissions?.length || 0;
     const submittedCount = submissions?.filter(s => s.status === 'submitted' || s.status === 'graded').length || 0;
     const gradedCount = submissions?.filter(s => s.status === 'graded').length || 0;
-    const lateCount = submissions?.filter(s => s.late_submission).length || 0;
+    const lateCount = submissions?.filter(s => (s as any).late_submission).length || 0;
 
     const averageGrade = submissions && submissions.length > 0
       ? submissions
@@ -922,7 +922,7 @@ router.get('/:id/submissions', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Assignment not found' });
     }
 
-    if (assignment.courses.teacher_email !== teacherEmail) {
+    if ((assignment.courses as any).teacher_email !== teacherEmail) {
       return res.status(403).json({ error: 'Access denied' });
     }
 

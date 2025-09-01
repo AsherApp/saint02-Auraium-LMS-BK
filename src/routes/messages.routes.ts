@@ -297,8 +297,8 @@ router.get('/stats', requireAuth, asyncHandler(async (req, res) => {
     starred: data?.filter(m => m.starred).length || 0,
     archived: data?.filter(m => m.archived).length || 0,
     high_priority: data?.filter(m => m.priority === 'high').length || 0,
-    sent: data?.filter(m => m.from_email === user_email).length || 0,
-    received: data?.filter(m => m.to_email === user_email).length || 0
+    sent: data?.filter(m => (m as any).from_email === user_email).length || 0,
+    received: data?.filter(m => (m as any).to_email === user_email).length || 0
   }
 
   res.json(stats)

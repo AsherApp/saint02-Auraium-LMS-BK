@@ -75,7 +75,7 @@ router.get('/', requireAuth, asyncHandler(async (req, res) => {
   }
 
   // Get assignments and convert them to events
-  let assignmentEvents = []
+  let assignmentEvents: any[] = []
   
   if (userRole === 'teacher') {
     // Get assignments from courses owned by the teacher
@@ -108,7 +108,7 @@ router.get('/', requireAuth, asyncHandler(async (req, res) => {
       assignmentEvents = (assignments || []).map(assignment => ({
         id: `assignment-${assignment.id}`,
         title: `${assignment.title} (Due)`,
-        description: assignment.description || assignment.instructions || `Assignment due for ${assignment.courses.title}`,
+        description: assignment.description || assignment.instructions || `Assignment due for ${(assignment.courses as any).title}`,
         event_type: 'assignment_due',
         start_time: assignment.due_at,
         end_time: assignment.due_at,
@@ -120,8 +120,8 @@ router.get('/', requireAuth, asyncHandler(async (req, res) => {
         is_public: false,
         requires_rsvp: false,
         created_by: userEmail,
-        created_at: assignment.created_at,
-        updated_at: assignment.updated_at,
+        created_at: (assignment as any).created_at,
+        updated_at: (assignment as any).updated_at,
         is_assignment: true,
         assignment_id: assignment.id,
         points: assignment.points,
@@ -154,22 +154,22 @@ router.get('/', requireAuth, asyncHandler(async (req, res) => {
 
     if (enrollments) {
       enrollments.forEach(enrollment => {
-        if (enrollment.courses.assignments) {
-          const courseAssignments = enrollment.courses.assignments.map(assignment => ({
+        if ((enrollment.courses as any).assignments) {
+          const courseAssignments = (enrollment.courses as any).assignments.map((assignment: any) => ({
             id: `assignment-${assignment.id}`,
             title: `${assignment.title} (Due)`,
-            description: assignment.description || assignment.instructions || `Assignment due for ${enrollment.courses.title}`,
+            description: assignment.description || assignment.instructions || `Assignment due for ${(enrollment.courses as any).title}`,
             event_type: 'assignment_due',
             start_time: assignment.due_at,
             end_time: assignment.due_at,
             all_day: true,
             location: null,
             course_id: enrollment.course_id,
-            course: { title: enrollment.courses.title },
+            course: { title: (enrollment.courses as any).title },
             color: '#F97316', // Orange for assignments
             is_public: false,
             requires_rsvp: false,
-            created_by: enrollment.courses.teacher_email,
+            created_by: (enrollment.courses as any).teacher_email,
             created_at: assignment.created_at,
             updated_at: assignment.updated_at,
             is_assignment: true,
@@ -459,7 +459,8 @@ router.post('/office-hours/:officeHourId/book', requireAuth, asyncHandler(async 
     .select('*')
     .eq('office_hour_id', officeHourId)
     .eq('appointment_date', appointment_date)
-    .overlaps('start_time', start_time, 'end_time', end_time)
+    .filter('start_time', 'gte', start_time)
+    .filter('end_time', 'lte', end_time)
 
   if (conflicts && conflicts.length > 0) {
     return res.status(409).json({ error: 'Time slot is already booked' })

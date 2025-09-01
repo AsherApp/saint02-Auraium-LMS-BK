@@ -463,7 +463,7 @@ router.get('/teacher/dashboard', requireAuth, async (req, res) => {
             const { data: courseProgress, error: progressError } = await supabaseAdmin
               .from('student_course_progress')
               .select('*')
-              .eq('student_email', enrollment.student_email)
+              .eq('student_email', (enrollment as any).student_email)
               .eq('course_id', course.id)
               .single();
 
@@ -471,7 +471,7 @@ router.get('/teacher/dashboard', requireAuth, async (req, res) => {
             const { data: activities, error: activityError } = await supabaseAdmin
               .from('student_activities')
               .select('*')
-              .eq('student_email', enrollment.student_email)
+              .eq('student_email', (enrollment as any).student_email)
               .eq('course_id', course.id)
               .order('created_at', { ascending: false });
 
@@ -489,8 +489,8 @@ router.get('/teacher/dashboard', requireAuth, async (req, res) => {
               course_id: course.id,
               course_title: course.title,
               teacher_email: user.email,
-              student_email: enrollment.student_email,
-              student_name: enrollment.students.name,
+              student_email: (enrollment as any).student_email,
+              student_name: (enrollment as any).students?.name,
               course_completion_percentage: completionPercentage,
               total_lessons: totalLessons,
               completed_lessons: courseProgress?.completed_lessons || 0,
@@ -500,14 +500,14 @@ router.get('/teacher/dashboard', requireAuth, async (req, res) => {
               passed_quizzes: courseProgress?.passed_quizzes || 0,
               average_grade: courseProgress?.average_grade || 0,
               last_activity_at: lastActivity,
-              started_at: enrollment.enrolled_at,
+              started_at: (enrollment as any).enrolled_at,
               completed_at: courseProgress?.completed_at || null,
               total_activities: activities?.length || 0,
               last_activity: lastActivity
             });
 
           } catch (studentError) {
-            console.error(`Error processing student ${enrollment.student_email} for course ${course.id}:`, studentError);
+            console.error(`Error processing student ${(enrollment as any).student_email} for course ${course.id}:`, studentError);
           }
         }
 

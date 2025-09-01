@@ -529,16 +529,16 @@ router.post('/session/:sessionId/report', requireAuth, asyncHandler(async (req, 
   const absentCount = attendanceRecords?.filter(r => r.status === 'absent').length || 0
   const excusedCount = attendanceRecords?.filter(r => r.status === 'excused').length || 0
 
-  const averageAttendancePercentage = attendanceRecords?.length > 0 
-    ? attendanceRecords.reduce((sum, r) => sum + (r.attendance_percentage || 0), 0) / attendanceRecords.length
+  const averageAttendancePercentage = (attendanceRecords?.length || 0) > 0 
+    ? (attendanceRecords || []).reduce((sum, r) => sum + (r.attendance_percentage || 0), 0) / (attendanceRecords?.length || 1)
     : 0
 
-  const averageParticipationScore = attendanceRecords?.length > 0
-    ? attendanceRecords.reduce((sum, r) => sum + (r.participation_score || 0), 0) / attendanceRecords.length
+  const averageParticipationScore = (attendanceRecords?.length || 0) > 0
+    ? (attendanceRecords || []).reduce((sum, r) => sum + (r.participation_score || 0), 0) / (attendanceRecords?.length || 1)
     : 0
 
-  const averageEngagementScore = attendanceRecords?.length > 0
-    ? attendanceRecords.reduce((sum, r) => sum + (r.engagement_score || 0), 0) / attendanceRecords.length
+  const averageEngagementScore = (attendanceRecords?.length || 0) > 0
+    ? (attendanceRecords || []).reduce((sum, r) => sum + (r.engagement_score || 0), 0) / (attendanceRecords?.length || 1)
     : 0
 
   const sessionDurationMinutes = session.end_at && session.start_at

@@ -105,7 +105,7 @@ router.get('/student', requireAuth, asyncHandler(async (req, res) => {
   }
 
   // Get teacher emails from enrolled courses
-  const teacherEmails = [...new Set(enrollments.map(e => e.courses.teacher_email))]
+  const teacherEmails = [...new Set(enrollments.map(e => (e.courses as any).teacher_email))]
 
   // Get announcements from those teachers
   const { data: announcements, error: announcementsError } = await supabaseAdmin

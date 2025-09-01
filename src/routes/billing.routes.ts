@@ -9,7 +9,7 @@ import { supabaseAdmin } from '../lib/supabase.js'
 
 const router = Router()
 const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
-  apiVersion: '2024-12-18.acacia'
+  apiVersion: '2023-10-16'
 })
 
 // Create checkout session for subscription (with trial support)
@@ -339,7 +339,7 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
 }
 
 async function handlePaymentFailed(invoice: Stripe.Invoice) {
-  const teacherEmail = invoice.metadata.teacher_email
+  const teacherEmail = invoice.metadata?.teacher_email
   
   if (teacherEmail) {
     await supabaseAdmin

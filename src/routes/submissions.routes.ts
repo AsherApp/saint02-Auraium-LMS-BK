@@ -155,7 +155,7 @@ router.get('/assignment/:assignmentId', requireAuth, async (req, res) => {
       studentName: submission.student_name || 'Unknown Student',
       attemptNumber: submission.attempt_number || 1,
       status: submission.status || 'draft',
-      content: submission.content || submission.payload || {},
+      content: submission.content || (submission as any).payload || {},
       attachments: submission.attachments || [],
       submittedAt: submission.submitted_at || submission.updated_at,
       gradedAt: submission.graded_at,
@@ -224,7 +224,7 @@ router.post('/assignment/:assignmentId', requireAuth, async (req, res) => {
 
     // Check if assignment is still available
     const now = new Date();
-    if (assignment.available_until && new Date(assignment.available_until) < now) {
+    if ((assignment as any).available_until && new Date((assignment as any).available_until) < now) {
       return res.status(400).json({ error: 'Assignment is no longer available' });
     }
 

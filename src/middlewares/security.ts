@@ -106,7 +106,7 @@ export function validateApiKey(req: Request, res: Response, next: NextFunction) 
 const failedAttempts = new Map<string, { count: number; lastAttempt: number }>()
 
 export function preventBruteForce(req: Request, res: Response, next: NextFunction) {
-  const ip = req.ip
+  const ip = req.ip || req.connection.remoteAddress || 'unknown'
   const now = Date.now()
   const windowMs = 15 * 60 * 1000 // 15 minutes
   
