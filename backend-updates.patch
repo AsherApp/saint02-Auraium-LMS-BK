@@ -1,0 +1,45 @@
+diff --git a/src/config/env.ts b/src/config/env.ts
+index 579cf81..656a244 100644
+--- a/src/config/env.ts
++++ b/src/config/env.ts
+@@ -7,6 +7,8 @@ export const env = {
+   STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET || "",
+   STRIPE_PRICE_ID_PRO: process.env.STRIPE_PRICE_ID_PRO || "",
+   STRIPE_PRICE_ID_TRIAL: process.env.STRIPE_PRICE_ID_TRIAL || "",
++  LIVEKIT_API_KEY: process.env.LIVEKIT_API_KEY || "",
++  LIVEKIT_API_SECRET: process.env.LIVEKIT_API_SECRET || "",
+   APP_BASE_URL: process.env.APP_BASE_URL || "http://localhost:4000",
+   FREE_STUDENTS_LIMIT: Number(process.env.FREE_STUDENTS_LIMIT || 5),
+   TRIAL_PERIOD_DAYS: Number(process.env.TRIAL_PERIOD_DAYS || 7),
+diff --git a/src/routes/live.routes.ts b/src/routes/live.routes.ts
+index f12a99b..8f38e4b 100644
+--- a/src/routes/live.routes.ts
++++ b/src/routes/live.routes.ts
+@@ -3,6 +3,7 @@ import { requireAuth } from '../middlewares/auth.js'
+ import { asyncHandler } from '../utils/asyncHandler.js'
+ import { supabaseAdmin } from '../lib/supabase.js'
+ import { AccessToken } from 'livekit-server-sdk'
++import { env } from '../config/env.js'
+ 
+ export const router = Router()
+ 
+@@ -1480,10 +1481,17 @@ router.post('/:sessionId/token', requireAuth, asyncHandler(async (req, res) => {
+   }
+ 
+   try {
++    // Check if LiveKit credentials are configured
++    if (!env.LIVEKIT_API_KEY || !env.LIVEKIT_API_SECRET) {
++      return res.status(500).json({ 
++        error: 'LiveKit not configured. Please add LIVEKIT_API_KEY and LIVEKIT_API_SECRET to environment variables.' 
++      })
++    }
++
+     // Create LiveKit access token
+     const token = new AccessToken(
+-      process.env.LIVEKIT_API_KEY!,
+-      process.env.LIVEKIT_API_SECRET!,
++      env.LIVEKIT_API_KEY,
++      env.LIVEKIT_API_SECRET,
+       {
+         identity: identity,
+         name: identity,
