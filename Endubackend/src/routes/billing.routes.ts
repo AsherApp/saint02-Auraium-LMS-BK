@@ -6,7 +6,7 @@ import { z } from 'zod'
 import Stripe from 'stripe'
 import { env } from '../config/env.js'
 import { supabaseAdmin } from '../lib/supabase.js'
-import { getStripeStatus } from '../utils/stripe-config.js'
+import { getStripeStatus } from '../utils/stripe-config'
 
 const router = Router()
 const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
