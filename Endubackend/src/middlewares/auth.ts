@@ -64,7 +64,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
         // Add profile information
         first_name: userProfile?.first_name,
         last_name: userProfile?.last_name,
-        full_name: userProfile ? `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() : null,
+        full_name: userProfile ? `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() : undefined,
         user_type: userProfile?.user_type
       }
       return next()

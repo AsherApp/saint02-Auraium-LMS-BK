@@ -969,7 +969,7 @@ router.get('/:id/submission-timeline', requireAuth, async (req, res) => {
     }
 
     // Group submissions by date
-    const timelineData = {};
+    const timelineData: Record<string, number> = {};
     submissions.forEach(submission => {
       const date = new Date(submission.submitted_at).toDateString();
       timelineData[date] = (timelineData[date] || 0) + 1;
