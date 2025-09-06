@@ -25,6 +25,7 @@ export default function StudentCourseDetailPage() {
   const [assignments, setAssignments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState("curriculum")
   
   // Document and presentation viewers
   const [viewingDocument, setViewingDocument] = useState<FileInfo | null>(null)
@@ -191,14 +192,14 @@ export default function StudentCourseDetailPage() {
                 { id: 'discussions', label: 'Discussions', icon: <MessageSquare className="h-4 w-4" /> },
                 { id: 'resources', label: 'Resources', icon: <FileText className="h-4 w-4" /> }
               ]}
-              activeTab="curriculum"
-              onTabChange={() => {}}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
               variant="default"
               width="content-match"
             />
           </div>
           
-          <Tabs defaultValue="curriculum" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsContent value="overview" className="mt-4">
               <div className="w-full">
                 <GlassCard className="p-6">

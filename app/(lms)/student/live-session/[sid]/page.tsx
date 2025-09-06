@@ -58,7 +58,8 @@ import {
   Lightbulb,
   Brain,
   BookmarkPlus,
-  BookmarkMinus
+  BookmarkMinus,
+  RefreshCw
 } from "lucide-react"
 
 // Using centralized date utilities

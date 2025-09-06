@@ -105,6 +105,7 @@ export default function StudentCoursesPage() {
           {courses.map((c) => {
             const stats = courseStats[c.course_id] || { modules: 0, students: 0 }
             const courseData = c.courses || {}
+            console.log('Course data for thumbnail:', { courseId: c.course_id, thumbnailUrl: courseData.thumbnail_url, courseData })
             return (
               <CourseCard
                 key={c.course_id}
@@ -113,7 +114,7 @@ export default function StudentCoursesPage() {
                 description={courseData.description || "No description available"}
                 modulesCount={stats.modules}
                 studentsCount={stats.students}
-                thumbnailUrl={courseData.thumbnail_url}
+                thumbnailUrl={courseData.thumbnail_url || undefined}
                 role="student"
               />
             )
