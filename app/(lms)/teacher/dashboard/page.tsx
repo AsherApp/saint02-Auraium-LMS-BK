@@ -85,12 +85,52 @@ export default function TeacherDashboard() {
     }
   }, [localCourses.length, seedIfEmpty])
 
-  // Calculate real statistics from actual data
+  // Fetch analytics from backend API
   useEffect(() => {
-    if (apiCourses && assignments) {
-      console.log('Teacher Dashboard - Calculating stats from:', { apiCourses, assignments })
+    const fetchAnalytics = async () => {
+      if (!user?.email) return
       
-      // Calculate real statistics from actual data with proper type handling
+      try {
+        console.log('Teacher Dashboard - Fetching analytics from backend...')
+        const response = await http<any>('/api/teacher/analytics')
+        console.log('Teacher Dashboard - Analytics response:', response)
+        
+        // Update stats with backend data
+        setStats({
+          totalStudents: response.totalStudents || 0,
+          activeCourses: response.totalCourses || 0,
+          pendingAssignments: 0, // Will be calculated from assignments
+          completedAssignments: 0, // Will be calculated from assignments
+          averageGrade: response.averageCompletion || 0,
+          upcomingDeadlines: 0, // Will be calculated from assignments
+          totalLiveSessions: liveSessions.length,
+          recentSubmissions: 0, // Will be calculated from assignments
+          totalAssignments: response.totalAssignments || 0,
+          overdueAssignments: 0, // Will be calculated from assignments
+          averageCompletionRate: response.averageCompletion || 0,
+          totalEnrollments: response.totalEnrollments || 0,
+          activeEnrollments: response.totalEnrollments || 0,
+          courseEngagement: response.coursePerformance?.length > 0 ? 
+            Math.round(response.coursePerformance.reduce((acc: number, course: any) => acc + (course.avgCompletion || 0), 0) / response.coursePerformance.length) : 0,
+          studentPerformance: response.averageCompletion || 0
+        })
+        
+        setRecentActivities(response.recentActivity || [])
+      } catch (error) {
+        console.error('Failed to fetch teacher analytics:', error)
+        // Fallback to frontend calculation if backend fails
+        calculateFrontendStats()
+      }
+    }
+
+    fetchAnalytics()
+  }, [user?.email, liveSessions])
+
+  // Fallback frontend calculation
+  const calculateFrontendStats = () => {
+    if (apiCourses && assignments) {
+      console.log('Teacher Dashboard - Using frontend calculation fallback')
+      
       const totalStudents = apiCourses.reduce((acc, course) => {
         const enrollmentCount = (course as any).enrollment_count || 0
         return acc + enrollmentCount
@@ -98,15 +138,12 @@ export default function TeacherDashboard() {
       
       const activeCourses = apiCourses.filter(course => course.status === 'published').length
       const totalAssignments = assignments.length
-      // Pending assignments are those that need grading (have submissions but not graded)
       const pendingAssignments = assignments.filter((assignment: any) => 
         (assignment.submission_count || 0) > 0 && !assignment.is_graded
       ).length
-      // Completed assignments are those that are graded
       const completedAssignments = assignments.filter((assignment: any) => 
         assignment.is_graded
       ).length
-      // Overdue assignments are those past due date
       const overdueAssignments = assignments.filter((assignment: any) => 
         assignment.due_at && new Date(assignment.due_at) < new Date()
       ).length
@@ -118,48 +155,22 @@ export default function TeacherDashboard() {
         return diffDays <= 7 && diffDays > 0
       }).length
 
-      // Calculate additional metrics with proper type handling
       const totalEnrollments = apiCourses.reduce((acc, course) => {
         const enrollmentCount = (course as any).enrollment_count || 0
         return acc + enrollmentCount
       }, 0)
       
-      const activeEnrollments = apiCourses.filter(course => course.status === 'published').reduce((acc, course) => {
-        const enrollmentCount = (course as any).enrollment_count || 0
-        return acc + enrollmentCount
-      }, 0)
-      
-      // Calculate completion rate based on submissions
       const assignmentsWithSubmissions = assignments.reduce((acc, assignment: any) => {
         return acc + (assignment.submission_count || 0)
       }, 0)
       const averageCompletionRate = totalAssignments > 0 ? 
         Math.round((assignmentsWithSubmissions / (totalAssignments * Math.max(totalStudents, 1))) * 100) : 0
 
-      // Calculate course engagement (courses with enrollments)
       const coursesWithEnrollments = apiCourses.filter(course => {
         const enrollmentCount = (course as any).enrollment_count || 0
         return enrollmentCount > 0
       }).length
       const courseEngagement = apiCourses.length > 0 ? Math.round((coursesWithEnrollments / apiCourses.length) * 100) : 0
-
-      // Calculate student performance (average grade across all courses)
-      const studentPerformance = totalStudents > 0 ? Math.round((activeCourses / Math.max(apiCourses.length, 1)) * 100) : 0
-
-      console.log('Teacher Dashboard - Calculated stats:', {
-        totalStudents,
-        activeCourses,
-        totalAssignments,
-        pendingAssignments,
-        completedAssignments,
-        overdueAssignments,
-        upcomingDeadlines,
-        totalEnrollments,
-        activeEnrollments,
-        averageCompletionRate,
-        courseEngagement,
-        studentPerformance
-      })
 
       setStats({
         totalStudents,
@@ -174,12 +185,47 @@ export default function TeacherDashboard() {
         overdueAssignments,
         averageCompletionRate,
         totalEnrollments,
-        activeEnrollments,
+        activeEnrollments: totalEnrollments,
         courseEngagement,
-        studentPerformance
+        studentPerformance: totalStudents > 0 ? Math.round((activeCourses / Math.max(apiCourses.length, 1)) * 100) : 0
       })
     }
-  }, [apiCourses, assignments, liveSessions])
+  }
+
+  // Update assignment-specific stats when assignments data changes
+  useEffect(() => {
+    if (assignments && assignments.length > 0) {
+      const pendingAssignments = assignments.filter((assignment: any) => 
+        (assignment.submission_count || 0) > 0 && !assignment.is_graded
+      ).length
+      const completedAssignments = assignments.filter((assignment: any) => 
+        assignment.is_graded
+      ).length
+      const overdueAssignments = assignments.filter((assignment: any) => 
+        assignment.due_at && new Date(assignment.due_at) < new Date()
+      ).length
+      const upcomingDeadlines = assignments.filter((assignment: any) => {
+        if (!assignment.due_at) return false
+        const dueDate = new Date(assignment.due_at)
+        const now = new Date()
+        const diffDays = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 3600 * 24))
+        return diffDays <= 7 && diffDays > 0
+      }).length
+      const assignmentsWithSubmissions = assignments.reduce((acc, assignment: any) => {
+        return acc + (assignment.submission_count || 0)
+      }, 0)
+
+      setStats(prev => ({
+        ...prev,
+        pendingAssignments,
+        completedAssignments,
+        overdueAssignments,
+        upcomingDeadlines,
+        recentSubmissions: assignmentsWithSubmissions,
+        totalAssignments: assignments.length
+      }))
+    }
+  }, [assignments])
 
   // Fetch live sessions and recent activities
   useEffect(() => {

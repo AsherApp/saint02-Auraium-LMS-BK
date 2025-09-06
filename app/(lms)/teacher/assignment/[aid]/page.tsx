@@ -47,6 +47,45 @@ type AssignmentWithStats = Assignment & {
   stats?: GradingStats
 }
 
+// Helper function to calculate stats from submissions data
+const calculateStatsFromSubmissions = (submissions: any[]) => {
+  const totalSubmissions = submissions.length
+  const submittedCount = submissions.filter(s => s.status === 'submitted' || s.status === 'graded').length
+  const gradedCount = submissions.filter(s => s.status === 'graded').length
+  const lateCount = submissions.filter(s => s.late_submission).length
+  
+  const gradedSubmissions = submissions.filter(s => s.grade !== null && s.grade !== undefined)
+  const averageGrade = gradedSubmissions.length > 0
+    ? gradedSubmissions.reduce((sum, s) => sum + (s.grade || 0), 0) / gradedSubmissions.length
+    : 0
+
+  // Calculate grade distribution
+  const gradeDistribution: { [key: string]: number } = {}
+  gradedSubmissions.forEach(s => {
+    const grade = s.grade || 0
+    let range = ''
+    if (grade >= 90) range = 'A (90-100)'
+    else if (grade >= 80) range = 'B (80-89)'
+    else if (grade >= 70) range = 'C (70-79)'
+    else if (grade >= 60) range = 'D (60-69)'
+    else range = 'F (0-59)'
+    
+    gradeDistribution[range] = (gradeDistribution[range] || 0) + 1
+  })
+
+  return {
+    total_submissions: totalSubmissions,
+    submitted_count: submittedCount,
+    graded_submissions: gradedCount,
+    pending_grading: submittedCount - gradedCount,
+    average_grade: Math.round(averageGrade * 100) / 100,
+    late_count: lateCount,
+    completion_rate: totalSubmissions > 0 ? (submittedCount / totalSubmissions) * 100 : 0,
+    grading_progress: totalSubmissions > 0 ? (gradedCount / totalSubmissions) * 100 : 0,
+    grade_distribution: gradeDistribution
+  }
+}
+
 // Helper function to get scope color
 const getScopeColor = (level: string) => {
   switch (level) {
@@ -167,9 +206,10 @@ export default function TeacherAssignmentDetailPage() {
           const stats = await AssignmentProAPI.getGradingStats(params.aid)
           setAssignment({ ...assignmentData, stats })
         } catch (statsError) {
-          // If stats fail, just set assignment without stats
-          console.warn('Failed to fetch assignment stats:', statsError)
-          setAssignment(assignmentData)
+          // If stats fail, calculate from submissions data
+          console.warn('Failed to fetch assignment stats, calculating from submissions:', statsError)
+          const calculatedStats = calculateStatsFromSubmissions(assignmentData.submissions || [])
+          setAssignment({ ...assignmentData, stats: calculatedStats })
         }
         
         // Populate edit form

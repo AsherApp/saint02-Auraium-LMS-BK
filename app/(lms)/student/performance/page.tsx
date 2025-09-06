@@ -88,12 +88,16 @@ export default function StudentPerformancePage() {
     try {
       setLoading(true)
       
-      // Fetch enrolled courses first
+      // Fetch student progress data from backend
+      const progressResponse = await http<any>(`/api/student-progress/my-progress`)
+      console.log('Student progress data:', progressResponse)
+      
+      // Fetch enrolled courses
       const enrollmentsResponse = await http<{ items: any[] }>(`/api/students/me/enrollments`)
       const enrollments = enrollmentsResponse.items || []
       console.log('Enrolled courses:', enrollments)
       
-      // Calculate stats
+      // Calculate stats from real progress data
       const totalCourses = enrollments.length
       let completedCourses = 0
       let totalLessons = 0

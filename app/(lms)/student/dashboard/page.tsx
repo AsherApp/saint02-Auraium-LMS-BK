@@ -143,16 +143,22 @@ export default function StudentDashboardPage() {
     fetchStudentData()
   }, [user?.email])
 
-  // Calculate statistics based on real data
+  // Calculate statistics based on real data with improved accuracy
   const stats = {
     totalCourses: enrolledCourses.length,
     totalAssignments: assignments.length,
-    upcomingAssignments: assignments.filter((a: any) => 
-      a.due_at && new Date(a.due_at) > new Date()
-    ).length,
-    overdueAssignments: assignments.filter((a: any) => 
-      a.due_at && new Date(a.due_at) < new Date()
-    ).length,
+    upcomingAssignments: assignments.filter((a: any) => {
+      if (!a.due_at) return false
+      const dueDate = new Date(a.due_at)
+      const now = new Date()
+      return dueDate > now && (a.status !== 'submitted' && a.status !== 'graded')
+    }).length,
+    overdueAssignments: assignments.filter((a: any) => {
+      if (!a.due_at) return false
+      const dueDate = new Date(a.due_at)
+      const now = new Date()
+      return dueDate < now && (a.status !== 'submitted' && a.status !== 'graded')
+    }).length,
     completedAssignments: assignments.filter((a: any) => 
       a.status === 'submitted' || a.status === 'graded'
     ).length,
@@ -160,7 +166,17 @@ export default function StudentDashboardPage() {
       s.start_at && new Date(s.start_at) > new Date()
     ).length,
     completionRate: enrolledCourses.length > 0 && assignments.length > 0 ? 
-      Math.round((assignments.filter((a: any) => a.status === 'submitted' || a.status === 'graded').length / assignments.length) * 100) : 0
+      Math.round((assignments.filter((a: any) => a.status === 'submitted' || a.status === 'graded').length / assignments.length) * 100) : 0,
+    // Additional metrics
+    inProgressAssignments: assignments.filter((a: any) => 
+      a.status === 'in_progress' || a.status === 'draft'
+    ).length,
+    averageGrade: assignments.filter((a: any) => a.grade_percentage).length > 0 ?
+      Math.round(assignments.filter((a: any) => a.grade_percentage)
+        .reduce((sum: number, a: any) => sum + (a.grade_percentage || 0), 0) / 
+        assignments.filter((a: any) => a.grade_percentage).length) : 0,
+    totalAnnouncements: announcements.length,
+    unreadAnnouncements: announcements.filter((a: any) => !a.read_at).length
   }
 
   if (loading) {
@@ -374,23 +390,23 @@ export default function StudentDashboardPage() {
         <StatCard
           title="Assignments"
           value={stats.totalAssignments}
-          description="Total Tasks"
+          description={`${stats.completedAssignments} completed`}
           icon={ListChecks}
           iconColor="green"
         />
         
         <StatCard
-          title="Completed"
-          value={stats.completedAssignments}
-          description="Finished"
-          icon={Award}
+          title="Progress"
+          value={`${stats.completionRate}%`}
+          description="Completion Rate"
+          icon={TrendingUp}
           iconColor="purple"
         />
         
         <StatCard
           title="Due Soon"
           value={stats.upcomingAssignments}
-          description="Upcoming"
+          description={`${stats.overdueAssignments} overdue`}
           icon={Clock}
           iconColor="orange"
         />

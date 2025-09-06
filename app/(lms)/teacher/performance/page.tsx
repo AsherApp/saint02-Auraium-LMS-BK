@@ -42,9 +42,30 @@ export default function TeacherPerformance() {
         // Fetch real analytics data from the backend
         const response = await http<any>('/api/teacher/analytics')
         console.log('Teacher analytics data:', response)
-        setAnalytics(response)
+        
+        // Ensure all required fields are present with fallback values
+        setAnalytics({
+          totalStudents: response.totalStudents || 0,
+          totalCourses: response.totalCourses || 0,
+          totalAssignments: response.totalAssignments || 0,
+          averageCompletion: response.averageCompletion || 0,
+          recentActivity: response.recentActivity || [],
+          coursePerformance: response.coursePerformance || [],
+          totalEnrollments: response.totalEnrollments || 0,
+          draftCourses: response.draftCourses || 0,
+          publishedCourses: response.publishedCourses || 0
+        })
       } catch (err) {
         console.error("Failed to fetch analytics:", err)
+        // Set default values on error
+        setAnalytics({
+          totalStudents: 0,
+          totalCourses: 0,
+          totalAssignments: 0,
+          averageCompletion: 0,
+          recentActivity: [],
+          coursePerformance: []
+        })
       } finally {
         setLoading(false)
       }
