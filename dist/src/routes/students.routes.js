@@ -41,12 +41,78 @@ router.get('/debug/enrollments', requireAuth, asyncHandler(async (req, res) => {
     console.log('Debug: Enrollments data:', JSON.stringify(enrollments, null, 2));
     res.json({ enrollments });
 }));
-// Get student profile by email
-router.get('/:email/profile', requireAuth, asyncHandler(async (req, res) => {
-    const { email } = req.params;
+// Get all students for the authenticated teacher (for adding to live sessions, etc.)
+router.get('/me', requireAuth, asyncHandler(async (req, res) => {
+    const userEmail = req.user?.email;
+    const userRole = req.user?.role;
+    // Only teachers can access the student list
+    if (userRole !== 'teacher') {
+        return res.status(403).json({ error: 'Access denied. Only teachers can access student list.' });
+    }
+    try {
+        const { data: students, error } = await supabaseAdmin
+            .from('students')
+            .select(`
+        id,
+        name,
+        email,
+        student_code,
+        profile_picture_url,
+        created_at
+      `)
+            .order('name', { ascending: true });
+        if (error) {
+            console.error('Error fetching students:', error);
+            return res.status(500).json({ error: 'Failed to fetch students' });
+        }
+        res.json({ items: students || [] });
+    }
+    catch (err) {
+        console.error('Error in get students route:', err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+}));
+// Get current student's own profile (secure - no email in URL)
+router.get('/me/profile', requireAuth, asyncHandler(async (req, res) => {
+    const userEmail = req.user?.email;
+    const userRole = req.user?.role;
+    // Only students can access their own profile
+    if (userRole !== 'student') {
+        return res.status(403).json({ error: 'Access denied - Students only' });
+    }
     const { data, error } = await supabaseAdmin
         .from('students')
-        .select('email, name, student_code, status, created_at')
+        .select('email, name, student_code, status, created_at, profile_picture_url')
+        .eq('email', userEmail.toLowerCase())
+        .single();
+    if (error)
+        return res.status(404).json({ error: 'Student not found' });
+    res.json(data);
+}));
+// Get student profile by email (for teachers accessing their students)
+router.get('/:email/profile', requireAuth, asyncHandler(async (req, res) => {
+    const { email } = req.params;
+    const userEmail = req.user?.email;
+    const userRole = req.user?.role;
+    // Check if user has access to this student's data
+    if (userRole === 'student' && userEmail !== email) {
+        return res.status(403).json({ error: 'Access denied - Students can only access their own profile' });
+    }
+    // For teachers, check if they have any students with this email
+    if (userRole === 'teacher') {
+        const { data: enrollment } = await supabaseAdmin
+            .from('enrollments')
+            .select('id')
+            .eq('student_email', email)
+            .eq('courses.teacher_email', userEmail)
+            .single();
+        if (!enrollment) {
+            return res.status(403).json({ error: 'Access denied - Teacher can only access their own students' });
+        }
+    }
+    const { data, error } = await supabaseAdmin
+        .from('students')
+        .select('email, name, student_code, status, created_at, profile_picture_url')
         .eq('email', email.toLowerCase())
         .single();
     if (error)
@@ -65,7 +131,59 @@ router.get('/code/:studentCode', requireAuth, asyncHandler(async (req, res) => {
         return res.status(404).json({ error: 'Student not found' });
     res.json(data);
 }));
-// Get student enrollments by email
+// Get current student's enrollments (secure - no email in URL)
+router.get('/me/enrollments', requireAuth, asyncHandler(async (req, res) => {
+    const userEmail = req.user?.email;
+    const userRole = req.user?.role;
+    // Only students can access their own enrollments
+    if (userRole !== 'student') {
+        return res.status(403).json({ error: 'Access denied - Students only' });
+    }
+    // Get student enrollments
+    const { data, error } = await supabaseAdmin
+        .from('enrollments')
+        .select(`
+      *,
+      courses(
+        id,
+        title,
+        description,
+        status,
+        teacher_email,
+        thumbnail_url,
+        visibility,
+        enrollment_policy,
+        course_mode
+      )
+    `)
+        .eq('student_email', userEmail)
+        .order('enrolled_at', { ascending: false });
+    if (error)
+        return res.status(500).json({ error: error.message });
+    // Transform the data
+    const enrollments = (data || []).map((enrollment) => ({
+        id: enrollment.id,
+        course_id: enrollment.course_id,
+        enrolled_at: enrollment.enrolled_at,
+        progress_percentage: enrollment.progress_percentage || 0,
+        grade_percentage: enrollment.grade_percentage || 0,
+        last_activity: enrollment.last_activity,
+        status: enrollment.status || 'active',
+        course: {
+            id: enrollment.courses?.id,
+            title: enrollment.courses?.title || 'Untitled Course',
+            description: enrollment.courses?.description,
+            status: enrollment.courses?.status,
+            teacher_email: enrollment.courses?.teacher_email,
+            thumbnail_url: enrollment.courses?.thumbnail_url,
+            visibility: enrollment.courses?.visibility,
+            enrollment_policy: enrollment.courses?.enrollment_policy,
+            course_mode: enrollment.courses?.course_mode
+        }
+    }));
+    res.json({ items: enrollments });
+}));
+// Get student enrollments by email (for teachers accessing their students)
 router.get('/:email/enrollments', requireAuth, asyncHandler(async (req, res) => {
     const { email } = req.params;
     const userEmail = req.user?.email;
@@ -442,9 +560,14 @@ router.post('/:email/enroll', requireAuth, asyncHandler(async (req, res) => {
     }
     res.json(data);
 }));
-// Get student's enrolled courses
-router.get('/:email/courses', requireAuth, asyncHandler(async (req, res) => {
-    const { email } = req.params;
+// Get current student's enrolled courses (secure - no email in URL)
+router.get('/me/courses', requireAuth, asyncHandler(async (req, res) => {
+    const userEmail = req.user?.email;
+    const userRole = req.user?.role;
+    // Only students can access their own courses
+    if (userRole !== 'student') {
+        return res.status(403).json({ error: 'Access denied - Students only' });
+    }
     const { data, error } = await supabaseAdmin
         .from('enrollments')
         .select(`
@@ -454,7 +577,53 @@ router.get('/:email/courses', requireAuth, asyncHandler(async (req, res) => {
         title,
         description,
         status,
-        teacher_email
+        teacher_email,
+        thumbnail_url,
+        visibility,
+        enrollment_policy,
+        course_mode
+      )
+    `)
+        .eq('student_email', userEmail);
+    if (error)
+        return res.status(500).json({ error: error.message });
+    res.json({ items: data || [] });
+}));
+// Get student's enrolled courses (for teachers accessing their students)
+router.get('/:email/courses', requireAuth, asyncHandler(async (req, res) => {
+    const { email } = req.params;
+    const userEmail = req.user?.email;
+    const userRole = req.user?.role;
+    // Check if user has access to this student's data
+    if (userRole === 'student' && userEmail !== email) {
+        return res.status(403).json({ error: 'Access denied' });
+    }
+    // For teachers, check if they have any students with this email
+    if (userRole === 'teacher') {
+        const { data: enrollment } = await supabaseAdmin
+            .from('enrollments')
+            .select('id')
+            .eq('student_email', email)
+            .eq('courses.teacher_email', userEmail)
+            .single();
+        if (!enrollment) {
+            return res.status(403).json({ error: 'Access denied - Teacher can only access their own students' });
+        }
+    }
+    const { data, error } = await supabaseAdmin
+        .from('enrollments')
+        .select(`
+      *,
+      courses!inner(
+        id,
+        title,
+        description,
+        status,
+        teacher_email,
+        thumbnail_url,
+        visibility,
+        enrollment_policy,
+        course_mode
       )
     `)
         .eq('student_email', email);

@@ -16,12 +16,18 @@ router.get('/me', requireAuth, asyncHandler(async (req, res) => {
   }
 
   res.json({
+    id: user.id,
     email: user.email,
     role: user.role,
     name: user.name,
     student_code: user.student_code,
     subscription_status: user.subscription_status,
-    max_students_allowed: user.max_students_allowed
+    max_students_allowed: user.max_students_allowed,
+    // Add profile information
+    first_name: user.first_name,
+    last_name: user.last_name,
+    full_name: user.full_name,
+    user_type: user.user_type
   })
 }))
 
@@ -32,20 +38,28 @@ router.post('/teacher/signin', asyncHandler(async (req, res) => {
     return res.status(400).json({ error: 'missing_credentials' })
   }
 
-  // Get teacher with password hash
+  // Get teacher with password hash from user_profiles view
   const { data: teacher, error } = await supabaseAdmin
+    .from('user_profiles')
+    .select('id, email, first_name, last_name, user_type')
+    .eq('email', email.toLowerCase())
+    .eq('user_type', 'teacher')
+    .single()
+  
+  // Get password hash from teachers table
+  const { data: teacherAuth, error: authError } = await supabaseAdmin
     .from('teachers')
-    .select('email, first_name, last_name, password_hash, subscription_status, max_students_allowed')
+    .select('password_hash, subscription_status, max_students_allowed')
     .eq('email', email.toLowerCase())
     .single()
 
-  if (error || !teacher) {
+  if (error || !teacher || authError || !teacherAuth) {
     return res.status(401).json({ error: 'invalid_credentials' })
   }
 
   // Verify password
   const bcrypt = await import('bcrypt')
-  const isValidPassword = await bcrypt.compare(password, teacher.password_hash)
+  const isValidPassword = await bcrypt.compare(password, teacherAuth.password_hash)
   
   if (!isValidPassword) {
     return res.status(401).json({ error: 'invalid_credentials' })
@@ -53,20 +67,26 @@ router.post('/teacher/signin', asyncHandler(async (req, res) => {
 
   // Generate JWT token
   const token = await generateToken({
+    id: teacher.id,
     email: teacher.email,
     role: 'teacher',
     name: `${teacher.first_name} ${teacher.last_name}`,
-    subscription_status: teacher.subscription_status,
-    max_students_allowed: teacher.max_students_allowed
+    subscription_status: teacherAuth.subscription_status,
+    max_students_allowed: teacherAuth.max_students_allowed
   })
 
   res.json({
     user: {
+      id: teacher.id,
       email: teacher.email,
       role: 'teacher',
       name: `${teacher.first_name} ${teacher.last_name}`,
-      subscription_status: teacher.subscription_status,
-      max_students_allowed: teacher.max_students_allowed
+      first_name: teacher.first_name,
+      last_name: teacher.last_name,
+      full_name: `${teacher.first_name} ${teacher.last_name}`,
+      user_type: teacher.user_type,
+      subscription_status: teacherAuth.subscription_status,
+      max_students_allowed: teacherAuth.max_students_allowed
     },
     token
   })
@@ -93,18 +113,26 @@ router.post('/student/signin-code', asyncHandler(async (req, res) => {
     return res.status(401).json({ error: 'invalid_code' })
   }
 
-  // Get student info
+  // Get student info from user_profiles view
   const { data: student, error: studentError } = await supabaseAdmin
+    .from('user_profiles')
+    .select('id, email, first_name, last_name, user_type')
+    .eq('email', email.toLowerCase())
+    .eq('user_type', 'student')
+    .single()
+  
+  // Get student status from students table
+  const { data: studentStatus, error: statusError } = await supabaseAdmin
     .from('students')
-    .select('email, name, status')
+    .select('status')
     .eq('email', email.toLowerCase())
     .single()
 
-  if (studentError || !student) {
+  if (studentError || !student || statusError || !studentStatus) {
     return res.status(401).json({ error: 'student_not_found' })
   }
 
-  if (student.status !== 'active') {
+  if (studentStatus.status !== 'active') {
     return res.status(403).json({ error: 'account_suspended' })
   }
 
@@ -116,16 +144,22 @@ router.post('/student/signin-code', asyncHandler(async (req, res) => {
 
   // Generate JWT token
   const token = await generateToken({
+    id: student.id,
     email: student.email,
     role: 'student',
-    name: student.name
+    name: `${student.first_name} ${student.last_name}`
   })
 
   res.json({
     user: {
+      id: student.id,
       email: student.email,
       role: 'student',
-      name: student.name
+      name: `${student.first_name} ${student.last_name}`,
+      first_name: student.first_name,
+      last_name: student.last_name,
+      full_name: `${student.first_name} ${student.last_name}`,
+      user_type: student.user_type
     },
     token
   })
@@ -139,18 +173,28 @@ router.get('/teacher/students', requireAuth, asyncHandler(async (req, res) => {
     return res.status(403).json({ error: 'teacher_access_required' })
   }
 
-  // Get all students that the teacher can see (either enrolled in their courses or available for invitation)
+  // Get all students that the teacher can see from user_profiles view
   const { data: students, error } = await supabaseAdmin
-    .from('students')
-    .select('email, name, status, created_at')
-    .eq('status', 'active')
-    .order('name', { ascending: true })
+    .from('user_profiles')
+    .select('email, first_name, last_name, user_type, created_at')
+    .eq('user_type', 'student')
+    .order('first_name', { ascending: true })
 
   if (error) {
     return res.status(500).json({ error: error.message })
   }
 
-  res.json({ items: students || [] })
+  // Transform students data to include name field
+  const transformedStudents = (students || []).map(student => ({
+    email: student.email,
+    name: `${student.first_name} ${student.last_name}`,
+    first_name: student.first_name,
+    last_name: student.last_name,
+    status: 'active', // All students from user_profiles are active
+    created_at: student.created_at
+  }))
+  
+  res.json({ items: transformedStudents })
 }))
 
 // Student sign in with student code and password
@@ -160,29 +204,42 @@ router.post('/student/signin', asyncHandler(async (req, res) => {
     return res.status(400).json({ error: 'missing_credentials' })
   }
 
-  // Get student with password hash
+  // Get student with password hash from user_profiles view
   const { data: student, error } = await supabaseAdmin
+    .from('user_profiles')
+    .select('id, email, first_name, last_name, user_type')
+    .eq('email', (await supabaseAdmin
+      .from('students')
+      .select('email')
+      .eq('student_code', student_code.toUpperCase())
+      .single()
+    ).data?.email)
+    .eq('user_type', 'student')
+    .single()
+  
+  // Get student auth data from students table
+  const { data: studentAuth, error: authError } = await supabaseAdmin
     .from('students')
-    .select('email, name, student_code, password_hash, status')
+    .select('student_code, password_hash, status')
     .eq('student_code', student_code.toUpperCase())
     .single()
 
-  if (error || !student) {
+  if (error || !student || authError || !studentAuth) {
     return res.status(401).json({ error: 'invalid_credentials' })
   }
 
-  if (student.status !== 'active') {
+  if (studentAuth.status !== 'active') {
     return res.status(403).json({ error: 'account_suspended' })
   }
 
   // Check if student has a password set
-  if (!student.password_hash) {
+  if (!studentAuth.password_hash) {
     return res.status(401).json({ error: 'password_not_set' })
   }
 
   // Verify password
   const bcrypt = await import('bcrypt')
-  const isValidPassword = await bcrypt.compare(password, student.password_hash)
+  const isValidPassword = await bcrypt.compare(password, studentAuth.password_hash)
   
   if (!isValidPassword) {
     return res.status(401).json({ error: 'invalid_credentials' })
@@ -190,18 +247,24 @@ router.post('/student/signin', asyncHandler(async (req, res) => {
 
   // Generate JWT token
   const token = await generateToken({
+    id: student.id,
     email: student.email,
     role: 'student',
-    name: student.name,
-    student_code: student.student_code
+    name: `${student.first_name} ${student.last_name}`,
+    student_code: studentAuth.student_code
   })
 
   res.json({
     user: {
+      id: student.id,
       email: student.email,
       role: 'student',
-      name: student.name,
-      student_code: student.student_code
+      name: `${student.first_name} ${student.last_name}`,
+      first_name: student.first_name,
+      last_name: student.last_name,
+      full_name: `${student.first_name} ${student.last_name}`,
+      user_type: student.user_type,
+      student_code: studentAuth.student_code
     },
     token
   })

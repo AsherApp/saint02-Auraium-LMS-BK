@@ -13,6 +13,7 @@ export async function verifyToken(token) {
     try {
         const { payload } = await jwtVerify(token, secret);
         return {
+            id: payload.id,
             email: payload.email,
             role: payload.role,
             name: payload.name,
@@ -31,6 +32,7 @@ export async function decodeToken(token) {
     try {
         const { payload } = await jwtVerify(token, secret);
         return {
+            id: payload.id,
             email: payload.email,
             role: payload.role,
             name: payload.name,

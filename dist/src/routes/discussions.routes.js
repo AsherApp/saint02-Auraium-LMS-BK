@@ -35,6 +35,21 @@ router.get('/course/:courseId', requireAuth, asyncHandler(async (req, res) => {
         if (enrollmentError || !enrollment) {
             return res.status(403).json({ error: 'Access denied' });
         }
+        // Check if teacher allows student discussions
+        const { data: course, error: courseError } = await supabaseAdmin
+            .from('courses')
+            .select('allow_discussions')
+            .eq('id', courseId)
+            .single();
+        if (courseError || !course) {
+            return res.status(404).json({ error: 'Course not found' });
+        }
+        if (!course.allow_discussions) {
+            return res.status(403).json({
+                error: 'discussions_disabled',
+                message: 'The teacher has disabled discussions for this course.'
+            });
+        }
     }
     // Get discussions
     const { data: discussions, error: discussionsError } = await supabaseAdmin

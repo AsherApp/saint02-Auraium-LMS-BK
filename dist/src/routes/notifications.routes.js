@@ -2,19 +2,18 @@ import express from 'express';
 import { supabaseAdmin } from '../lib/supabase.js';
 import { requireAuth } from '../middlewares/auth.js';
 const router = express.Router();
-// Get notifications for a user
-router.get('/:userEmail', requireAuth, async (req, res) => {
+// Get current user's notifications (secure - no email in URL)
+router.get('/me', requireAuth, async (req, res) => {
     try {
         const { user } = req;
-        const { userEmail } = req.params;
         const { limit = 50 } = req.query;
-        if (user?.email !== userEmail) {
-            return res.status(403).json({ error: 'Access denied' });
+        if (!user?.email) {
+            return res.status(401).json({ error: 'User not authenticated' });
         }
         const { data: notifications, error } = await supabaseAdmin
             .from('notifications')
             .select('*')
-            .eq('user_email', userEmail)
+            .eq('user_email', user.email)
             .order('created_at', { ascending: false })
             .limit(parseInt(limit));
         if (error)
@@ -55,18 +54,17 @@ router.post('/:notificationId/read', requireAuth, async (req, res) => {
         res.status(500).json({ error: 'Failed to mark notification as read' });
     }
 });
-// Mark all notifications as read
-router.post('/:userEmail/read-all', requireAuth, async (req, res) => {
+// Mark all notifications as read (secure - no email in URL)
+router.post('/me/read-all', requireAuth, async (req, res) => {
     try {
         const { user } = req;
-        const { userEmail } = req.params;
-        if (user?.email !== userEmail) {
-            return res.status(403).json({ error: 'Access denied' });
+        if (!user?.email) {
+            return res.status(401).json({ error: 'User not authenticated' });
         }
         const { error } = await supabaseAdmin
             .from('notifications')
             .update({ read: true })
-            .eq('user_email', userEmail)
+            .eq('user_email', user.email)
             .eq('read', false);
         if (error)
             throw error;

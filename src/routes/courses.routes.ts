@@ -25,11 +25,95 @@ router.get('/', requireAuth, asyncHandler(async (req, res) => {
 }))
 
 router.post('/', requireAuth, asyncHandler(async (req, res) => {
-  const { title, description, teacher_email } = req.body || {}
+  const { title, description, teacher_email, status, visibility, enrollment_policy, course_mode, thumbnail_url } = req.body || {}
   if (!title || !teacher_email) return res.status(400).json({ error: 'missing_fields' })
-  const { data, error } = await supabaseAdmin.from('courses').insert({ title, description, teacher_email }).select().single()
+  
+  // Get teacher's course settings to apply defaults
+  let courseSettings = {
+    default_course_duration: 60,
+    auto_publish_courses: false,
+    allow_student_discussions: true
+  }
+  
+  try {
+    // Get teacher ID from email
+    const { data: teacher, error: teacherError } = await supabaseAdmin
+      .from('teachers')
+      .select('id')
+      .eq('email', teacher_email)
+      .single()
+    
+    if (teacher && !teacherError) {
+      // Fetch teacher's course settings
+      const { data: settings, error: settingsError } = await supabaseAdmin
+        .from('teacher_settings')
+        .select('course_settings')
+        .eq('teacher_id', teacher.id)
+        .single()
+      
+      if (settings && !settingsError && settings.course_settings) {
+        courseSettings = settings.course_settings
+      }
+    }
+  } catch (error) {
+    console.log('Could not fetch teacher settings, using defaults:', error)
+  }
+  
+  // Apply settings to course creation
+  const courseData = {
+    title,
+    description,
+    teacher_email,
+    status: status || (courseSettings.auto_publish_courses ? 'published' : 'draft'),
+    visibility: visibility || 'private',
+    enrollment_policy: enrollment_policy || 'invite_only',
+    allow_discussions: courseSettings.allow_student_discussions,
+    default_duration: courseSettings.default_course_duration,
+    course_mode: course_mode || 'normal',
+    thumbnail_url: thumbnail_url || null
+  }
+  
+  const { data, error } = await supabaseAdmin
+    .from('courses')
+    .insert(courseData)
+    .select()
+    .single()
+    
   if (error) return res.status(500).json({ error: error.message })
   res.status(201).json(data)
+}))
+
+// Public mode course endpoint (no auth required)
+router.get('/public/:id', asyncHandler(async (req, res) => {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('courses')
+      .select('*')
+      .eq('id', req.params.id)
+      .eq('course_mode', 'public')
+      .eq('status', 'published')
+      .single()
+    
+    if (error || !data) {
+      return res.status(404).json({ error: 'Public course not found' })
+    }
+    
+    // Return only basic course information for public mode
+    const publicCourseData = {
+      id: data.id,
+      title: data.title,
+      description: data.description,
+      course_mode: data.course_mode,
+      status: data.status,
+      created_at: data.created_at,
+      teacher_name: data.teacher_name || 'Unknown Instructor'
+    }
+    
+    res.json(publicCourseData)
+  } catch (error) {
+    console.error('Public course fetch error:', error)
+    res.status(500).json({ error: 'Failed to fetch public course' })
+  }
 }))
 
 router.get('/:id', requireAuth, asyncHandler(async (req, res) => {
@@ -98,11 +182,15 @@ router.put('/:id', requireAuth, asyncHandler(async (req, res) => {
     return res.status(401).json({ error: 'Teacher email not found in request' })
   }
   
-  const { title, description, status } = req.body || {}
+  const { title, description, status, course_mode, thumbnail_url, visibility, enrollment_policy } = req.body || {}
   const updateData: any = {}
   if (title !== undefined) updateData.title = title
   if (description !== undefined) updateData.description = description
   if (status !== undefined) updateData.status = status
+  if (course_mode !== undefined) updateData.course_mode = course_mode
+  if (thumbnail_url !== undefined) updateData.thumbnail_url = thumbnail_url
+  if (visibility !== undefined) updateData.visibility = visibility
+  if (enrollment_policy !== undefined) updateData.enrollment_policy = enrollment_policy
   
   // Only update course if it belongs to this teacher
   const { data, error } = await supabaseAdmin
@@ -275,5 +363,132 @@ router.post('/:id/enroll', requireAuth, asyncHandler(async (req, res) => {
   const { error } = await supabaseAdmin.from('enrollments').insert({ course_id: req.params.id, student_email })
   if (error) return res.status(500).json({ error: error.message })
   res.json({ ok: true })
+}))
+
+// Delete a course
+router.delete('/:id', requireAuth, asyncHandler(async (req, res) => {
+  const courseId = req.params.id
+  const teacherEmail = (req as any).user?.email
+  
+  if (!teacherEmail) {
+    return res.status(401).json({ error: 'Teacher email not found in request' })
+  }
+  
+  // Check if the course exists and belongs to the teacher
+  const { data: course, error: courseError } = await supabaseAdmin
+    .from('courses')
+    .select('id, title')
+    .eq('id', courseId)
+    .eq('teacher_email', teacherEmail)
+    .single()
+  
+  if (courseError || !course) {
+    return res.status(404).json({ error: 'Course not found or access denied' })
+  }
+  
+  // Delete the course (cascade will handle related records)
+  const { error: deleteError } = await supabaseAdmin
+    .from('courses')
+    .delete()
+    .eq('id', courseId)
+  
+  if (deleteError) {
+    return res.status(500).json({ error: deleteError.message })
+  }
+  
+  res.json({ ok: true, message: 'Course deleted successfully' })
+}))
+
+// Duplicate a course
+router.post('/:id/duplicate', requireAuth, asyncHandler(async (req, res) => {
+  const courseId = req.params.id
+  const teacherEmail = (req as any).user?.email
+  
+  if (!teacherEmail) {
+    return res.status(401).json({ error: 'Teacher email not found in request' })
+  }
+  
+  // Get the original course
+  const { data: originalCourse, error: courseError } = await supabaseAdmin
+    .from('courses')
+    .select('*')
+    .eq('id', courseId)
+    .eq('teacher_email', teacherEmail)
+    .single()
+  
+  if (courseError || !originalCourse) {
+    return res.status(404).json({ error: 'Course not found or access denied' })
+  }
+  
+  // Create the duplicated course
+  const duplicatedCourse = {
+    ...originalCourse,
+    id: undefined, // Let the database generate a new ID
+    title: `${originalCourse.title} (Copy)`,
+    created_at: undefined, // Let the database set the current timestamp
+    updated_at: undefined
+  }
+  
+  const { data: newCourse, error: insertError } = await supabaseAdmin
+    .from('courses')
+    .insert(duplicatedCourse)
+    .select()
+    .single()
+  
+  if (insertError) {
+    return res.status(500).json({ error: insertError.message })
+  }
+  
+  // Duplicate modules and lessons
+  const { data: modules, error: modulesError } = await supabaseAdmin
+    .from('modules')
+    .select(`
+      *,
+      lessons(*)
+    `)
+    .eq('course_id', courseId)
+  
+  if (modulesError) {
+    return res.status(500).json({ error: modulesError.message })
+  }
+  
+  // Insert duplicated modules and lessons
+  for (const module of modules || []) {
+    const { data: newModule, error: moduleInsertError } = await supabaseAdmin
+      .from('modules')
+      .insert({
+        course_id: newCourse.id,
+        title: module.title,
+        position: module.position
+      })
+      .select()
+      .single()
+    
+    if (moduleInsertError) {
+      console.error('Error duplicating module:', moduleInsertError)
+      continue
+    }
+    
+    // Duplicate lessons for this module
+    if (module.lessons && module.lessons.length > 0) {
+      for (const lesson of module.lessons) {
+        await supabaseAdmin
+          .from('lessons')
+          .insert({
+            module_id: newModule.id,
+            title: lesson.title,
+            type: lesson.type,
+            content: lesson.content,
+            position: lesson.position
+          })
+      }
+    }
+  }
+  
+  res.json({ 
+    ok: true, 
+    message: 'Course duplicated successfully',
+    course: newCourse
+  })
 }))
 

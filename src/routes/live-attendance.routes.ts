@@ -220,7 +220,7 @@ router.post('/session/:sessionId/check-in', requireAuth, asyncHandler(async (req
   // Check if session exists and is active
   const { data: session } = await supabaseAdmin
     .from('live_sessions')
-    .select('course_id, status, start_at')
+    .select('course_id, status, start_time')
     .eq('id', sessionId)
     .single()
 
@@ -257,7 +257,7 @@ router.post('/session/:sessionId/check-in', requireAuth, asyncHandler(async (req
   }
 
   // Calculate if late
-  const sessionStart = new Date(session.start_at)
+  const sessionStart = new Date(session.start_time)
   const now = new Date()
   const lateMinutes = Math.max(0, Math.floor((now.getTime() - sessionStart.getTime()) / (1000 * 60)))
   
@@ -490,7 +490,7 @@ router.post('/session/:sessionId/report', requireAuth, asyncHandler(async (req, 
   // Check if teacher is authorized for this session
   const { data: session } = await supabaseAdmin
     .from('live_sessions')
-    .select('course_id, host_email, start_at, end_at')
+    .select('course_id, host_email, start_time, end_at')
     .eq('id', sessionId)
     .single()
 
@@ -541,8 +541,8 @@ router.post('/session/:sessionId/report', requireAuth, asyncHandler(async (req, 
     ? (attendanceRecords || []).reduce((sum, r) => sum + (r.engagement_score || 0), 0) / (attendanceRecords?.length || 1)
     : 0
 
-  const sessionDurationMinutes = session.end_at && session.start_at
-    ? Math.floor((new Date(session.end_at).getTime() - new Date(session.start_at).getTime()) / (1000 * 60))
+  const sessionDurationMinutes = session.end_at && session.start_time
+    ? Math.floor((new Date(session.end_at).getTime() - new Date(session.start_time).getTime()) / (1000 * 60))
     : 0
 
   // Create or update report
@@ -610,7 +610,7 @@ router.get('/student/:studentEmail/history', requireAuth, asyncHandler(async (re
       live_sessions(
         id,
         title,
-        start_at,
+        start_time,
         end_at,
         courses(title)
       )

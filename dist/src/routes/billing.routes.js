@@ -6,10 +6,20 @@ import { z } from 'zod';
 import Stripe from 'stripe';
 import { env } from '../config/env.js';
 import { supabaseAdmin } from '../lib/supabase.js';
+import { getStripeStatus } from '../utils/stripe-config.js';
 const router = Router();
 const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
     apiVersion: '2023-10-16'
 });
+// Stripe health check endpoint
+router.get('/health', asyncHandler(async (req, res) => {
+    const status = await getStripeStatus();
+    res.json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        stripe: status
+    });
+}));
 // Create checkout session for subscription (with trial support)
 router.post('/checkout', requireAuth, requireTeacher, validateBody(z.object({
     priceId: z.string().optional(),
@@ -183,6 +193,12 @@ router.post('/webhook', asyncHandler(async (req, res) => {
             case 'invoice.payment_failed':
                 await handlePaymentFailed(event.data.object);
                 break;
+            case 'checkout.session.completed':
+                await handleCheckoutCompleted(event.data.object);
+                break;
+            case 'customer.subscription.trial_will_end':
+                await handleTrialWillEnd(event.data.object);
+                break;
             default:
                 console.log(`Unhandled event type: ${event.type}`);
         }
@@ -200,17 +216,38 @@ router.get('/status', requireAuth, requireTeacher, asyncHandler(async (req, res)
         return res.status(401).json({ error: 'user_not_found' });
     }
     try {
-        const { data: teacher, error: teacherError } = await supabaseAdmin
+        let { data: teacher, error: teacherError } = await supabaseAdmin
             .from('teachers')
             .select('subscription_status, max_students_allowed, stripe_customer_id, stripe_subscription_id, trial_started_at, trial_ends_at')
             .eq('email', userEmail)
             .single();
         if (teacherError || !teacher) {
-            return res.status(404).json({ error: 'teacher_not_found' });
+            // Create a default teacher record if one doesn't exist
+            const { data: newTeacher, error: createError } = await supabaseAdmin
+                .from('teachers')
+                .upsert({
+                email: userEmail,
+                first_name: userEmail.split('@')[0],
+                last_name: 'User',
+                subscription_status: 'free',
+                max_students_allowed: env.FREE_STUDENTS_LIMIT || 5,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            }, {
+                onConflict: 'email'
+            })
+                .select()
+                .single();
+            if (createError) {
+                console.error('Failed to create teacher record:', createError);
+                return res.status(500).json({ error: 'teacher_creation_failed' });
+            }
+            // Use the newly created teacher record
+            teacher = newTeacher;
         }
         // Get subscription details from Stripe if exists
         let subscription = null;
-        if (teacher.stripe_subscription_id) {
+        if (teacher?.stripe_subscription_id) {
             try {
                 subscription = await stripe.subscriptions.retrieve(teacher.stripe_subscription_id);
             }
@@ -220,22 +257,22 @@ router.get('/status', requireAuth, requireTeacher, asyncHandler(async (req, res)
         }
         // Calculate trial status
         let trialStatus = null;
-        if (teacher.trial_started_at && teacher.trial_ends_at) {
+        if (teacher?.trial_started_at && teacher?.trial_ends_at) {
             const now = new Date();
             const trialEnd = new Date(teacher.trial_ends_at);
             const isExpired = now > trialEnd;
             const daysRemaining = isExpired ? 0 : Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
             trialStatus = {
-                started_at: teacher.trial_started_at,
-                ends_at: teacher.trial_ends_at,
+                started_at: teacher?.trial_started_at,
+                ends_at: teacher?.trial_ends_at,
                 is_expired: isExpired,
                 days_remaining: daysRemaining
             };
         }
         res.json({
-            subscription_status: teacher.subscription_status,
-            max_students_allowed: teacher.max_students_allowed,
-            has_subscription: !!teacher.stripe_subscription_id,
+            subscription_status: teacher?.subscription_status || 'free',
+            max_students_allowed: teacher?.max_students_allowed || 5,
+            has_subscription: !!teacher?.stripe_subscription_id,
             trial_status: trialStatus,
             subscription: subscription ? {
                 id: subscription.id,
@@ -288,8 +325,32 @@ async function handleSubscriptionCancellation(subscription) {
     console.log(`Cancelled subscription for ${teacherEmail}`);
 }
 async function handlePaymentSucceeded(invoice) {
-    // Handle successful payment
-    console.log(`Payment succeeded for invoice ${invoice.id}`);
+    const teacherEmail = invoice.metadata?.teacher_email;
+    if (teacherEmail) {
+        // Update teacher subscription status
+        await supabaseAdmin
+            .from('teachers')
+            .update({
+            subscription_status: 'pro',
+            max_students_allowed: 50,
+            updated_at: new Date().toISOString()
+        })
+            .eq('email', teacherEmail);
+        // Log successful payment
+        console.log(`Payment succeeded for ${teacherEmail}, invoice ${invoice.id}`);
+        // Create transaction record
+        await supabaseAdmin
+            .from('teacher_transactions')
+            .insert({
+            teacher_email: teacherEmail,
+            transaction_type: 'subscription_payment',
+            amount: invoice.amount_paid / 100, // Convert from cents
+            currency: invoice.currency,
+            stripe_invoice_id: invoice.id,
+            status: 'completed',
+            created_at: new Date().toISOString()
+        });
+    }
 }
 async function handlePaymentFailed(invoice) {
     const teacherEmail = invoice.metadata?.teacher_email;
@@ -302,6 +363,35 @@ async function handlePaymentFailed(invoice) {
         })
             .eq('email', teacherEmail);
         console.log(`Payment failed for ${teacherEmail}`);
+    }
+}
+async function handleCheckoutCompleted(session) {
+    const teacherEmail = session.metadata?.teacher_email;
+    if (teacherEmail && session.customer) {
+        // Update teacher with Stripe customer ID
+        await supabaseAdmin
+            .from('teachers')
+            .update({
+            stripe_customer_id: session.customer,
+            updated_at: new Date().toISOString()
+        })
+            .eq('email', teacherEmail);
+        console.log(`Checkout completed for ${teacherEmail}, customer ${session.customer}`);
+    }
+}
+async function handleTrialWillEnd(subscription) {
+    const teacherEmail = subscription.metadata.teacher_email;
+    if (teacherEmail) {
+        // Log trial ending (could send email notification here)
+        console.log(`Trial will end soon for ${teacherEmail}`);
+        // Update subscription status to indicate trial ending
+        await supabaseAdmin
+            .from('teachers')
+            .update({
+            subscription_status: 'trial_ending',
+            updated_at: new Date().toISOString()
+        })
+            .eq('email', teacherEmail);
     }
 }
 export { router };

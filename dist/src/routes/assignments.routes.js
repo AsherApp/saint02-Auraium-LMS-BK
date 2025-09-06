@@ -248,7 +248,36 @@ router.post('/', requireAuth, async (req, res) => {
         if (courseError || !course) {
             return res.status(403).json({ error: 'Access denied' });
         }
-        // Create assignment
+        // Get teacher's grading settings to apply defaults
+        let gradingSettings = {
+            default_grading_scale: 'percentage',
+            allow_late_submissions: true,
+            late_submission_penalty: 10,
+            auto_grade_quizzes: true
+        };
+        try {
+            // Get teacher ID from email
+            const { data: teacher, error: teacherError } = await supabaseAdmin
+                .from('teachers')
+                .select('id')
+                .eq('email', teacherEmail)
+                .single();
+            if (teacher && !teacherError) {
+                // Fetch teacher's grading settings
+                const { data: settingsData, error: settingsError } = await supabaseAdmin
+                    .from('teacher_settings')
+                    .select('grading_settings')
+                    .eq('teacher_id', teacher.id)
+                    .single();
+                if (settingsData && !settingsError && settingsData.grading_settings) {
+                    gradingSettings = settingsData.grading_settings;
+                }
+            }
+        }
+        catch (error) {
+            console.log('Could not fetch teacher grading settings, using defaults:', error);
+        }
+        // Create assignment with teacher's grading settings applied
         const { data: assignment, error: assignmentError } = await supabaseAdmin
             .from('assignments')
             .insert({
@@ -262,8 +291,8 @@ router.post('/', requireAuth, async (req, res) => {
             due_at,
             available_from,
             available_until,
-            allow_late_submissions: allow_late_submissions !== undefined ? allow_late_submissions : true,
-            late_penalty_percent: late_penalty_percent || 10,
+            allow_late_submissions: allow_late_submissions !== undefined ? allow_late_submissions : gradingSettings.allow_late_submissions,
+            late_penalty_percent: late_penalty_percent || gradingSettings.late_submission_penalty,
             max_attempts: max_attempts || 1,
             time_limit_minutes,
             require_rubric: require_rubric || false,
@@ -278,7 +307,9 @@ router.post('/', requireAuth, async (req, res) => {
                 max_group_size: null,
                 self_assessment: false,
                 peer_review: false,
-                peer_review_count: null
+                peer_review_count: null,
+                grading_scale: gradingSettings.default_grading_scale,
+                auto_grade: type === 'quiz' ? gradingSettings.auto_grade_quizzes : false
             }
         })
             .select()
@@ -787,6 +818,157 @@ router.get('/:id/grading-stats', requireAuth, async (req, res) => {
     }
     catch (error) {
         console.error('Error in GET /assignments/:id/grading-stats:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+// Get submission timeline analytics
+router.get('/:id/submission-timeline', requireAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const teacherEmail = req.user?.email;
+        if (!teacherEmail) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+        // Check if teacher owns the assignment
+        const { data: assignment, error: assignmentError } = await supabaseAdmin
+            .from('assignments')
+            .select(`
+        id,
+        title,
+        due_at,
+        courses!inner(teacher_email)
+      `)
+            .eq('id', id)
+            .eq('courses.teacher_email', teacherEmail)
+            .single();
+        if (assignmentError || !assignment) {
+            return res.status(404).json({ error: 'Assignment not found' });
+        }
+        // Get submissions with submission dates
+        const { data: submissions, error: submissionsError } = await supabaseAdmin
+            .from('assignment_submissions')
+            .select('submitted_at')
+            .eq('assignment_id', id)
+            .not('submitted_at', 'is', null)
+            .order('submitted_at', { ascending: true });
+        if (submissionsError) {
+            console.error('Error fetching submissions:', submissionsError);
+            return res.status(500).json({ error: 'Failed to fetch submissions' });
+        }
+        // Group submissions by date
+        const timelineData = {};
+        submissions.forEach(submission => {
+            const date = new Date(submission.submitted_at).toDateString();
+            timelineData[date] = (timelineData[date] || 0) + 1;
+        });
+        // Convert to array format for the last 7 days
+        const last7Days = [];
+        for (let i = 6; i >= 0; i--) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            const dateString = date.toDateString();
+            last7Days.push({
+                date: new Date(date),
+                count: timelineData[dateString] || 0
+            });
+        }
+        res.json(last7Days);
+    }
+    catch (error) {
+        console.error('Error in GET /assignments/:id/submission-timeline:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+// Get detailed analytics for an assignment
+router.get('/:id/analytics', requireAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const teacherEmail = req.user?.email;
+        if (!teacherEmail) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+        // Check if teacher owns the assignment
+        const { data: assignment, error: assignmentError } = await supabaseAdmin
+            .from('assignments')
+            .select(`
+        id,
+        title,
+        due_at,
+        max_attempts,
+        courses!inner(teacher_email)
+      `)
+            .eq('id', id)
+            .eq('courses.teacher_email', teacherEmail)
+            .single();
+        if (assignmentError || !assignment) {
+            return res.status(404).json({ error: 'Assignment not found' });
+        }
+        // Get all submissions with detailed data
+        const { data: submissions, error: submissionsError } = await supabaseAdmin
+            .from('assignment_submissions')
+            .select(`
+        id,
+        student_email,
+        submitted_at,
+        grade,
+        attempt_number,
+        time_spent_minutes
+      `)
+            .eq('assignment_id', id);
+        if (submissionsError) {
+            console.error('Error fetching submissions:', submissionsError);
+            return res.status(500).json({ error: 'Failed to fetch submissions' });
+        }
+        // Calculate analytics
+        const totalSubmissions = submissions.length;
+        const gradedSubmissions = submissions.filter(s => s.grade !== null).length;
+        const onTimeSubmissions = submissions.filter(s => {
+            if (!s.submitted_at || !assignment.due_at)
+                return false;
+            return new Date(s.submitted_at) <= new Date(assignment.due_at);
+        }).length;
+        const lateSubmissions = totalSubmissions - onTimeSubmissions;
+        // Time analytics
+        const timeSpentData = submissions.filter(s => s.time_spent_minutes).map(s => s.time_spent_minutes);
+        const averageTimeSpent = timeSpentData.length > 0
+            ? Math.round(timeSpentData.reduce((sum, time) => sum + time, 0) / timeSpentData.length)
+            : 0;
+        const maxTimeSpent = timeSpentData.length > 0 ? Math.max(...timeSpentData) : 0;
+        const minTimeSpent = timeSpentData.length > 0 ? Math.min(...timeSpentData) : 0;
+        // Attempt analytics
+        const singleAttempt = submissions.filter(s => s.attempt_number === 1).length;
+        const multipleAttempts = submissions.filter(s => s.attempt_number > 1).length;
+        const maxAttemptsUsed = submissions.length > 0 ? Math.max(...submissions.map(s => s.attempt_number)) : 0;
+        // Grade analytics
+        const gradedSubs = submissions.filter(s => s.grade !== null);
+        const passRate = gradedSubs.length > 0
+            ? Math.round((gradedSubs.filter(s => s.grade >= 70).length / gradedSubs.length) * 100)
+            : 0;
+        const aboveAverage = gradedSubs.length > 0
+            ? Math.round((gradedSubs.filter(s => s.grade >= 85).length / gradedSubs.length) * 100)
+            : 0;
+        const needsHelp = gradedSubs.length > 0
+            ? Math.round((gradedSubs.filter(s => s.grade < 60).length / gradedSubs.length) * 100)
+            : 0;
+        const analytics = {
+            total_submissions: totalSubmissions,
+            graded_submissions: gradedSubmissions,
+            on_time_submissions: onTimeSubmissions,
+            late_submissions: lateSubmissions,
+            average_time_spent: averageTimeSpent,
+            max_time_spent: maxTimeSpent,
+            min_time_spent: minTimeSpent,
+            single_attempt: singleAttempt,
+            multiple_attempts: multipleAttempts,
+            max_attempts_used: maxAttemptsUsed,
+            pass_rate: passRate,
+            above_average: aboveAverage,
+            needs_help: needsHelp
+        };
+        res.json(analytics);
+    }
+    catch (error) {
+        console.error('Error in GET /assignments/:id/analytics:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });

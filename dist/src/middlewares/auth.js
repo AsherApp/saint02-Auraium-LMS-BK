@@ -1,7 +1,8 @@
 import { verifyToken } from '../lib/jwt.js';
+import { supabaseAdmin } from '../lib/supabase.js';
 export async function requireAuth(req, res, next) {
     try {
-        console.log('Auth middleware - NODE_ENV:', process.env.NODE_ENV);
+        // console.log('Auth middleware - NODE_ENV:', process.env.NODE_ENV)
         const header = req.headers.authorization || '';
         const token = header.startsWith('Bearer ') ? header.slice(7) : '';
         // Allow dev bypass in development environment
@@ -15,17 +16,17 @@ export async function requireAuth(req, res, next) {
                     // Check if this is a student endpoint and set appropriate role
                     const isStudentEndpoint = req.path.includes('/student') || req.path.includes('/students');
                     const role = (userRole === 'teacher' || userRole === 'student') ? userRole : (isStudentEndpoint ? 'student' : 'teacher');
-                    req.user = { email: userEmail, role: role };
-                    console.log('Dev bypass auth:', { email: userEmail, role });
+                    req.user = { id: 'dev-user-id', email: userEmail, role: role };
+                    // console.log('Dev bypass auth:', { email: userEmail, role })
                     return next();
                 }
             }
-            console.log('Dev bypass failed:', {
-                hasToken: !!token,
-                hasDevHeader: req.headers['x-dev'] === 'true',
-                hasUserEmail: typeof req.headers['x-user-email'] === 'string',
-                userEmail: req.headers['x-user-email']
-            });
+            // console.log('Dev bypass failed:', { 
+            //   hasToken: !!token, 
+            //   hasDevHeader: req.headers['x-dev'] === 'true',
+            //   hasUserEmail: typeof req.headers['x-user-email'] === 'string',
+            //   userEmail: req.headers['x-user-email']
+            // })
             return res.status(401).json({ error: 'missing_token' });
         }
         if (!token) {
@@ -37,12 +38,24 @@ export async function requireAuth(req, res, next) {
             if (!payload.email) {
                 return res.status(401).json({ error: 'invalid_token_payload' });
             }
+            // Get full user profile from database using the unified view
+            const { data: userProfile } = await supabaseAdmin
+                .from('user_profiles')
+                .select('*')
+                .eq('email', payload.email)
+                .single();
             req.user = {
+                id: payload.id,
                 email: payload.email,
                 role: payload.role || 'teacher',
                 student_code: payload.student_code,
                 subscription_status: payload.subscription_status,
-                max_students_allowed: payload.max_students_allowed
+                max_students_allowed: payload.max_students_allowed,
+                // Add profile information
+                first_name: userProfile?.first_name,
+                last_name: userProfile?.last_name,
+                full_name: userProfile ? `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() : undefined,
+                user_type: userProfile?.user_type
             };
             return next();
         }

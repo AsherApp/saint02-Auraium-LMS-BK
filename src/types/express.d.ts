@@ -4,6 +4,7 @@ declare global {
   namespace Express {
     interface Request {
       user?: {
+        id: string
         email: string
         role: 'student' | 'teacher'
         student_code?: string
@@ -11,6 +12,10 @@ declare global {
         max_students_allowed?: number
         supportId?: string
         supportRole?: string
+        first_name?: string
+        last_name?: string
+        full_name?: string
+        user_type?: string
       }
     }
   }

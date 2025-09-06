@@ -3,169 +3,252 @@ import { requireAuth } from '../middlewares/auth.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { supabaseAdmin } from '../lib/supabase.js';
 export const router = Router();
-// Get messages for a user (teacher or student)
+// Get all messages for a user (inbox)
 router.get('/', requireAuth, asyncHandler(async (req, res) => {
-    const user_email = req.user?.email?.toLowerCase();
-    if (!user_email) {
-        return res.status(400).json({ error: 'missing_user_email' });
+    const userEmail = req.user?.email;
+    if (!userEmail) {
+        return res.status(401).json({ error: 'User email not found in request' });
     }
-    const { data, error } = await supabaseAdmin
+    const { filter = 'all', sort_by = 'date', limit = 50, offset = 0 } = req.query;
+    let query = supabaseAdmin
         .from('messages')
         .select('*')
-        .or(`from_email.eq.${user_email},to_email.eq.${user_email}`)
-        .order('created_at', { ascending: false });
-    if (error)
+        .or(`from_email.eq.${userEmail},to_email.eq.${userEmail}`);
+    // Apply filters
+    if (filter === 'unread') {
+        query = query.eq('read', false);
+    }
+    else if (filter === 'starred') {
+        query = query.eq('starred', true);
+    }
+    else if (filter === 'archived') {
+        query = query.eq('archived', true);
+    }
+    else if (filter === 'sent') {
+        query = query.eq('from_email', userEmail);
+    }
+    else if (filter === 'received') {
+        query = query.eq('to_email', userEmail);
+    }
+    // Apply sorting
+    if (sort_by === 'date') {
+        query = query.order('created_at', { ascending: false });
+    }
+    else if (sort_by === 'sender') {
+        query = query.order('from_email', { ascending: true });
+    }
+    else if (sort_by === 'subject') {
+        query = query.order('subject', { ascending: true });
+    }
+    else if (sort_by === 'priority') {
+        query = query.order('priority', { ascending: false });
+    }
+    // Apply pagination
+    query = query.range(Number(offset), Number(offset) + Number(limit) - 1);
+    const { data, error } = await query;
+    if (error) {
         return res.status(500).json({ error: error.message });
+    }
     res.json({ items: data || [] });
 }));
 // Get unread message count
 router.get('/unread-count', requireAuth, asyncHandler(async (req, res) => {
-    const user_email = req.user?.email?.toLowerCase();
-    if (!user_email) {
-        return res.status(400).json({ error: 'missing_user_email' });
+    const userEmail = req.user?.email;
+    if (!userEmail) {
+        return res.status(401).json({ error: 'User email not found in request' });
     }
     const { count, error } = await supabaseAdmin
         .from('messages')
         .select('*', { count: 'exact', head: true })
-        .eq('to_email', user_email)
-        .eq('read', false);
-    if (error)
+        .eq('to_email', userEmail)
+        .eq('read', false)
+        .eq('archived', false);
+    if (error) {
         return res.status(500).json({ error: error.message });
+    }
     res.json({ count: count || 0 });
 }));
 // Send a new message
 router.post('/', requireAuth, asyncHandler(async (req, res) => {
-    const { to_email, subject, content, priority = 'normal', attachments = [], thread_id, parent_id } = req.body;
-    const from_email = req.user?.email?.toLowerCase();
-    if (!to_email || !subject || !content) {
-        return res.status(400).json({ error: 'missing_required_fields' });
+    const userEmail = req.user?.email;
+    if (!userEmail) {
+        return res.status(401).json({ error: 'User email not found in request' });
     }
-    if (!from_email) {
-        return res.status(400).json({ error: 'missing_user_email' });
+    const { to_email, subject, content, priority = 'normal', attachments = [], thread_id, parent_id } = req.body;
+    if (!to_email || !subject || !content) {
+        return res.status(400).json({ error: 'Missing required fields: to_email, subject, content' });
+    }
+    // Validate priority
+    if (!['low', 'normal', 'high'].includes(priority)) {
+        return res.status(400).json({ error: 'Invalid priority. Must be low, normal, or high' });
+    }
+    // Check if recipient exists (either as teacher or student)
+    const { data: recipient } = await supabaseAdmin
+        .from('user_profiles')
+        .select('email')
+        .eq('email', to_email)
+        .single();
+    if (!recipient) {
+        return res.status(404).json({ error: 'Recipient not found' });
     }
     const { data, error } = await supabaseAdmin
         .from('messages')
         .insert({
-        from_email,
+        from_email: userEmail,
         to_email,
         subject,
         content,
         priority,
         attachments,
         thread_id,
-        parent_id,
-        read: false,
-        starred: false,
-        archived: false
+        parent_id
     })
         .select()
         .single();
-    if (error)
+    if (error) {
         return res.status(500).json({ error: error.message });
-    res.json(data);
+    }
+    res.status(201).json(data);
 }));
 // Mark message as read
 router.put('/:id/read', requireAuth, asyncHandler(async (req, res) => {
-    const message_id = req.params.id;
-    const user_email = req.user?.email?.toLowerCase();
-    if (!user_email) {
-        return res.status(400).json({ error: 'missing_user_email' });
+    const userEmail = req.user?.email;
+    const messageId = req.params.id;
+    if (!userEmail) {
+        return res.status(401).json({ error: 'User email not found in request' });
+    }
+    // Check if user has access to this message
+    const { data: message, error: fetchError } = await supabaseAdmin
+        .from('messages')
+        .select('*')
+        .eq('id', messageId)
+        .or(`from_email.eq.${userEmail},to_email.eq.${userEmail}`)
+        .single();
+    if (fetchError || !message) {
+        return res.status(404).json({ error: 'Message not found' });
     }
     const { data, error } = await supabaseAdmin
         .from('messages')
         .update({ read: true })
-        .eq('id', message_id)
-        .eq('to_email', user_email)
+        .eq('id', messageId)
         .select()
         .single();
-    if (error)
+    if (error) {
         return res.status(500).json({ error: error.message });
+    }
     res.json(data);
 }));
 // Delete a message
 router.delete('/:id', requireAuth, asyncHandler(async (req, res) => {
-    const message_id = req.params.id;
-    const user_email = req.user?.email?.toLowerCase();
-    if (!user_email) {
-        return res.status(400).json({ error: 'missing_user_email' });
+    const userEmail = req.user?.email;
+    const messageId = req.params.id;
+    if (!userEmail) {
+        return res.status(401).json({ error: 'User email not found in request' });
+    }
+    // Check if user has access to this message
+    const { data: message, error: fetchError } = await supabaseAdmin
+        .from('messages')
+        .select('*')
+        .eq('id', messageId)
+        .or(`from_email.eq.${userEmail},to_email.eq.${userEmail}`)
+        .single();
+    if (fetchError || !message) {
+        return res.status(404).json({ error: 'Message not found' });
     }
     const { error } = await supabaseAdmin
         .from('messages')
         .delete()
-        .eq('id', message_id)
-        .or(`from_email.eq.${user_email},to_email.eq.${user_email}`);
-    if (error)
+        .eq('id', messageId);
+    if (error) {
         return res.status(500).json({ error: error.message });
+    }
     res.json({ success: true });
 }));
-// Get conversation between two users
-router.get('/conversation/:other_email', requireAuth, asyncHandler(async (req, res) => {
-    const user_email = String(req.headers['x-user-email'] || '').toLowerCase();
-    const other_email = req.params.other_email.toLowerCase();
-    if (!user_email || !other_email) {
-        return res.status(400).json({ error: 'missing_emails' });
+// Get conversation with another user
+router.get('/conversation/:otherEmail', requireAuth, asyncHandler(async (req, res) => {
+    const userEmail = req.user?.email;
+    const otherEmail = req.params.otherEmail;
+    if (!userEmail) {
+        return res.status(401).json({ error: 'User email not found in request' });
     }
     const { data, error } = await supabaseAdmin
         .from('messages')
         .select('*')
-        .or(`and(from_email.eq.${user_email},to_email.eq.${other_email}),and(from_email.eq.${other_email},to_email.eq.${user_email})`)
+        .or(`and(from_email.eq.${userEmail},to_email.eq.${otherEmail}),and(from_email.eq.${otherEmail},to_email.eq.${userEmail})`)
         .order('created_at', { ascending: true });
-    if (error)
+    if (error) {
         return res.status(500).json({ error: error.message });
+    }
     res.json({ items: data || [] });
 }));
 // Toggle message star
 router.put('/:id/star', requireAuth, asyncHandler(async (req, res) => {
-    const message_id = req.params.id;
-    const user_email = String(req.headers['x-user-email'] || '').toLowerCase();
-    // Get current star status
-    const { data: currentMessage, error: fetchError } = await supabaseAdmin
+    const userEmail = req.user?.email;
+    const messageId = req.params.id;
+    if (!userEmail) {
+        return res.status(401).json({ error: 'User email not found in request' });
+    }
+    // Check if user has access to this message
+    const { data: message, error: fetchError } = await supabaseAdmin
         .from('messages')
-        .select('starred')
-        .eq('id', message_id)
-        .or(`from_email.eq.${user_email},to_email.eq.${user_email}`)
+        .select('*')
+        .eq('id', messageId)
+        .or(`from_email.eq.${userEmail},to_email.eq.${userEmail}`)
         .single();
-    if (fetchError)
-        return res.status(500).json({ error: fetchError.message });
+    if (fetchError || !message) {
+        return res.status(404).json({ error: 'Message not found' });
+    }
     const { data, error } = await supabaseAdmin
         .from('messages')
-        .update({ starred: !currentMessage.starred })
-        .eq('id', message_id)
+        .update({ starred: !message.starred })
+        .eq('id', messageId)
         .select()
         .single();
-    if (error)
+    if (error) {
         return res.status(500).json({ error: error.message });
+    }
     res.json(data);
 }));
-// Archive/unarchive message
+// Toggle message archive
 router.put('/:id/archive', requireAuth, asyncHandler(async (req, res) => {
-    const message_id = req.params.id;
-    const user_email = String(req.headers['x-user-email'] || '').toLowerCase();
-    // Get current archive status
-    const { data: currentMessage, error: fetchError } = await supabaseAdmin
+    const userEmail = req.user?.email;
+    const messageId = req.params.id;
+    if (!userEmail) {
+        return res.status(401).json({ error: 'User email not found in request' });
+    }
+    // Check if user has access to this message
+    const { data: message, error: fetchError } = await supabaseAdmin
         .from('messages')
-        .select('archived')
-        .eq('id', message_id)
-        .or(`from_email.eq.${user_email},to_email.eq.${user_email}`)
+        .select('*')
+        .eq('id', messageId)
+        .or(`from_email.eq.${userEmail},to_email.eq.${userEmail}`)
         .single();
-    if (fetchError)
-        return res.status(500).json({ error: fetchError.message });
+    if (fetchError || !message) {
+        return res.status(404).json({ error: 'Message not found' });
+    }
     const { data, error } = await supabaseAdmin
         .from('messages')
-        .update({ archived: !currentMessage.archived })
-        .eq('id', message_id)
+        .update({ archived: !message.archived })
+        .eq('id', messageId)
         .select()
         .single();
-    if (error)
+    if (error) {
         return res.status(500).json({ error: error.message });
+    }
     res.json(data);
 }));
 // Bulk actions on messages
 router.post('/bulk-action', requireAuth, asyncHandler(async (req, res) => {
+    const userEmail = req.user?.email;
     const { message_ids, action } = req.body;
-    const user_email = String(req.headers['x-user-email'] || '').toLowerCase();
-    if (!message_ids || !Array.isArray(message_ids) || !action) {
-        return res.status(400).json({ error: 'missing_required_fields' });
+    if (!userEmail) {
+        return res.status(401).json({ error: 'User email not found in request' });
+    }
+    if (!message_ids || !Array.isArray(message_ids) || message_ids.length === 0) {
+        return res.status(400).json({ error: 'message_ids must be a non-empty array' });
+    }
+    if (!['read', 'unread', 'star', 'unstar', 'archive', 'unarchive'].includes(action)) {
+        return res.status(400).json({ error: 'Invalid action' });
     }
     let updateData = {};
     switch (action) {
@@ -187,32 +270,34 @@ router.post('/bulk-action', requireAuth, asyncHandler(async (req, res) => {
         case 'unarchive':
             updateData = { archived: false };
             break;
-        default:
-            return res.status(400).json({ error: 'invalid_action' });
     }
     const { data, error } = await supabaseAdmin
         .from('messages')
         .update(updateData)
         .in('id', message_ids)
-        .or(`from_email.eq.${user_email},to_email.eq.${user_email}`)
+        .or(`from_email.eq.${userEmail},to_email.eq.${userEmail}`)
         .select();
-    if (error)
+    if (error) {
         return res.status(500).json({ error: error.message });
+    }
     res.json({ updated: data?.length || 0 });
 }));
 // Search messages
 router.get('/search', requireAuth, asyncHandler(async (req, res) => {
-    const user_email = String(req.headers['x-user-email'] || '').toLowerCase();
-    const { q, filter, sort_by = 'date' } = req.query;
+    const userEmail = req.user?.email;
+    const { q, filter = 'all', sort_by = 'date', limit = 50, offset = 0 } = req.query;
+    if (!userEmail) {
+        return res.status(401).json({ error: 'User email not found in request' });
+    }
     let query = supabaseAdmin
         .from('messages')
         .select('*')
-        .or(`from_email.eq.${user_email},to_email.eq.${user_email}`);
-    // Apply search filter
+        .or(`from_email.eq.${userEmail},to_email.eq.${userEmail}`);
+    // Apply text search
     if (q) {
-        query = query.or(`subject.ilike.%${q}%,content.ilike.%${q}%,from_email.ilike.%${q}%,to_email.ilike.%${q}%`);
+        query = query.or(`subject.ilike.%${q}%,content.ilike.%${q}%`);
     }
-    // Apply status filter
+    // Apply filters
     if (filter === 'unread') {
         query = query.eq('read', false);
     }
@@ -222,45 +307,53 @@ router.get('/search', requireAuth, asyncHandler(async (req, res) => {
     else if (filter === 'archived') {
         query = query.eq('archived', true);
     }
-    // Apply sorting
-    switch (sort_by) {
-        case 'date':
-            query = query.order('created_at', { ascending: false });
-            break;
-        case 'sender':
-            query = query.order('from_email', { ascending: true });
-            break;
-        case 'subject':
-            query = query.order('subject', { ascending: true });
-            break;
-        case 'priority':
-            query = query.order('priority', { ascending: false });
-            break;
-        default:
-            query = query.order('created_at', { ascending: false });
+    else if (filter === 'sent') {
+        query = query.eq('from_email', userEmail);
     }
+    else if (filter === 'received') {
+        query = query.eq('to_email', userEmail);
+    }
+    // Apply sorting
+    if (sort_by === 'date') {
+        query = query.order('created_at', { ascending: false });
+    }
+    else if (sort_by === 'sender') {
+        query = query.order('from_email', { ascending: true });
+    }
+    else if (sort_by === 'subject') {
+        query = query.order('subject', { ascending: true });
+    }
+    else if (sort_by === 'priority') {
+        query = query.order('priority', { ascending: false });
+    }
+    // Apply pagination
+    query = query.range(Number(offset), Number(offset) + Number(limit) - 1);
     const { data, error } = await query;
-    if (error)
+    if (error) {
         return res.status(500).json({ error: error.message });
+    }
     res.json({ items: data || [] });
 }));
 // Get message statistics
 router.get('/stats', requireAuth, asyncHandler(async (req, res) => {
-    const user_email = String(req.headers['x-user-email'] || '').toLowerCase();
-    const { data, error } = await supabaseAdmin
+    const userEmail = req.user?.email;
+    if (!userEmail) {
+        return res.status(401).json({ error: 'User email not found in request' });
+    }
+    const baseQuery = supabaseAdmin
         .from('messages')
-        .select('read, starred, archived, priority')
-        .or(`from_email.eq.${user_email},to_email.eq.${user_email}`);
-    if (error)
-        return res.status(500).json({ error: error.message });
-    const stats = {
-        total: data?.length || 0,
-        unread: data?.filter(m => !m.read).length || 0,
-        starred: data?.filter(m => m.starred).length || 0,
-        archived: data?.filter(m => m.archived).length || 0,
-        high_priority: data?.filter(m => m.priority === 'high').length || 0,
-        sent: data?.filter(m => m.from_email === user_email).length || 0,
-        received: data?.filter(m => m.to_email === user_email).length || 0
-    };
-    res.json(stats);
+        .select('*', { count: 'exact', head: true })
+        .or(`from_email.eq.${userEmail},to_email.eq.${userEmail}`);
+    const [totalResult, unreadResult, starredResult, archivedResult] = await Promise.all([
+        baseQuery,
+        baseQuery.eq('read', false),
+        baseQuery.eq('starred', true),
+        baseQuery.eq('archived', true)
+    ]);
+    res.json({
+        total: totalResult.count || 0,
+        unread: unreadResult.count || 0,
+        starred: starredResult.count || 0,
+        archived: archivedResult.count || 0
+    });
 }));

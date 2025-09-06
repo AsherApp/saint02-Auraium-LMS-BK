@@ -16,12 +16,12 @@ router.get('/categories', requireAuth, asyncHandler(async (req, res) => {
     return res.status(401).json({ error: 'Unauthorized' })
   }
 
-  // Get categories with discussion counts
+  // Get categories from forum_categories table
   const { data: categories, error } = await supabaseAdmin
-    .from('discussions')
-    .select('course_id, courses!discussions_course_id_fkey(title)')
-    .not('course_id', 'is', null)
-    .order('created_at', { ascending: false })
+    .from('forum_categories')
+    .select('*')
+    .eq('is_active', true)
+    .order('name', { ascending: true })
 
   if (error) {
     return res.status(500).json({ error: error.message })
@@ -29,15 +29,14 @@ router.get('/categories', requireAuth, asyncHandler(async (req, res) => {
 
   // Transform data to match frontend expectations
   const transformedCategories = (categories || []).map(category => ({
-    id: category.course_id,
-    name: category.courses?.[0]?.title || 'Unknown Course',
-    description: `Discussions for ${category.courses?.[0]?.title || 'Unknown Course'}`,
-    isActive: true,
-    postCount: 1, // We'll calculate this properly later
-    lastActivity: new Date().toISOString()
+    id: category.id,
+    name: category.name,
+    description: category.description || '',
+    color: '#3b82f6', // Default blue color
+    icon: 'message-circle' // Default icon
   }))
 
-  res.json({ items: transformedCategories })
+  res.json(transformedCategories)
 }))
 
 // Create a new forum category (admin/teacher only)

@@ -51,7 +51,13 @@ router.get('/', requireAuth, asyncHandler(async (req, res) => {
     }
     const { data, error } = await supabaseAdmin
         .from('announcements')
-        .select('*')
+        .select(`
+      *,
+      teachers(
+        first_name,
+        last_name
+      )
+    `)
         .eq('teacher_email', userEmail)
         .order('created_at', { ascending: false });
     if (error) {
@@ -71,7 +77,7 @@ router.get('/student', requireAuth, asyncHandler(async (req, res) => {
         .from('enrollments')
         .select(`
       course_id,
-      courses!inner(
+      courses(
         id,
         teacher_email
       )
@@ -79,22 +85,40 @@ router.get('/student', requireAuth, asyncHandler(async (req, res) => {
         .eq('student_email', userEmail);
     if (enrollmentsError) {
         console.error('Error fetching enrollments:', enrollmentsError);
-        return res.status(500).json({ error: 'Failed to fetch enrollments' });
+        console.error('User email:', userEmail);
+        return res.status(500).json({
+            error: 'Failed to fetch enrollments',
+            details: enrollmentsError.message,
+            userEmail: userEmail
+        });
     }
     if (!enrollments || enrollments.length === 0) {
         return res.json({ items: [] });
     }
     // Get teacher emails from enrolled courses
     const teacherEmails = [...new Set(enrollments.map(e => e.courses.teacher_email))];
-    // Get announcements from those teachers
+    // Get announcements from those teachers with teacher names
     const { data: announcements, error: announcementsError } = await supabaseAdmin
         .from('announcements')
-        .select('*')
+        .select(`
+      *,
+      teachers(
+        first_name,
+        last_name
+      )
+    `)
         .in('teacher_email', teacherEmails)
         .order('updated_at', { ascending: false });
     if (announcementsError) {
         console.error('Error fetching announcements:', announcementsError);
-        return res.status(500).json({ error: 'Failed to fetch announcements' });
+        console.error('Teacher emails:', teacherEmails);
+        console.error('Enrollments:', enrollments);
+        return res.status(500).json({
+            error: 'Failed to fetch announcements',
+            details: announcementsError.message,
+            teacherEmails: teacherEmails,
+            enrollmentCount: enrollments?.length || 0
+        });
     }
     res.json({ items: announcements || [] });
 }));

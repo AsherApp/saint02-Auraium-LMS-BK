@@ -4,6 +4,7 @@ import { env } from '../config/env.js'
 const secret = new TextEncoder().encode(env.SUPABASE_JWT_SECRET || 'fallback-secret-key')
 
 export interface JWTPayload {
+  id: string
   email: string
   role: 'teacher' | 'student'
   name?: string
@@ -28,6 +29,7 @@ export async function verifyToken(token: string): Promise<JWTPayload> {
   try {
     const { payload } = await jwtVerify(token, secret)
     return {
+      id: payload.id as string,
       email: payload.email as string,
       role: payload.role as 'teacher' | 'student',
       name: payload.name as string,
@@ -46,6 +48,7 @@ export async function decodeToken(token: string): Promise<JWTPayload | null> {
   try {
     const { payload } = await jwtVerify(token, secret)
     return {
+      id: payload.id as string,
       email: payload.email as string,
       role: payload.role as 'teacher' | 'student',
       name: payload.name as string,

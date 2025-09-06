@@ -36,17 +36,42 @@ router.get('/:userId', requireAuth, asyncHandler(async (req, res) => {
                     push: true,
                     assignments: true,
                     announcements: true,
-                    live_class: true
+                    live_class: true,
+                    student_questions: true,
+                    course_announcements: true,
+                    live_session_reminders: true
                 },
                 privacy: {
-                    profile_visible: true,
-                    show_email: false,
-                    show_bio: true
+                    profile_visibility: 'public',
+                    show_email_to_students: false,
+                    allow_student_messages: true
                 },
                 preferences: {
                     language: 'en',
                     timezone: 'UTC',
                     date_format: 'MM/DD/YYYY'
+                },
+                course_settings: {
+                    default_course_duration: 60,
+                    auto_publish_courses: false,
+                    allow_student_discussions: true
+                },
+                grading_settings: {
+                    default_grading_scale: 'percentage',
+                    allow_late_submissions: true,
+                    late_submission_penalty: 10,
+                    auto_grade_quizzes: true
+                },
+                live_class_settings: {
+                    default_session_duration: 60,
+                    allow_recording: true,
+                    require_approval_to_join: false,
+                    max_participants: 50
+                },
+                advanced_settings: {
+                    data_export_enabled: true,
+                    analytics_tracking: true,
+                    beta_features: false
                 }
             });
         }
@@ -54,7 +79,11 @@ router.get('/:userId', requireAuth, asyncHandler(async (req, res) => {
             theme: data.theme,
             notifications: data.notifications,
             privacy: data.privacy,
-            preferences: data.preferences
+            preferences: data.preferences,
+            course_settings: data.course_settings,
+            grading_settings: data.grading_settings,
+            live_class_settings: data.live_class_settings,
+            advanced_settings: data.advanced_settings
         });
     }
     else {
@@ -218,7 +247,7 @@ router.get('/email/:userEmail', requireAuth, asyncHandler(async (req, res) => {
 // Update user settings by ID
 router.put('/:userId', requireAuth, asyncHandler(async (req, res) => {
     const { userId } = req.params;
-    const { theme, notifications, privacy, preferences } = req.body;
+    const { theme, notifications, privacy, preferences, course_settings, grading_settings, live_class_settings, advanced_settings } = req.body;
     // Check if user is updating their own settings
     const user = req.user;
     if (user?.id !== userId) {
@@ -239,7 +268,11 @@ router.put('/:userId', requireAuth, asyncHandler(async (req, res) => {
             theme,
             notifications,
             privacy,
-            preferences
+            preferences,
+            course_settings,
+            grading_settings,
+            live_class_settings,
+            advanced_settings
         })
             .select()
             .single();
@@ -250,7 +283,11 @@ router.put('/:userId', requireAuth, asyncHandler(async (req, res) => {
             theme: data.theme,
             notifications: data.notifications,
             privacy: data.privacy,
-            preferences: data.preferences
+            preferences: data.preferences,
+            course_settings: data.course_settings,
+            grading_settings: data.grading_settings,
+            live_class_settings: data.live_class_settings,
+            advanced_settings: data.advanced_settings
         });
     }
     else {
