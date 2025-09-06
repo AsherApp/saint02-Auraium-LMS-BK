@@ -126,6 +126,11 @@ export default function StudentAssignmentWorkspacePage() {
 
     if (assignmentId && user?.email) {
       fetchAssignment()
+      
+      // Set up polling for grade updates every 30 seconds
+      const interval = setInterval(fetchAssignment, 30000)
+      
+      return () => clearInterval(interval)
     }
   }, [assignmentId, user?.email])
 

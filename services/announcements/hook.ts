@@ -36,6 +36,11 @@ export function useAnnouncementsFn() {
 
   useEffect(() => {
     fetchAnnouncements()
+    
+    // Set up polling for new announcements every 30 seconds
+    const interval = setInterval(fetchAnnouncements, 30000)
+    
+    return () => clearInterval(interval)
   }, [])
 
   return {

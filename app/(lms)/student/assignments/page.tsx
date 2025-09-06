@@ -143,6 +143,11 @@ export default function StudentAssignmentsPage() {
     }
 
     fetchAssignments()
+    
+    // Set up polling for new assignments every 30 seconds
+    const interval = setInterval(fetchAssignments, 30000)
+    
+    return () => clearInterval(interval)
   }, [user?.email])
 
   useEffect(() => {

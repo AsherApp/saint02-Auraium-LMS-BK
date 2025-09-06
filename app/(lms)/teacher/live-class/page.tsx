@@ -16,7 +16,7 @@ import { Video, Plus, Calendar, Clock, Users, Play, Loader2, Square, History, Za
 import Link from "next/link"
 import { useLiveSessionsFn } from "@/services/live/hook"
 import { useCoursesFn } from "@/services/courses/hook"
-import { httpClient } from "@/services/http"
+import { http } from "@/services/http"
 
 export default function TeacherLiveClass() {
   const { user } = useAuthStore()

@@ -215,7 +215,7 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
       } else {
         // Otherwise use the API directly (for assignment page)
         await AssignmentProAPI.createAssignment(assignmentData)
-        window.location.reload()
+        // Don't reload the page - let the parent component handle refresh
       }
       
       // Trigger notification for new assignment

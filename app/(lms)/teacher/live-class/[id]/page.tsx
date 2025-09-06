@@ -13,7 +13,7 @@ import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { FluidTabs } from "@/components/ui/fluid-tabs"
 import { useAuthStore } from "@/store/auth-store"
 import { useLiveSessionsFn } from "@/services/live/hook"
-import { httpClient } from "@/services/http"
+import { http } from "@/services/http"
 import { useToast } from "@/hooks/use-toast"
 import { dateUtils } from "@/utils/date-utils"
 import { 

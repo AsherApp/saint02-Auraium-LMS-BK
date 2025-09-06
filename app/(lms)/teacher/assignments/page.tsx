@@ -341,8 +341,61 @@ export default function TeacherAssignmentsPage() {
                 try {
                   await AssignmentProAPI.createAssignment(assignmentData)
                   setShowCreateDialog(false)
-                  // Refresh the assignments list
-                  window.location.reload()
+                  // Refresh the assignments list without full page reload
+                  const fetchData = async () => {
+                    if (!user?.email) return
+                    
+                    setLoading(true)
+                    try {
+                      // First fetch real courses from backend
+                      const coursesResponse = await http<{ items: any[] }>('/api/courses')
+                      const teacherCourses = coursesResponse.items || []
+                      setCourses(teacherCourses)
+                      
+                      const allAssignments: AssignmentWithStats[] = []
+                      
+                      // Fetch assignments for each course the teacher has
+                      for (const course of teacherCourses) {
+                        try {
+                          const courseAssignments = await AssignmentProAPI.listCourseAssignments(course.id)
+                          
+                          // Fetch stats for each assignment
+                          const assignmentsWithStats = await Promise.all(
+                            courseAssignments.map(async (assignment) => {
+                              try {
+                                const stats = await AssignmentProAPI.getGradingStats(assignment.id)
+                                return {
+                                  ...assignment,
+                                  stats,
+                                  course_title: course.title
+                                }
+                              } catch (error) {
+                                // If stats fail, just return assignment without stats
+                                return {
+                                  ...assignment,
+                                  course_title: course.title
+                                }
+                              }
+                            })
+                          )
+                          
+                          allAssignments.push(...assignmentsWithStats)
+                        } catch (error) {
+                          // If course assignments fail, just skip this course
+                          console.warn(`Failed to fetch assignments for course ${course.id}:`, error)
+                        }
+                      }
+                      
+                      console.log('Fetched assignments with stats:', allAssignments)
+                      setAssignments(allAssignments)
+                    } catch (error) {
+                      console.error("Failed to fetch assignments:", error)
+                    } finally {
+                      setLoading(false)
+                    }
+                  }
+                  
+                  fetchData()
                 } catch (error) {
                   console.error('Failed to create assignment:', error)
                   alert('Failed to create assignment. Please try again.')
