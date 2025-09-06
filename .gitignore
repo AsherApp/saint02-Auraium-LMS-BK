@@ -133,7 +133,7 @@ __tests__/
 *.3gp
 *.mpg
 *.mpeg
-*.ts
+# *.ts
 *.mts
 *.m2ts
 *.vob
