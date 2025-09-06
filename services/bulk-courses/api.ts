@@ -171,7 +171,7 @@ export class BulkCoursesAPI {
     const formData = new FormData()
     formData.append('file', file)
     const token = localStorage.getItem('auth-token')
-    const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:4000'
+    const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'https://auraiumlmsbk.up.railway.app'
     
     const response = await fetch(`${apiBase}/api/bulk-courses/upload`, {
       method: 'POST',
@@ -194,7 +194,7 @@ export class BulkCoursesAPI {
    */
   static async downloadExcelTemplate(): Promise<void> {
     const token = localStorage.getItem('auth-token')
-    const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:4000'
+    const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'https://auraiumlmsbk.up.railway.app'
     
     const response = await fetch(`${apiBase}/api/bulk-courses/template/excel`, {
       headers: {
@@ -223,7 +223,7 @@ export class BulkCoursesAPI {
    */
   static async downloadCSVTemplate(): Promise<void> {
     const token = localStorage.getItem('auth-token')
-    const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:4000'
+    const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'https://auraiumlmsbk.up.railway.app'
     
     const response = await fetch(`${apiBase}/api/bulk-courses/template/csv`, {
       headers: {

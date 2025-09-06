@@ -4,7 +4,7 @@ export type HttpOptions = {
   body?: unknown
 }
 
-export const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:4000'
+export const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'https://auraiumlmsbk.up.railway.app'
 
 // Get JWT token from localStorage
 function getAuthToken(): string | null {

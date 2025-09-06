@@ -134,7 +134,7 @@ export default function TeacherLiveClass() {
     }
     
     try {
-      const response = await fetch(`http://localhost:4000/api/modules/course/${courseId}`, {
+      const response = await fetch(`https://auraiumlmsbk.up.railway.app/api/modules/course/${courseId}`, {
         headers: {
           'x-user-email': user?.email || ''
         }

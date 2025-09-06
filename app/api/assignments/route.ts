@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
   try {
-    const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:4000'
+    const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'https://auraiumlmsbk.up.railway.app'
     const authHeader = request.headers.get('authorization')
     
     if (!authHeader) {
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:4000'
+    const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'https://auraiumlmsbk.up.railway.app'
     const body = await request.json()
     const authHeader = request.headers.get('authorization')
     
