@@ -70,8 +70,13 @@ export default function PublicStudentCourseDetailPage() {
         setModules(modulesWithLessons)
         
         // Fetch completion status
-        const completionResponse = await http<any>(`/api/progress/course/${params.id}`)
-        setCompletionStatus(completionResponse || {})
+        try {
+          const completionResponse = await http<any>(`/api/progress/course/${params.id}`)
+          setCompletionStatus(completionResponse || {})
+        } catch (error) {
+          console.error('Failed to fetch completion status:', error)
+          setCompletionStatus({})
+        }
         
       } catch (error) {
         console.error('Failed to fetch course data:', error)

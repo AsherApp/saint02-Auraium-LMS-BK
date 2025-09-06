@@ -18,6 +18,99 @@ import {
 import { CertificateDownload } from "@/components/shared/certificate-download"
 import { motion } from "framer-motion"
 
+// Course Card Component
+function PublicCourseCard({ enrollment, user, index }: { enrollment: any, user: any, index: number }) {
+  const course = enrollment.course_details || enrollment.courses || enrollment
+  const courseId = enrollment.course_id || course.id
+  const [progress, setProgress] = useState(0)
+  const [isLoading, setIsLoading] = useState(true)
+  
+  // Fetch progress for each course
+  useEffect(() => {
+    const fetchProgress = async () => {
+      try {
+        const progressResponse = await http<any>(`/api/progress/course/${courseId}`)
+        setProgress(progressResponse?.overall?.percentage || 0)
+      } catch (error) {
+        console.error('Failed to fetch course progress:', error)
+        setProgress(0)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchProgress()
+  }, [courseId])
+  
+  const getCompletionStatus = (progress: number) => {
+    return progress === 100 ? 'completed' : 'in-progress'
+  }
+  
+  const status = getCompletionStatus(progress)
+  const isCompleted = status === 'completed'
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.1 * index }}
+    >
+      <GlassCard className="p-6 h-full flex flex-col">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex-1">
+            <h3 className="font-semibold text-white mb-2 line-clamp-2">
+              {course.title || 'Untitled Course'}
+            </h3>
+            <p className="text-slate-300 text-sm line-clamp-2 mb-3">
+              {course.description || 'No description available'}
+            </p>
+          </div>
+          <Badge 
+            variant={isCompleted ? "default" : "secondary"}
+            className="ml-2"
+          >
+            {isCompleted ? 'Completed' : 'In Progress'}
+          </Badge>
+        </div>
+        
+        <div className="mb-4">
+          <div className="flex items-center justify-between text-sm text-slate-300 mb-2">
+            <span>Progress</span>
+            <span>{isLoading ? '...' : `${progress}%`}</span>
+          </div>
+          <Progress value={progress} className="h-2" />
+        </div>
+        
+        <div className="mt-auto">
+          <div className="flex gap-2">
+            <Button 
+              asChild 
+              className="flex-1"
+              variant="outline"
+            >
+              <Link href={`/student/public-course/${courseId}`}>
+                {isCompleted ? 'Review' : 'Continue'}
+              </Link>
+            </Button>
+            
+            {isCompleted && (
+              <CertificateDownload
+                courseId={courseId}
+                studentId={user?.email || ''}
+                courseTitle={course.title}
+                studentName={user?.name}
+                size="sm"
+                variant="outline"
+                showText={false}
+                className="px-3"
+              />
+            )}
+          </div>
+        </div>
+      </GlassCard>
+    </motion.div>
+  )
+}
+
 export default function PublicStudentDashboardPage() {
   const { user } = useAuthStore()
   const [enrolledCourses, setEnrolledCourses] = useState<any[]>([])
@@ -38,12 +131,29 @@ export default function PublicStudentDashboardPage() {
     
     try {
       // Fetch enrolled courses (public mode only)
-      const coursesResponse = await http<any>(`/api/courses/enrolled`)
+      const coursesResponse = await http<any>(`/api/students/me/courses`)
       const courses = coursesResponse.items || []
       
-      // Filter only public mode courses
-      const publicCourses = courses.filter((course: any) => course.course_mode === 'public')
-      setEnrolledCourses(publicCourses)
+      // Filter only public mode courses and fetch full course details
+      const publicCourses = courses.filter((course: any) => course.courses?.course_mode === 'public')
+      
+      // Fetch full course details for each public course
+      const coursesWithDetails = await Promise.all(
+        publicCourses.map(async (enrollment: any) => {
+          try {
+            const courseResponse = await http<any>(`/api/courses/${enrollment.course_id}`)
+            return {
+              ...enrollment,
+              course_details: courseResponse
+            }
+          } catch (err) {
+            console.error(`Failed to fetch course details for ${enrollment.course_id}:`, err)
+            return enrollment
+          }
+        })
+      )
+      
+      setEnrolledCourses(coursesWithDetails)
       
       // Fetch announcements for public courses
       const announcementsResponse = await http<any>(`/api/announcements`)
@@ -66,18 +176,6 @@ export default function PublicStudentDashboardPage() {
     }
   }
 
-  const getCourseProgress = (course: any) => {
-    // Calculate real progress based on completed lessons
-    if (!course.lessons || course.lessons.length === 0) return 0
-    
-    const completedLessons = course.lessons.filter((lesson: any) => lesson.completed).length
-    return Math.round((completedLessons / course.lessons.length) * 100)
-  }
-
-  const getCompletionStatus = (course: any) => {
-    const progress = getCourseProgress(course)
-    return progress === 100 ? 'completed' : 'in-progress'
-  }
 
 
   if (loading) {
@@ -178,74 +276,14 @@ export default function PublicStudentDashboardPage() {
             </GlassCard>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {enrolledCourses.map((course, index) => {
-                const progress = getCourseProgress(course)
-                const status = getCompletionStatus(course)
-                const isCompleted = status === 'completed'
-                
-                return (
-                  <motion.div
-                    key={course.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 * index }}
-                  >
-                    <GlassCard className="p-6 h-full flex flex-col">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-white mb-2 line-clamp-2">
-                            {course.title}
-                          </h3>
-                          <p className="text-slate-300 text-sm line-clamp-2 mb-3">
-                            {course.description}
-                          </p>
-                        </div>
-                        <Badge 
-                          variant={isCompleted ? "default" : "secondary"}
-                          className="ml-2"
-                        >
-                          {isCompleted ? 'Completed' : 'In Progress'}
-                        </Badge>
-                      </div>
-                      
-                      <div className="mb-4">
-                        <div className="flex items-center justify-between text-sm text-slate-300 mb-2">
-                          <span>Progress</span>
-                          <span>{progress}%</span>
-                        </div>
-                        <Progress value={progress} className="h-2" />
-                      </div>
-                      
-                      <div className="mt-auto">
-                        <div className="flex gap-2">
-                          <Button 
-                            asChild 
-                            className="flex-1"
-                            variant="outline"
-                          >
-                            <Link href={`/student/course/${course.id}`}>
-                              {isCompleted ? 'Review' : 'Continue'}
-                            </Link>
-                          </Button>
-                          
-                          {isCompleted && (
-                            <CertificateDownload
-                              courseId={course.id}
-                              studentId={user?.id || user?.email || ''}
-                              courseTitle={course.title}
-                              studentName={user?.name}
-                              size="sm"
-                              variant="outline"
-                              showText={false}
-                              className="px-3"
-                            />
-                          )}
-                        </div>
-                      </div>
-                    </GlassCard>
-                  </motion.div>
-                )
-              })}
+              {enrolledCourses.map((enrollment, index) => (
+                <PublicCourseCard 
+                  key={enrollment.course_id || enrollment.id} 
+                  enrollment={enrollment} 
+                  user={user} 
+                  index={index} 
+                />
+              ))}
             </div>
           )}
         </motion.div>

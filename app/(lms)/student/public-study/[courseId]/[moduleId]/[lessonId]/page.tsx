@@ -69,6 +69,7 @@ export default function PublicStudyAreaPage() {
     timeSpent: 0,
     lastUpdate: Date.now()
   })
+  const [showCompletionCelebration, setShowCompletionCelebration] = useState(false)
   
   // Navigation state
   const [currentModuleIndex, setCurrentModuleIndex] = useState(0)
@@ -188,17 +189,30 @@ export default function PublicStudyAreaPage() {
       if (completedCount === allLessons.length) {
         // Course completed - generate certificate
         try {
-          await http<any>(`/api/certificates/complete`, {
+          const certificateResponse = await http<any>(`/api/certificates/complete`, {
             method: 'POST',
             body: JSON.stringify({ courseId: params.courseId })
           })
           
+          setShowCompletionCelebration(true)
+          
           toast({
-            title: "Course Completed!",
+            title: "Course Completed! 🎉",
             description: "Congratulations! You've completed the entire course. Your certificate is ready for download.",
           })
+          
+          // Show certificate download option
+          setTimeout(() => {
+            if (certificateResponse.certificateUrl) {
+              window.open(certificateResponse.certificateUrl, '_blank')
+            }
+          }, 2000)
         } catch (error) {
           console.error('Failed to generate certificate:', error)
+          toast({
+            title: "Course Completed!",
+            description: "Congratulations! You've completed the course. Certificate generation is in progress.",
+          })
         }
       }
       
@@ -619,6 +633,49 @@ export default function PublicStudyAreaPage() {
           </GlassCard>
         </motion.div>
       </div>
+      
+      {/* Course Completion Celebration */}
+      {showCompletionCelebration && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+          onClick={() => setShowCompletionCelebration(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-gradient-to-br from-purple-600 to-blue-600 p-8 rounded-2xl text-center max-w-md mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-6xl mb-4">🎉</div>
+            <h2 className="text-2xl font-bold text-white mb-4">Congratulations!</h2>
+            <p className="text-white/90 mb-6">
+              You've successfully completed the entire course! Your certificate is ready for download.
+            </p>
+            <div className="flex gap-3 justify-center">
+              <Button
+                onClick={() => setShowCompletionCelebration(false)}
+                variant="outline"
+                className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+              >
+                Continue Learning
+              </Button>
+              <Button
+                onClick={() => {
+                  setShowCompletionCelebration(false)
+                  // Trigger certificate download
+                  window.location.href = `/student/public-course/${params.courseId}`
+                }}
+                className="bg-white text-purple-600 hover:bg-white/90"
+              >
+                <Award className="h-4 w-4 mr-2" />
+                Get Certificate
+              </Button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
     </div>
   )
 }
