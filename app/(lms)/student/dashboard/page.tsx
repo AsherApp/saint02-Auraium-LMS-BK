@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { GlassCard } from "@/components/shared/glass-card"
 import { StatCard, QuickActionCard } from "@/components/shared/stat-card"
+import { Greeting } from "@/components/shared/greeting"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
@@ -165,9 +166,12 @@ export default function StudentDashboardPage() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <h1 className="text-white text-2xl font-semibold">Student Dashboard</h1>
-        <GlassCard className="p-6">
-          <div className="text-slate-300">Loading your dashboard...</div>
+        <GlassCard className="p-6" variant="medium" hover={false}>
+          <Greeting userName={user?.name || 'Student'} />
+          <div className="text-slate-300 mt-4 flex items-center gap-2">
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/20 border-t-white"></div>
+            Loading your dashboard...
+          </div>
         </GlassCard>
       </div>
     )
@@ -176,9 +180,12 @@ export default function StudentDashboardPage() {
   if (error) {
     return (
       <div className="space-y-6">
-        <h1 className="text-white text-2xl font-semibold">Student Dashboard</h1>
-        <GlassCard className="p-6">
-          <div className="text-red-300">Error: {error}</div>
+        <GlassCard className="p-6" variant="medium" hover={false}>
+          <Greeting userName={user?.name || 'Student'} />
+          <div className="text-red-300 mt-4 flex items-center gap-2">
+            <AlertCircle className="h-4 w-4" />
+            Error: {error}
+          </div>
         </GlassCard>
       </div>
     )
@@ -206,30 +213,23 @@ export default function StudentDashboardPage() {
       initial="hidden"
       animate="visible"
     >
-      {/* Enhanced Student Header */}
+      {/* Personalized Greeting Header */}
       <motion.div variants={itemVariants}>
-        <GlassCard className="p-6">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-6">
-              <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-                <User className="h-8 w-8 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">
-                  {user?.name || 'Student'}
-                </h1>
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2">
-                    <Key className="h-4 w-4 text-blue-300" />
-                    <span className="text-blue-200 text-lg font-mono bg-blue-500/20 px-3 py-1 rounded">
-                      {studentCode || "Loading..."}
-                    </span>
-                  </div>
-                  <Badge variant="secondary" className="bg-green-500/20 text-green-300 border-green-500/30 px-3 py-1">
-                    <GraduationCap className="h-4 w-4 mr-1" />
-                    Student
-                  </Badge>
+        <GlassCard className="p-6" variant="medium" hover={false}>
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+            <div className="flex-1">
+              <Greeting userName={user?.name || 'Student'} />
+              <div className="flex items-center gap-4 mt-4">
+                <div className="flex items-center gap-2">
+                  <Key className="h-4 w-4 text-blue-300" />
+                  <span className="text-blue-200 text-sm font-mono bg-blue-500/20 px-3 py-1 rounded">
+                    {studentCode || "Loading..."}
+                  </span>
                 </div>
+                <Badge variant="secondary" className="bg-green-500/20 text-green-300 border-green-500/30 px-3 py-1">
+                  <GraduationCap className="h-4 w-4 mr-1" />
+                  Student
+                </Badge>
               </div>
             </div>
             <div className="flex gap-3">
@@ -240,10 +240,53 @@ export default function StudentDashboardPage() {
               >
                 View Courses
               </Button>
+              <Button 
+                onClick={() => window.location.href = '/student/assignments'}
+                variant="outline"
+                className="text-sm sm:text-base border-white/20 text-white hover:bg-white/10"
+              >
+                My Assignments
+              </Button>
             </div>
           </div>
         </GlassCard>
       </motion.div>
+
+      {/* Welcome Message for New Students */}
+      {enrolledCourses.length === 0 && !loading && (
+        <motion.div variants={itemVariants}>
+          <GlassCard className="p-8 text-center" variant="light" hover={false}>
+            <div className="flex items-center justify-center w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full mx-auto mb-6">
+              <BookOpen className="h-10 w-10 text-white" />
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-3">
+              Welcome to your learning journey! 🎓
+            </h3>
+            <p className="text-slate-300 mb-6 max-w-md mx-auto">
+              You're all set to start exploring courses, completing assignments, and achieving your goals. 
+              Let's make learning fun and rewarding!
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Button 
+                onClick={() => window.location.href = '/student/courses'}
+                variant="primary"
+                className="text-sm sm:text-base"
+              >
+                <BookOpen className="h-4 w-4 mr-2" />
+                Browse Courses
+              </Button>
+              <Button 
+                onClick={() => window.location.href = '/student/assignments'}
+                variant="outline"
+                className="text-sm sm:text-base border-white/20 text-white hover:bg-white/10"
+              >
+                <ListChecks className="h-4 w-4 mr-2" />
+                View Assignments
+              </Button>
+            </div>
+          </GlassCard>
+        </motion.div>
+      )}
 
       {/* Announcements - Prominent Display */}
       {announcements.length > 0 && (
