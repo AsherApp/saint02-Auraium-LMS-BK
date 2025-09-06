@@ -16,7 +16,7 @@ import { Video, Plus, Calendar, Clock, Users, Play, Loader2, Square, History, Za
 import Link from "next/link"
 import { useLiveSessionsFn } from "@/services/live/hook"
 import { useCoursesFn } from "@/services/courses/hook"
-import { http } from "@/services/http"
+import { httpClient } from "@/services/http"
 
 export default function TeacherLiveClass() {
   const { user } = useAuthStore()
@@ -215,13 +215,13 @@ export default function TeacherLiveClass() {
       const fetchSessionData = async () => {
         try {
           // Get participants
-          const participantsResponse = await http.get(`/api/live/${session.id}/participants`)
+          const participantsResponse = await httpClient.get(`/api/live/${session.id}/participants`)
           const participants = participantsResponse.data?.items || []
           setParticipantCount(participants.length)
 
           // Get attendance data if session is ended
           if (session.status === 'ended') {
-            const attendanceResponse = await http.get(`/api/live-attendance/session/${session.id}`)
+            const attendanceResponse = await httpClient.get(`/api/live-attendance/session/${session.id}`)
             const attendanceData = attendanceResponse.data
             
             if (attendanceData) {

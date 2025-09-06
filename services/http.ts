@@ -59,3 +59,21 @@ export async function http<T>(path: string, opts: HttpOptions = {}): Promise<T> 
   return (await res.json()) as T
 }
 
+// Convenience methods for common HTTP operations
+export const httpClient = {
+  get: <T>(path: string, headers?: Record<string, string>) => 
+    http<T>(path, { method: 'GET', headers }),
+  
+  post: <T>(path: string, body?: unknown, headers?: Record<string, string>) => 
+    http<T>(path, { method: 'POST', body, headers }),
+  
+  put: <T>(path: string, body?: unknown, headers?: Record<string, string>) => 
+    http<T>(path, { method: 'PUT', body, headers }),
+  
+  patch: <T>(path: string, body?: unknown, headers?: Record<string, string>) => 
+    http<T>(path, { method: 'PATCH', body, headers }),
+  
+  delete: <T>(path: string, headers?: Record<string, string>) => 
+    http<T>(path, { method: 'DELETE', headers }),
+}
+

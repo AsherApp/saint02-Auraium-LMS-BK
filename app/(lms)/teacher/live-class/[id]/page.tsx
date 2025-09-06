@@ -13,7 +13,7 @@ import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { FluidTabs } from "@/components/ui/fluid-tabs"
 import { useAuthStore } from "@/store/auth-store"
 import { useLiveSessionsFn } from "@/services/live/hook"
-import { http } from "@/services/http"
+import { httpClient } from "@/services/http"
 import { useToast } from "@/hooks/use-toast"
 import { dateUtils } from "@/utils/date-utils"
 import { 
@@ -67,11 +67,11 @@ const AttendanceAnalysis = ({ sessionId }: { sessionId: string }) => {
         setLoading(true)
         
         // Fetch attendance report
-        const reportResponse = await http.get(`/api/live-attendance/session/${sessionId}`)
+        const reportResponse = await httpClient.get(`/api/live-attendance/session/${sessionId}`)
         setAttendanceData(reportResponse.data)
         
         // Fetch individual attendance records
-        const recordsResponse = await http.get(`/api/live-attendance/session/${sessionId}/records`)
+        const recordsResponse = await httpClient.get(`/api/live-attendance/session/${sessionId}/records`)
         setAttendanceRecords(recordsResponse.data?.items || [])
         
       } catch (error) {
