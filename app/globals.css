@@ -832,6 +832,23 @@ body {
     @apply bg-white/15 backdrop-blur-md border border-white/30;
   }
   
+  /* Enhanced shadow definitions */
+  .shadow-glass {
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  }
+  
+  .shadow-glass-light {
+    box-shadow: 0 4px 16px 0 rgba(31, 38, 135, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.03);
+  }
+  
+  .shadow-glass-heavy {
+    box-shadow: 0 12px 48px 0 rgba(31, 38, 135, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  }
+  
+  .shadow-glass-hover {
+    box-shadow: 0 16px 64px 0 rgba(31, 38, 135, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  }
+  
   /* Standardized text colors */
   .text-primary {
     @apply text-white;
@@ -888,15 +905,61 @@ body {
   
   /* Standardized transitions */
   .transition-fast {
-    @apply transition-all duration-150 ease-in-out;
+    @apply transition-all duration-150 ease-out;
   }
   
   .transition-normal {
-    @apply transition-all duration-200 ease-in-out;
+    @apply transition-all duration-200 ease-out;
   }
   
   .transition-slow {
-    @apply transition-all duration-300 ease-in-out;
+    @apply transition-all duration-300 ease-out;
+  }
+  
+  .transition-smooth {
+    @apply transition-all duration-500 ease-out;
+  }
+  
+  /* Fade transitions */
+  .fade-in {
+    @apply opacity-0 animate-fade-in;
+  }
+  
+  .fade-in-delay {
+    @apply opacity-0 animate-fade-in-delay;
+  }
+  
+  .fade-in-delay-2 {
+    @apply opacity-0 animate-fade-in-delay-2;
+  }
+  
+  .fade-in-delay-3 {
+    @apply opacity-0 animate-fade-in-delay-3;
+  }
+  
+  .fade-in-delay-4 {
+    @apply opacity-0 animate-fade-in-delay-4;
+  }
+  
+  /* Smooth page transitions */
+  .page-transition {
+    @apply transition-all duration-300 ease-out;
+  }
+  
+  .page-enter {
+    @apply opacity-0 transform translate-y-4;
+  }
+  
+  .page-enter-active {
+    @apply opacity-100 transform translate-y-0;
+  }
+  
+  .page-exit {
+    @apply opacity-100 transform translate-y-0;
+  }
+  
+  .page-exit-active {
+    @apply opacity-0 transform -translate-y-4;
   }
   
   /* Standardized focus states */

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { GlassCard } from "@/components/shared/glass-card"
+import { AnimationWrapper, StaggeredAnimationWrapper } from "@/components/shared/animation-wrapper"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -271,11 +272,11 @@ export default function StudentAssignmentsPage() {
   }
 
   if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-white">My Assignments</h1>
-        </div>
+  return (
+    <AnimationWrapper className="space-y-6" duration="smooth">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold text-white">My Assignments</h1>
+      </div>
         <GlassCard className="p-8">
           <div className="text-center text-slate-300">Loading assignments...</div>
         </GlassCard>
@@ -320,8 +321,12 @@ export default function StudentAssignmentsPage() {
 
         <TabsContent value="assignments" className="space-y-4">
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <GlassCard className="p-4">
+          <StaggeredAnimationWrapper 
+            className="grid grid-cols-1 md:grid-cols-4 gap-4"
+            staggerDelay={100}
+            duration="normal"
+          >
+            <GlassCard className="p-4" variant="light" hover={true}>
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-600/20 rounded-lg">
                   <ClipboardList className="h-6 w-6 text-blue-400" />
@@ -333,7 +338,7 @@ export default function StudentAssignmentsPage() {
               </div>
             </GlassCard>
             
-            <GlassCard className="p-4">
+            <GlassCard className="p-4" variant="light" hover={true}>
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-orange-600/20 rounded-lg">
                   <Clock className="h-6 w-6 text-orange-400" />
@@ -345,7 +350,7 @@ export default function StudentAssignmentsPage() {
               </div>
             </GlassCard>
             
-            <GlassCard className="p-4">
+            <GlassCard className="p-4" variant="light" hover={true}>
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-green-600/20 rounded-lg">
                   <CheckCircle className="h-6 w-6 text-green-400" />
@@ -357,7 +362,7 @@ export default function StudentAssignmentsPage() {
               </div>
             </GlassCard>
             
-            <GlassCard className="p-4">
+            <GlassCard className="p-4" variant="light" hover={true}>
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-red-600/20 rounded-lg">
                   <AlertTriangle className="h-6 w-6 text-red-400" />
@@ -368,7 +373,7 @@ export default function StudentAssignmentsPage() {
                 </div>
               </div>
             </GlassCard>
-          </div>
+          </StaggeredAnimationWrapper>
 
           {/* Search and Filters */}
           <GlassCard className="p-4">
@@ -436,9 +441,13 @@ export default function StudentAssignmentsPage() {
               </div>
             </GlassCard>
           ) : (
-            <div className="space-y-4">
+            <StaggeredAnimationWrapper 
+              className="space-y-4"
+              staggerDelay={150}
+              duration="normal"
+            >
               {filteredAssignments.map((assignment) => (
-                <GlassCard key={assignment.id} className="p-6 hover:bg-white/5 transition-colors">
+                <GlassCard key={assignment.id} className="p-6" variant="default" hover={true}>
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       {/* Header */}
@@ -523,7 +532,7 @@ export default function StudentAssignmentsPage() {
                   </div>
                 </GlassCard>
               ))}
-            </div>
+            </StaggeredAnimationWrapper>
           )}
         </TabsContent>
 
