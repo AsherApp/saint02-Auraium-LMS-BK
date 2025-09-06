@@ -26,9 +26,9 @@ import discussionsRoutes from './discussions.routes.js'
 import { router as forumRoutes } from './forum.routes.js'
 import studentAnalyticsRoutes from './student.routes.js'
 import notificationsRoutes from './notifications.routes.js'
-import transactionRoutes from './transactions.routes'
-import { certificateRoutes } from './certificates.routes'
-import { router as bulkCoursesRoutes } from './bulk-courses.routes'
+import transactionRoutes from './transactions.routes.js'
+import { certificateRoutes } from './certificates.routes.js'
+import { router as bulkCoursesRoutes } from './bulk-courses.routes.js'
 import { router as messagesRoutes } from './messages.routes.js'
 
 export const router = Router()
