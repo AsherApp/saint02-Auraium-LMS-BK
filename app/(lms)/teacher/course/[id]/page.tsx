@@ -12,9 +12,10 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Textarea } from "@/components/ui/textarea"
+import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { FluidTabs, useFluidTabs } from "@/components/ui/fluid-tabs"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { UserDisplay } from "@/components/shared/user-avatar"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
@@ -36,10 +37,20 @@ import {
   ListChecks,
   Eye,
   Video,
+  HelpCircle,
+  Presentation,
+  FolderOpen,
+  Code,
 } from "lucide-react"
 import { useInvitesFn } from "@/services/invites/hook"
 import { LessonContentEditor } from "@/components/teacher/lesson-content-editor"
 import { ContentPreviewModal } from "@/components/teacher/content-preview-modal"
+import { 
+  VideoButton, 
+  UsersButton, 
+  AssignmentButton, 
+  SettingsButton 
+} from "@/components/shared/icon-action-button"
 import { useEnrollmentsFn } from "@/services/enrollments/hook"
 import { useAuthStore } from "@/store/auth-store"
 import { http } from "@/services/http"
@@ -47,7 +58,7 @@ import { listStudents, enrollStudent } from "@/services/students/api"
 import { useLiveSessionsFn } from "@/services/live/hook"
 import { PendingInvitesWidget } from "@/components/teacher/pending-invites-widget"
 import { AssignmentCreator } from "@/components/teacher/assignment-creator"
-import { useAssignmentsFn } from "@/services/assignments/hook"
+import { AssignmentProAPI } from "@/services/assignment-pro/api"
 import { DocumentViewer } from "@/components/shared/document-viewer"
 import { PresentationViewer } from "@/components/shared/presentation-viewer"
 import { getViewerType, canPreviewFile, contentToFileInfo, getPreviewButtonText, type FileInfo } from "@/utils/file-viewer-utils"
@@ -74,8 +85,7 @@ export default function TeacherCourseDetailPage() {
   const { create: createLesson } = useLessonsByModule(selectedModuleForLessons)
 
   const rosterSvc = useEnrollmentsFn(course?.id)
-  const assignSvc = useAssignmentsFn(course?.id)
-  const assignments = assignSvc.items || []
+  const [assignments, setAssignments] = useState<any[]>([])
 
   const [modOpen, setModOpen] = useState(false)
   const [modTitle, setModTitle] = useState("")
@@ -86,6 +96,7 @@ export default function TeacherCourseDetailPage() {
   const [lessonModuleId, setLessonModuleId] = useState<string>("")
   const [lessonDescription, setLessonDescription] = useState("")
   const [inviteOpen, setInviteOpen] = useState(false)
+  const [inviteTab, setInviteTab] = useState<'invite' | 'existing'>('invite')
   const [invRows, setInvRows] = useState<{ id: string; name: string; email: string }[]>([])
   const [inviteBusy, setInviteBusy] = useState(false)
   const [existingStudents, setExistingStudents] = useState<any[]>([])
@@ -95,6 +106,7 @@ export default function TeacherCourseDetailPage() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [editTitle, setEditTitle] = useState("")
   const [editDesc, setEditDesc] = useState("")
+  const [editThumbnail, setEditThumbnail] = useState("")
   const [editStatus, setEditStatus] = useState<"draft" | "published" | "archived">("draft")
   const [editVisibility, setEditVisibility] = useState<"private" | "unlisted" | "public">("private")
   const [editPolicy, setEditPolicy] = useState<"invite_only" | "request" | "open">("invite_only")
@@ -378,6 +390,7 @@ export default function TeacherCourseDetailPage() {
     if (!course) return
     setEditTitle(course.title)
     setEditDesc(course.description || "")
+    setEditThumbnail(course.thumbnail_url || "")
     setEditStatus(course.status || "draft")
     setEditVisibility(course.visibility || "private")
     setEditPolicy(course.enrollment_policy || "invite_only")
@@ -390,9 +403,12 @@ export default function TeacherCourseDetailPage() {
       await updateCourse({
         title: editTitle,
         description: editDesc,
-        status: editStatus
+        thumbnail_url: editThumbnail,
+        status: editStatus,
+        visibility: editVisibility,
+        enrollment_policy: editPolicy
       })
-      toast({ title: "Course updated" })
+      toast({ title: "Course updated successfully" })
       setSettingsOpen(false)
     } catch (error: any) {
       toast({ title: "Failed to update course", description: error.message, variant: "destructive" })
@@ -449,373 +465,100 @@ export default function TeacherCourseDetailPage() {
       {/* Header */}
       <GlassCard className="p-6">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h1 className="text-white text-2xl font-semibold">{course.title}</h1>
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-white text-2xl font-semibold">{course.title}</h1>
+              {/* Course Status Badge */}
+              <Badge 
+                className={`${
+                  course.status === 'published' 
+                    ? 'bg-green-600/80 text-white border-green-500' 
+                    : course.status === 'draft'
+                    ? 'bg-yellow-600/80 text-white border-yellow-500'
+                    : 'bg-slate-600/80 text-white border-slate-500'
+                } border`}
+              >
+                {course.status === 'published' ? 'Published' : course.status === 'draft' ? 'Draft' : 'Archived'}
+              </Badge>
+              {course.visibility && (
+                <Badge 
+                  variant="secondary" 
+                  className="bg-white/10 text-slate-200 border-white/10"
+                >
+                  {course.visibility === 'public' ? 'Public' : course.visibility === 'unlisted' ? 'Unlisted' : 'Private'}
+                </Badge>
+              )}
+            </div>
             {course.description ? <p className="text-slate-300">{course.description}</p> : null}
           </div>
-          <div className="flex flex-wrap gap-2">
-            {/* Professional Assignment System */}
-            <Link href="/teacher/assignments">
-              <Button className="bg-blue-600/80 hover:bg-blue-600 text-white">
-                <ListPlus className="mr-2 h-4 w-4" />
-                Manage Assignments
-              </Button>
-            </Link>
+          
+          {/* Action Buttons - Icon-based system with tooltips */}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Course Management Actions - Icon format for minimalism */}
+            <div className="flex items-center gap-2">
+              {/* Create Live Session - Icon Button */}
+              <Dialog open={liveSessionOpen} onOpenChange={setLiveSessionOpen}>
+                <DialogTrigger asChild>
+                  <VideoButton onClick={() => {}} />
+                </DialogTrigger>
+              </Dialog>
 
-            <Dialog open={modOpen} onOpenChange={setModOpen}>
+              {/* Invite Students - Icon Button */}
+              <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+                <DialogTrigger asChild>
+                  <UsersButton onClick={() => {}} />
+                </DialogTrigger>
+              </Dialog>
+
+              {/* Manage Assignments - Icon Button */}
+              <AssignmentButton href="/teacher/assignments" />
+            </div>
+
+            {/* Course Settings Icon Button */}
+            <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
               <DialogTrigger asChild>
-                <Button className="bg-white/10 text-white hover:bg-white/20">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Module
-                </Button>
+                <SettingsButton onClick={openSettings} />
               </DialogTrigger>
             </Dialog>
 
-            <Dialog open={liveSessionOpen} onOpenChange={setLiveSessionOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-green-600/80 hover:bg-green-600 text-white">
-                  <Video className="mr-2 h-4 w-4" />
-                  Create Live Session
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="bg-white/10 border-white/20 backdrop-blur text-white max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Create Live Session</DialogTitle>
-                  <DialogDescription>Schedule a live session for this course.</DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="ls-title">Session Title *</Label>
-                    <Input
-                      id="ls-title"
-                      value={newLiveSession.title}
-                      onChange={(e) => setNewLiveSession(prev => ({ ...prev, title: e.target.value }))}
-                      className="bg-white/5 border-white/10 text-white"
-                      placeholder="Enter session title"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="ls-description">Description</Label>
-                    <Input
-                      id="ls-description"
-                      value={newLiveSession.description}
-                      onChange={(e) => setNewLiveSession(prev => ({ ...prev, description: e.target.value }))}
-                      className="bg-white/5 border-white/10 text-white"
-                      placeholder="Session description"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="ls-start">Start Time *</Label>
-                    <Input
-                      id="ls-start"
-                      type="datetime-local"
-                      value={newLiveSession.start_at}
-                      onChange={(e) => setNewLiveSession(prev => ({ ...prev, start_at: e.target.value }))}
-                      className="bg-white/5 border-white/10 text-white"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="ls-module">Module (Optional)</Label>
-                    <Select 
-                      value={newLiveSession.module_id} 
-                      onValueChange={(value) => setNewLiveSession(prev => ({ ...prev, module_id: value }))}
-                    >
-                      <SelectTrigger className="bg-white/5 border-white/10 text-white">
-                        <SelectValue placeholder="Select a module (optional)" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-slate-900/95 text-white border-white/10">
-                        {modules.map((module, index) => (
-                          <SelectItem key={module.id || `module-${index}`} value={module.id || ''}>
-                            {module.title}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="flex gap-2">
-                    <Button 
-                      onClick={handleCreateLiveSession}
-                      disabled={!newLiveSession.title || !newLiveSession.start_at}
-                      className="bg-green-600/80 hover:bg-green-600 text-white flex-1"
-                    >
-                      Create Session
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setLiveSessionOpen(false)}
-                      className="border-white/20 text-white hover:bg-white/10"
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-
-            <Dialog open={modOpen} onOpenChange={setModOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-white/10 text-white hover:bg-white/20">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Module
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="bg-white/10 border-white/20 backdrop-blur text-white">
-                <DialogHeader>
-                  <DialogTitle>Add Module</DialogTitle>
-                  <DialogDescription>Create a new module for your course content.</DialogDescription>
-                </DialogHeader>
-                <div className="space-y-3">
-                  <Label htmlFor="mt">Title</Label>
-                  <Input
-                    id="mt"
-                    value={modTitle}
-                    onChange={(e) => setModTitle(e.target.value)}
-                    className="bg-white/5 border-white/10 text-white"
-                  />
-                  <Label htmlFor="md">Description</Label>
-                  <Input
-                    id="md"
-                    value={modDescription}
-                    onChange={(e) => setModDescription(e.target.value)}
-                    className="bg-white/5 border-white/10 text-white"
-                  />
-                  <Button onClick={onAddModule} className="w-full bg-blue-600/80 hover:bg-blue-600">
-                    Add
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-
-            <Dialog
-              open={lessonOpen}
-              onOpenChange={(o) => {
-                setLessonOpen(o)
-                if (o) {
-                  setLessonModuleId(modules[0]?.id || "")
+            {/* Quick Publish/Unpublish Toggle */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`p-2 h-10 ${
+                course.status === 'published' 
+                  ? 'bg-green-600/80 hover:bg-green-600 text-white' 
+                  : 'bg-yellow-600/80 hover:bg-yellow-600 text-white'
+              }`}
+              onClick={async () => {
+                if (!course) return
+                try {
+                  const newStatus = course.status === 'published' ? 'draft' : 'published'
+                  await updateCourse({ status: newStatus })
+                  toast({ 
+                    title: `Course ${newStatus === 'published' ? 'published' : 'unpublished'} successfully` 
+                  })
+                } catch (error: any) {
+                  toast({ 
+                    title: `Failed to ${course.status === 'published' ? 'unpublish' : 'publish'} course`, 
+                    description: error.message, 
+                    variant: "destructive" 
+                  })
                 }
               }}
+              title={course.status === 'published' ? 'Unpublish Course' : 'Publish Course'}
             >
-              <DialogTrigger asChild>
-                <Button variant="secondary" className="bg-white/10 text-white hover:bg-white/20">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Lesson
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="bg-white/10 border-white/20 backdrop-blur text-white">
-                <DialogHeader>
-                  <DialogTitle>Add Lesson</DialogTitle>
-                  <DialogDescription>Create a new lesson within a module.</DialogDescription>
-                </DialogHeader>
-                <div className="space-y-3">
-                  <div className="space-y-1">
-                    <Label>Module</Label>
-                    <Select value={lessonModuleId} onValueChange={setLessonModuleId}>
-                      <SelectTrigger className="bg-white/5 border-white/10 text-white">
-                        <SelectValue placeholder="Select module" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-slate-900/95 text-white border-white/10">
-                        {modules.map((m) => (
-                          <SelectItem key={m.id || `module-${Math.random()}`} value={m.id || ''}>
-                            {m.title}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1">
-                    <Label>Title</Label>
-                    <Input
-                      value={lessonTitle}
-                      onChange={(e) => setLessonTitle(e.target.value)}
-                      className="bg-white/5 border-white/10 text-white"
-                      placeholder="e.g., Introduction to Variables"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label>Description</Label>
-                    <Input
-                      value={lessonDescription}
-                      onChange={(e) => setLessonDescription(e.target.value)}
-                      className="bg-white/5 border-white/10 text-white"
-                      placeholder="Brief description of this lesson"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label>Type</Label>
-                    <Select value={lessonType} onValueChange={(v) => setLessonType(v as any)}>
-                      <SelectTrigger className="bg-white/5 border-white/10 text-white">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-slate-900/95 text-white border-white/10">
-                        <SelectItem value="video">Video</SelectItem>
-                        <SelectItem value="quiz">Quiz</SelectItem>
-                        <SelectItem value="file">File</SelectItem>
-                        <SelectItem value="discussion">Discussion</SelectItem>
-                        <SelectItem value="poll">Poll</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button onClick={onAddLesson} className="w-full bg-blue-600/80 hover:bg-blue-600">
-                    Add Lesson
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-
-            <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
-              <DialogTrigger asChild>
-                <Button variant="secondary" className="bg-white/10 text-white hover:bg-white/20">
-                  Invite Students
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="bg-white/10 border-white/20 backdrop-blur text-white max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>Invite Students</DialogTitle>
-                  <DialogDescription>Invite new students or add existing students to your course.</DialogDescription>
-                </DialogHeader>
-                <Tabs defaultValue="invite" className="w-full">
-                  <div className="w-full flex justify-center py-4">
-                    <TabsList className="bg-white/10">
-                      <TabsTrigger value="invite">
-                        Invite New
-                      </TabsTrigger>
-                      <TabsTrigger value="existing">
-                        Add Existing
-                      </TabsTrigger>
-                    </TabsList>
-                  </div>
-
-                  <TabsContent value="invite" className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-slate-300">Add student rows</span>
-                      <Button onClick={addInviteRow} className="bg-blue-600/80 hover:bg-blue-600">
-                        <Plus className="mr-2 h-4 w-4" /> Add
-                      </Button>
-                    </div>
-                    {invRows.length === 0 ? (
-                      <div className="text-slate-400 text-sm">No students added.</div>
-                    ) : (
-                      <div className="space-y-2">
-                        {invRows.map((r) => (
-                          <div key={r.id} className="grid gap-2 md:grid-cols-[1fr_1fr_auto]">
-                            <Input
-                              placeholder="Full name"
-                              value={r.name}
-                              onChange={(e) => updateInviteRow(r.id, { name: e.target.value })}
-                              className="bg-white/5 border-white/10 text-white"
-                            />
-                            <Input
-                              placeholder="email@student.edu"
-                              value={r.email}
-                              onChange={(e) => updateInviteRow(r.id, { email: e.target.value })}
-                              className="bg-white/5 border-white/10 text-white"
-                            />
-                            <Button
-                              variant="secondary"
-                              onClick={() => removeInviteRow(r.id)}
-                              className="bg-white/10 hover:bg-white/20 text-white"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    <Button
-                      disabled={!invRows.length || inviteBusy}
-                      onClick={onSendInvites}
-                      className="w-full bg-blue-600/80 hover:bg-blue-600"
-                    >
-                      {inviteBusy ? "Generating..." : "Generate Invite Links"}
-                    </Button>
-
-                    {invRows.length > 0 && (invRows[0].email.startsWith("/invite/") || invRows[0].email.startsWith("http")) && (
-                      <div className="rounded-lg border border-white/10 bg-white/5 p-3">
-                        <div className="text-sm text-slate-300">
-                          Generated Invite Links:
-                        </div>
-                        <ul className="mt-2 space-y-2">
-                          {invRows.map((r) => (
-                            <li key={`invite-${r.id}`} className="text-xs text-slate-400 break-all">
-                              {r.name} • {r.email}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </TabsContent>
-
-                  <TabsContent value="existing" className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-slate-300">Select existing students</span>
-                      <Button 
-                        onClick={loadExistingStudents} 
-                        disabled={loadingStudents}
-                        className="bg-blue-600/80 hover:bg-blue-600"
-                      >
-                        {loadingStudents ? "Loading..." : "Load Students"}
-                      </Button>
-                    </div>
-                    
-                    {existingStudents.length === 0 ? (
-                      <div className="text-slate-400 text-sm">
-                        {loadingStudents ? "Loading students..." : "Click 'Load Students' to see available students."}
-                      </div>
-                    ) : (
-                      <div className="space-y-2 max-h-60 overflow-y-auto">
-                        {existingStudents.map((student, index) => (
-                          <div key={student.id || `${student.email || 'unknown'}-${index}`} className="flex items-center gap-3 p-2 rounded border border-white/10 bg-white/5">
-                            <input
-                              type="checkbox"
-                              checked={selectedExistingStudents.includes(student.email)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setSelectedExistingStudents(prev => [...prev, student.email])
-                                } else {
-                                  setSelectedExistingStudents(prev => prev.filter(email => email !== student.email))
-                                }
-                              }}
-                              className="rounded border-white/20"
-                            />
-                            <div className="flex-1">
-                              <div className="text-sm text-white font-medium">{student.name}</div>
-                              <div className="text-xs text-slate-400">{student.email}</div>
-                            </div>
-                            <Badge variant="secondary" className="bg-white/10 text-slate-200 border-white/10">
-                              {student.status}
-                            </Badge>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    
-                    <Button
-                      disabled={selectedExistingStudents.length === 0 || inviteBusy}
-                      onClick={onEnrollExistingStudents}
-                      className="w-full bg-green-600/80 hover:bg-green-600"
-                    >
-                      {inviteBusy ? "Enrolling..." : `Enroll ${selectedExistingStudents.length} Student${selectedExistingStudents.length !== 1 ? 's' : ''}`}
-                    </Button>
-                  </TabsContent>
-                </Tabs>
-              </DialogContent>
-            </Dialog>
-
-            <Button variant="secondary" className="bg-white/10 text-white hover:bg-white/20" onClick={openSettings}>
-              <SettingsIcon className="mr-2 h-4 w-4" />
-              Settings
+              {course.status === 'published' ? 'Unpublish' : 'Publish'}
             </Button>
           </div>
         </div>
 
-        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+        {/* Course Stats */}
+        <div className="mt-5 grid gap-3 sm:grid-cols-4">
           <StatCard icon={<BookOpen className="h-4 w-4" />} label="Modules" value={stats.modules} />
           <StatCard icon={<PlayCircle className="h-4 w-4" />} label="Lessons" value={stats.lessons} />
           <StatCard icon={<Users className="h-4 w-4" />} label="Students" value={stats.students} />
+          <StatCard icon={<ClipboardList className="h-4 w-4" />} label="Assignments" value={assignments?.length || 0} />
         </div>
       </GlassCard>
 
@@ -831,7 +574,13 @@ export default function TeacherCourseDetailPage() {
               { id: 'settings', label: 'Settings', icon: <SettingsIcon className="h-4 w-4" /> }
             ]}
             activeTab="curriculum"
-            onTabChange={() => {}}
+            onTabChange={(tabId) => {
+              // Scroll to the appropriate section
+              const element = document.getElementById(tabId)
+              if (element) {
+                element.scrollIntoView({ behavior: 'smooth' })
+              }
+            }}
             variant="default"
             width="content-match"
           />
@@ -840,7 +589,7 @@ export default function TeacherCourseDetailPage() {
         <Tabs defaultValue="curriculum" className="w-full">
 
             <TabsContent value="overview" className="mt-4">
-              <div className="w-full">
+              <div id="overview" className="w-full">
               <GlassCard className="p-0">
                 <div className="p-6">
                 <div className="text-slate-300">
@@ -852,7 +601,7 @@ export default function TeacherCourseDetailPage() {
           </TabsContent>
 
             <TabsContent value="curriculum" className="mt-4">
-              <div className="w-full">
+              <div id="curriculum" className="w-full">
             <GlassCard className="p-0 space-y-4 w-full">
             {modules.length === 0 ? (
               <div className="text-slate-300">No modules yet. Use Add Module to start structuring your course.</div>
@@ -881,7 +630,7 @@ export default function TeacherCourseDetailPage() {
                               <ListPlus className="h-4 w-4 mr-1" /> Add Assignment
                             </Button>
                           </DialogTrigger>
-                          <DialogContent className="bg-white/10 border-white/20 backdrop-blur text-white max-w-6xl max-h-[90vh] overflow-y-auto">
+                          <DialogContent className="bg-white/10 border-white/20 backdrop-blur text-white max-w-[99vw] w-[99vw] max-h-[95vh] overflow-y-auto">
                               <DialogHeader>
                               <DialogTitle>New Assignment (Module)</DialogTitle>
                             </DialogHeader>
@@ -891,7 +640,7 @@ export default function TeacherCourseDetailPage() {
                               onCancel={() => setAssignmentOpen(false)}
                               onSave={(data) => {
                                 if (!course.id) return
-                                void assignSvc.create({
+                                AssignmentProAPI.createAssignment({
                                   course_id: course.id,
                                   scope: { level: "module", moduleId: m.id },
                                   title: data.title,
@@ -970,7 +719,7 @@ export default function TeacherCourseDetailPage() {
                                     <ListPlus className="h-4 w-4 mr-1" /> Add Assignment
                                   </Button>
                                 </DialogTrigger>
-                                <DialogContent className="bg-white/10 border-white/20 backdrop-blur text-white max-w-6xl max-h-[90vh] overflow-y-auto">
+                                <DialogContent className="bg-white/10 border-white/20 backdrop-blur text-white max-w-[99vw] w-[99vw] max-h-[95vh] overflow-y-auto">
                                   <DialogHeader>
                                     <DialogTitle>New Assignment (Lesson)</DialogTitle>
                                     <DialogDescription>Create a new assignment for this specific lesson.</DialogDescription>
@@ -981,13 +730,13 @@ export default function TeacherCourseDetailPage() {
                                     onCancel={() => setAssignmentOpen(false)}
                                     onSave={(data) => {
                                       if (!course.id) return
-                                      void assignSvc.create({
+                                      AssignmentProAPI.createAssignment({
                                         course_id: course.id,
                                         scope: { level: "lesson", moduleId: m.id, lessonId: l.id },
                                         title: data.title,
                                         description: data.description || "",
                                         type: data.type as any,
-                                        due_at: data.dueAt ? new Date(data.dueAt).toISOString() : undefined,
+                                        due_at: data.dueAt ? new Date(data.dueAt).toISOString() : null,
                                         form: data.form as any,
                                         resources: data.resources as any,
                                       })
@@ -1083,7 +832,7 @@ export default function TeacherCourseDetailPage() {
           </TabsContent>
 
             <TabsContent value="students" className="mt-4">
-              <div className="w-full">
+              <div id="students" className="w-full">
               <div className="space-y-4 p-6">
             {/* Pending Invites Section */}
             <PendingInvitesWidget 
@@ -1123,7 +872,7 @@ export default function TeacherCourseDetailPage() {
           </TabsContent>
 
             <TabsContent value="assignments" className="mt-4">
-              <div className="w-full">
+              <div id="assignments" className="w-full">
             <GlassCard className="p-0 space-y-4">
             <div className="p-6">
             <div className="text-white font-medium">Assignments</div>
@@ -1201,7 +950,7 @@ export default function TeacherCourseDetailPage() {
         </TabsContent>
 
             <TabsContent value="settings" className="mt-4">
-              <div className="w-full">
+              <div id="settings" className="w-full">
             <GlassCard className="p-0 space-y-4">
             <div className="p-6">
             <div className="text-slate-300 text-sm">
@@ -1274,34 +1023,488 @@ export default function TeacherCourseDetailPage() {
           </Tabs>
       </div>
 
-      {/* Settings Dialog */}
+      {/* Enhanced Course Settings Dialog */}
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent className="bg-white/10 border-white/20 backdrop-blur text-white max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Course General Settings</DialogTitle>
+            <DialogDescription>Manage all aspects of your course including visibility, enrollment, and content settings.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6">
+            {/* Basic Information */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-white border-b border-white/20 pb-2">Basic Information</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Course Title</Label>
+                  <Input
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    className="bg-white/5 border-white/10 text-white"
+                    placeholder="Enter course title"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Course Status</Label>
+                  <Select value={editStatus} onValueChange={(v) => setEditStatus(v as any)}>
+                    <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-900/95 text-white border-white/10">
+                      <SelectItem value="draft">Draft</SelectItem>
+                      <SelectItem value="published">Published</SelectItem>
+                      <SelectItem value="archived">Archived</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Description</Label>
+                <Textarea
+                  value={editDesc}
+                  onChange={(e) => setEditDesc(e.target.value)}
+                  className="bg-white/5 border-white/10 text-white min-h-[80px]"
+                  placeholder="Describe your course content and objectives"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Thumbnail URL</Label>
+                <Input
+                  value={editThumbnail}
+                  onChange={(e) => setEditThumbnail(e.target.value)}
+                  className="bg-white/5 border-white/10 text-white"
+                  placeholder="https://example.com/image.jpg"
+                />
+                {editThumbnail && (
+                  <div className="mt-2">
+                    <img 
+                      src={editThumbnail} 
+                      alt="Thumbnail preview" 
+                      className="w-32 h-20 object-cover rounded border border-white/20"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none'
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Visibility & Access */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-white border-b border-white/20 pb-2">Visibility & Access</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Visibility</Label>
+                  <Select value={editVisibility} onValueChange={(v) => setEditVisibility(v as any)}>
+                    <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-900/95 text-white border-white/10">
+                      <SelectItem value="private">Private - Only enrolled students</SelectItem>
+                      <SelectItem value="unlisted">Unlisted - Hidden from search</SelectItem>
+                      <SelectItem value="public">Public - Visible to everyone</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Enrollment Policy</Label>
+                  <Select value={editPolicy} onValueChange={(v) => setEditPolicy(v as any)}>
+                    <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-900/95 text-white border-white/10">
+                      <SelectItem value="invite_only">Invite Only - Manual enrollment</SelectItem>
+                      <SelectItem value="request">Request - Students can request access</SelectItem>
+                      <SelectItem value="open">Open - Anyone can join</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            {/* Course Management */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-white border-b border-white/20 pb-2">Course Management</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Course ID</Label>
+                  <Input
+                    value={course?.id || ''}
+                    className="bg-white/5 border-white/10 text-white cursor-not-allowed"
+                    disabled
+                    title="Course ID cannot be changed"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Created Date</Label>
+                  <Input
+                    value={course?.created_at ? new Date(course.created_at).toLocaleDateString() : ''}
+                    className="bg-white/5 border-white/10 text-white cursor-not-allowed"
+                    disabled
+                    title="Creation date cannot be changed"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3 pt-4">
+              <Button className="bg-blue-600/80 hover:bg-blue-600 text-white flex-1" onClick={onSaveSettings}>
+                Save Changes
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => setSettingsOpen(false)}
+                className="border-white/20 text-white hover:bg-white/10"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Module Dialog */}
+      <Dialog open={modOpen} onOpenChange={setModOpen}>
         <DialogContent className="bg-white/10 border-white/20 backdrop-blur text-white">
           <DialogHeader>
-            <DialogTitle>Edit Course</DialogTitle>
-            <DialogDescription>Update your course settings and information.</DialogDescription>
+            <DialogTitle>Add Module</DialogTitle>
+            <DialogDescription>Create a new module for your course content.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1">
+              <Label htmlFor="mt">Title</Label>
+              <Input
+                id="mt"
+                value={modTitle}
+                onChange={(e) => setModTitle(e.target.value)}
+                className="bg-white/5 border-white/10 text-white"
+                placeholder="Enter module title"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="md">Description</Label>
+              <Input
+                id="md"
+                value={modDescription}
+                onChange={(e) => setModDescription(e.target.value)}
+                className="bg-white/5 border-white/10 text-white"
+                placeholder="Enter module description"
+              />
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button onClick={onAddModule} className="bg-blue-600/80 hover:bg-blue-600 flex-1">
+                Add Module
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => setModOpen(false)}
+                className="border-white/20 text-white hover:bg-white/10"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Lesson Dialog */}
+      <Dialog open={lessonOpen} onOpenChange={(o) => {
+        setLessonOpen(o)
+        if (o) {
+          setLessonModuleId(modules[0]?.id || "")
+        }
+      }}>
+        <DialogContent className="bg-white/10 border-white/20 backdrop-blur text-white">
+          <DialogHeader>
+            <DialogTitle>Add Lesson</DialogTitle>
+            <DialogDescription>Create a new lesson within a module.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label>Module</Label>
+              <Select value={lessonModuleId} onValueChange={setLessonModuleId}>
+                <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                  <SelectValue placeholder="Select module" />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-900/95 text-white border-white/10">
+                  {modules.map((m) => (
+                    <SelectItem key={m.id || `module-${Math.random()}`} value={m.id || ''}>
+                      {m.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
               <Label>Title</Label>
               <Input
-                value={editTitle}
-                onChange={(e) => setEditTitle(e.target.value)}
+                value={lessonTitle}
+                onChange={(e) => setLessonTitle(e.target.value)}
                 className="bg-white/5 border-white/10 text-white"
+                placeholder="e.g., Introduction to Variables"
               />
             </div>
             <div className="space-y-1">
               <Label>Description</Label>
               <Input
-                value={editDesc}
-                onChange={(e) => setEditDesc(e.target.value)}
+                value={lessonDescription}
+                onChange={(e) => setLessonDescription(e.target.value)}
+                className="bg-white/5 border-white/10 text-white"
+                placeholder="Brief description of this lesson"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Type</Label>
+              <Select value={lessonType} onValueChange={(v) => setLessonType(v as any)}>
+                <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-900/95 text-white border-white/10">
+                  <SelectItem value="video">Video</SelectItem>
+                  <SelectItem value="quiz">Quiz</SelectItem>
+                  <SelectItem value="file">File</SelectItem>
+                  <SelectItem value="discussion">Discussion</SelectItem>
+                  <SelectItem value="poll">Poll</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button onClick={onAddLesson} className="bg-green-600/80 hover:bg-green-600 flex-1">
+                Add Lesson
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => setLessonOpen(false)}
+                className="border-white/20 text-white hover:bg-white/10"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Live Session Dialog */}
+      <Dialog open={liveSessionOpen} onOpenChange={setLiveSessionOpen}>
+        <DialogContent className="bg-white/10 border-white/20 backdrop-blur text-white max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create Live Session</DialogTitle>
+            <DialogDescription>Schedule a live session for this course.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="ls-title">Session Title *</Label>
+              <Input
+                id="ls-title"
+                value={newLiveSession.title}
+                onChange={(e) => setNewLiveSession(prev => ({ ...prev, title: e.target.value }))}
+                className="bg-white/5 border-white/10 text-white"
+                placeholder="Enter session title"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="ls-description">Description</Label>
+              <Input
+                id="ls-description"
+                value={newLiveSession.description}
+                onChange={(e) => setNewLiveSession(prev => ({ ...prev, description: e.target.value }))}
+                className="bg-white/5 border-white/10 text-white"
+                placeholder="Session description"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="ls-start">Start Time *</Label>
+              <Input
+                id="ls-start"
+                type="datetime-local"
+                value={newLiveSession.start_at}
+                onChange={(e) => setNewLiveSession(prev => ({ ...prev, start_at: e.target.value }))}
                 className="bg-white/5 border-white/10 text-white"
               />
             </div>
-            <Button className="bg-blue-600/80 hover:bg-blue-600 text-white" onClick={onSaveSettings}>
-              Save
-            </Button>
+            
+            <div className="space-y-2">
+              <Label htmlFor="ls-module">Module (Optional)</Label>
+              <Select 
+                value={newLiveSession.module_id} 
+                onValueChange={(value) => setNewLiveSession(prev => ({ ...prev, module_id: value }))}
+              >
+                <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                  <SelectValue placeholder="Select a module (optional)" />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-900/95 text-white border-white/10">
+                  {modules.map((module, index) => (
+                    <SelectItem key={module.id || `module-${index}`} value={module.id || ''}>
+                      {module.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="flex gap-2">
+              <Button 
+                onClick={handleCreateLiveSession}
+                disabled={!newLiveSession.title || !newLiveSession.start_at}
+                className="bg-green-600/80 hover:bg-green-600 text-white flex-1"
+              >
+                Create Session
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => setLiveSessionOpen(false)}
+                className="border-white/20 text-white hover:bg-white/10"
+              >
+                Cancel
+              </Button>
+            </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Invite Students Dialog */}
+      <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+        <DialogContent className="bg-white/10 border-white/20 backdrop-blur text-white max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Invite Students</DialogTitle>
+            <DialogDescription>Invite new students or add existing students to your course.</DialogDescription>
+          </DialogHeader>
+          <div className="w-full flex justify-center py-4">
+            <FluidTabs
+              tabs={[
+                { id: 'invite', label: 'Invite New', icon: <Plus className="h-4 w-4" /> },
+                { id: 'existing', label: 'Add Existing', icon: <Users className="h-4 w-4" /> }
+              ]}
+              activeTab={inviteTab}
+              onTabChange={(tabId) => setInviteTab(tabId as 'invite' | 'existing')}
+              variant="default"
+            />
+          </div>
+
+          {inviteTab === 'invite' && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-slate-300">Add student rows</span>
+                <Button onClick={addInviteRow} className="bg-blue-600/80 hover:bg-blue-600">
+                  <Plus className="mr-2 h-4 w-4" /> Add
+                </Button>
+              </div>
+              {invRows.length === 0 ? (
+                <div className="text-slate-400 text-sm">No students added.</div>
+              ) : (
+                <div className="space-y-2">
+                  {invRows.map((r) => (
+                    <div key={r.id} className="grid gap-2 md:grid-cols-[1fr_1fr_auto]">
+                      <Input
+                        placeholder="Full name"
+                        value={r.name}
+                        onChange={(e) => updateInviteRow(r.id, { name: e.target.value })}
+                        className="bg-white/5 border-white/10 text-white"
+                      />
+                      <Input
+                        placeholder="email@student.edu"
+                        value={r.email}
+                        onChange={(e) => updateInviteRow(r.id, { email: e.target.value })}
+                        className="bg-white/5 border-white/10 text-white"
+                      />
+                      <Button
+                        variant="secondary"
+                        onClick={() => removeInviteRow(r.id)}
+                        className="bg-white/10 hover:bg-white/20 text-white"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <Button
+                disabled={!invRows.length || inviteBusy}
+                onClick={onSendInvites}
+                className="w-full bg-blue-600/80 hover:bg-blue-600"
+              >
+                {inviteBusy ? "Generating..." : "Generate Invite Links"}
+              </Button>
+
+              {invRows.length > 0 && (invRows[0].email.startsWith("/invite/") || invRows[0].email.startsWith("http")) && (
+                <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+                  <div className="text-sm text-slate-300">
+                    Generated Invite Links:
+                  </div>
+                  <ul className="mt-2 space-y-2">
+                    {invRows.map((r) => (
+                      <li key={`invite-${r.id}`} className="text-xs text-slate-400 break-all">
+                        {r.name} • {r.email}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+
+          {inviteTab === 'existing' && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-slate-300">Select existing students</span>
+                <Button 
+                  onClick={loadExistingStudents} 
+                  disabled={loadingStudents}
+                  className="bg-blue-600/80 hover:bg-blue-600"
+                >
+                  {loadingStudents ? "Loading..." : "Load Students"}
+                </Button>
+              </div>
+              
+              {existingStudents.length === 0 ? (
+                <div className="text-slate-400 text-sm">
+                  {loadingStudents ? "Loading students..." : "Click 'Load Students' to see available students."}
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {existingStudents.map((student, index) => (
+                    <div key={student.id || `${student.email || 'unknown'}-${index}`} className="flex items-center gap-3 p-2 rounded border border-white/10 bg-white/5">
+                      <input
+                        type="checkbox"
+                        checked={selectedExistingStudents.includes(student.email)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedExistingStudents(prev => [...prev, student.email])
+                          } else {
+                            setSelectedExistingStudents(prev => prev.filter(email => email !== student.email))
+                          }
+                        }}
+                        className="rounded border-white/20"
+                      />
+                      <UserDisplay 
+                        user={{
+                          name: student.name,
+                          email: student.email
+                        }}
+                        avatarSize="sm"
+                        className="flex-1"
+                      />
+                      <Badge variant="secondary" className="bg-white/10 text-slate-200 border-white/10">
+                        {student.status}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              <Button
+                disabled={selectedExistingStudents.length === 0 || inviteBusy}
+                onClick={onEnrollExistingStudents}
+                className="w-full bg-green-600/80 hover:bg-green-600"
+              >
+                {inviteBusy ? "Enrolling..." : `Enroll ${selectedExistingStudents.length} Student${selectedExistingStudents.length !== 1 ? 's' : ''}`}
+              </Button>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
@@ -1375,17 +1578,25 @@ function LessonIcon({ type }: { type: "video" | "quiz" | "file" | "discussion" |
   )
 }
 
-function AssignmentIcon({ type }: { type: import("@/store/assignment-store").AssignmentType }) {
+function AssignmentIcon({ type }: { type: import("@/services/assignment-pro/api").AssignmentType }) {
   const Icon =
     type === "essay"
       ? FileText
-      : type === "video"
-        ? PlayCircle
-      : type === "file"
+      : type === "file_upload"
         ? FileText
-      : type === "form"
-        ? ClipboardList
-        : MessageSquare
+        : type === "quiz"
+          ? HelpCircle
+          : type === "discussion"
+            ? MessageSquare
+            : type === "presentation"
+              ? Presentation
+              : type === "project"
+                ? FolderOpen
+                : type === "code_submission"
+                  ? Code
+                  : type === "peer_review"
+                    ? Users
+                    : FileText
   return (
     <div className="rounded-md bg-blue-600/20 text-blue-300 p-2">
       <Icon className="h-5 w-5" />
@@ -1394,16 +1605,16 @@ function AssignmentIcon({ type }: { type: import("@/store/assignment-store").Ass
 }
 
 function StudentItem({ email, name, state }: { email: string; name: string; state: "active" | "inactive" | "pending" }) {
-  const initials = name.slice(0, 2).toUpperCase()
   return (
     <div className="flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 p-3">
-      <Avatar className="h-8 w-8">
-        <AvatarFallback className="bg-blue-600/30 text-blue-100">{initials}</AvatarFallback>
-      </Avatar>
-      <div className="flex-1">
-        <div className="text-white text-sm">{name}</div>
-        <div className="text-xs text-slate-400">{email}</div>
-      </div>
+      <UserDisplay 
+        user={{
+          name: name,
+          email: email
+        }}
+        avatarSize="sm"
+        className="flex-1"
+      />
       <Badge variant="secondary" className="bg-white/10 text-slate-200 border-white/10">
         {state}
       </Badge>

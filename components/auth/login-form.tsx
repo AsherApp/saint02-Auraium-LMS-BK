@@ -155,7 +155,7 @@ export function LoginForm() {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={teacherLoading}>
+              <Button type="submit" className="w-full" disabled={teacherLoading}>
                 {teacherLoading ? (
                   <div className="flex items-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -242,7 +242,7 @@ export function LoginForm() {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full bg-green-600 hover:bg-green-700" disabled={studentLoading}>
+              <Button type="submit" variant="success" className="w-full" disabled={studentLoading}>
                 {studentLoading ? (
                   <div className="flex items-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" />

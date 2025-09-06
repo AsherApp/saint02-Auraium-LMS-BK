@@ -42,6 +42,11 @@ export class BillingService {
     return http<SubscriptionStatus>('/api/billing/status')
   }
 
+  // Get Stripe health status
+  static async getHealthStatus(): Promise<any> {
+    return http<any>('/api/billing/health')
+  }
+
   // Create checkout session for subscription
   static async createCheckoutSession(priceId?: string, startTrial?: boolean): Promise<CheckoutResponse> {
     return http<CheckoutResponse>('/api/billing/checkout', {

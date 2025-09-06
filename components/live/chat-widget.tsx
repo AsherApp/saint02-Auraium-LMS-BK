@@ -47,8 +47,8 @@ export function ChatWidget({
 
     fetchMessages()
     
-    // Set up polling for new messages
-    const interval = setInterval(fetchMessages, 3000)
+    // Set up polling for new messages (reduced frequency)
+    const interval = setInterval(fetchMessages, 10000)
     return () => clearInterval(interval)
   }, [sessionId])
 
@@ -112,7 +112,7 @@ export function ChatWidget({
               className="bg-white/5 border-white/10 text-white placeholder-slate-400"
               placeholder="Type a message..."
             />
-            <Button onClick={send} size="icon" className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Button onClick={send} size="icon" variant="default">
               <SendHorizonal className="h-4 w-4" />
             </Button>
           </div>

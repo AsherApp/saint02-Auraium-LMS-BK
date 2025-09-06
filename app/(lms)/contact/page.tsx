@@ -111,7 +111,7 @@ export default function ContactPage() {
   const quickActions = [
     { icon: <FileText className="h-4 w-4" />, label: 'View Documentation', href: '/knowledge-base' },
     { icon: <Video className="h-4 w-4" />, label: 'Video Tutorials', href: '/tutorials' },
-    { icon: <Users className="h-4 w-4" />, label: 'Community Forum', href: '/forum' },
+            { icon: <Users className="h-4 w-4" />, label: 'Discussions', href: '/discussions' },
     { icon: <HelpCircle className="h-4 w-4" />, label: 'FAQ', href: '/faq' }
   ]
 

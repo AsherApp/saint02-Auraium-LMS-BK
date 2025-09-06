@@ -5,15 +5,20 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { GlassCard } from "@/components/shared/glass-card"
 import { CourseCard } from "@/components/course/course-card"
+import { BulkCourseImport } from "@/components/teacher/bulk-course-import"
+import { BulkCourseGenerator } from "@/components/teacher/bulk-course-generator"
 import { useCoursesFn } from "@/services/courses/hook"
 import { useAuthStore } from "@/store/auth-store"
 import { http } from "@/services/http"
+import { useToast } from "@/hooks/use-toast"
 
 export default function TeacherCoursesPage() {
-  const { courses, loading, error } = useCoursesFn()
+  const { courses, loading, error, refresh } = useCoursesFn()
   const { user } = useAuthStore()
+  const { toast } = useToast()
   const [courseStats, setCourseStats] = useState<Record<string, { modules: number; students: number }>>({})
   const [statsLoading, setStatsLoading] = useState(false)
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
   
   // Filter courses for the current teacher
   const myCourses = courses.filter((c) => c.teacher_email === user?.email)
@@ -66,16 +71,72 @@ export default function TeacherCoursesPage() {
     }
 
     fetchCourseStats()
-  }, [myCourses])
+  }, [myCourses, refreshTrigger])
+
+  const handleCoursesCreated = () => {
+    setRefreshTrigger(prev => prev + 1)
+  }
+
+  const handleDeleteCourse = async (courseId: string) => {
+    if (!confirm('Are you sure you want to delete this course? This action cannot be undone.')) {
+      return
+    }
+
+    try {
+      await http(`/api/courses/${courseId}`, {
+        method: 'DELETE'
+      })
+      
+      toast({
+        title: "Course deleted",
+        description: "The course has been successfully deleted."
+      })
+      
+      // Refresh the courses list
+      refresh()
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete course",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleDuplicateCourse = async (courseId: string) => {
+    try {
+      const response = await http(`/api/courses/${courseId}/duplicate`, {
+        method: 'POST'
+      })
+      
+      toast({
+        title: "Course duplicated",
+        description: "The course has been successfully duplicated."
+      })
+      
+      // Refresh the courses list
+      refresh()
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to duplicate course",
+        variant: "destructive"
+      })
+    }
+  }
 
   if (loading) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-white text-2xl font-semibold">Your Courses</h1>
-          <Link href="/teacher/courses/new">
-            <Button className="bg-blue-600/80 hover:bg-blue-600 text-white">Create Course</Button>
-          </Link>
+          <div className="flex items-center gap-3">
+            <BulkCourseGenerator />
+            <BulkCourseImport onCoursesCreated={handleCoursesCreated} />
+            <Link href="/teacher/courses/new">
+              <Button className="bg-blue-600/80 hover:bg-blue-600 text-white">Create Course</Button>
+            </Link>
+          </div>
         </div>
         <GlassCard className="p-6">
           <div className="text-slate-300">Loading courses...</div>
@@ -89,9 +150,13 @@ export default function TeacherCoursesPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-white text-2xl font-semibold">Your Courses</h1>
-          <Link href="/teacher/courses/new">
-            <Button className="bg-blue-600/80 hover:bg-blue-600 text-white">Create Course</Button>
-          </Link>
+          <div className="flex items-center gap-3">
+            <BulkCourseGenerator />
+            <BulkCourseImport onCoursesCreated={handleCoursesCreated} />
+            <Link href="/teacher/courses/new">
+              <Button className="bg-blue-600/80 hover:bg-blue-600 text-white">Create Course</Button>
+            </Link>
+          </div>
         </div>
         <GlassCard className="p-6">
           <div className="text-red-300">Error loading courses: {error}</div>
@@ -104,9 +169,13 @@ export default function TeacherCoursesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-white text-2xl font-semibold">Your Courses</h1>
-        <Link href="/teacher/courses/new">
-          <Button className="bg-blue-600/80 hover:bg-blue-600 text-white">Create Course</Button>
-        </Link>
+        <div className="flex items-center gap-3">
+          <BulkCourseGenerator />
+          <BulkCourseImport onCoursesCreated={handleCoursesCreated} />
+          <Link href="/teacher/courses/new">
+            <Button className="bg-blue-600/80 hover:bg-blue-600 text-white">Create Course</Button>
+          </Link>
+        </div>
       </div>
 
       {myCourses.length === 0 ? (
@@ -126,6 +195,9 @@ export default function TeacherCoursesPage() {
                 modulesCount={stats.modules}
                 studentsCount={stats.students}
                 role="teacher"
+                thumbnailUrl={c.thumbnail_url}
+                onDelete={handleDeleteCourse}
+                onDuplicate={handleDuplicateCourse}
               />
             )
           })}

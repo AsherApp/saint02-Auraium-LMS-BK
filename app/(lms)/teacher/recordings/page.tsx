@@ -55,28 +55,14 @@ export default function RecordingsPage() {
         const response = await http<any>(`/api/live/scheduled`)
         setScheduledSessions(response.items || [])
         
-        // For now, we'll use mock recordings until we implement the recordings API
-        const mockRecordings = [
-          {
-            id: '1',
-            title: 'Introduction to React - Session 1',
-            duration: '45:30',
-            created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-            size: '125MB',
-            participants: 12,
-            session_id: 'session-1'
-          },
-          {
-            id: '2',
-            title: 'Advanced JavaScript Concepts',
-            duration: '52:15',
-            created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-            size: '145MB',
-            participants: 15,
-            session_id: 'session-2'
-          }
-        ]
-        setRecordings(mockRecordings)
+        // Get real recordings from API
+        try {
+          const recordingsResponse = await http<any>(`/api/recordings`)
+          setRecordings(recordingsResponse.items || [])
+        } catch (error) {
+          console.error('Failed to fetch recordings:', error)
+          setRecordings([])
+        }
       } catch (err: any) {
         setError(err.message || "Failed to load data")
         setRecordings([])

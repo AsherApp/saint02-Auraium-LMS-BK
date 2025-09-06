@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { GlassCard } from "@/components/shared/glass-card"
 import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { FluidTabs } from "@/components/ui/fluid-tabs"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { http } from "@/services/http"
@@ -168,7 +168,7 @@ export function StudyArea({ courseId, moduleId, lessonId, title = "Study Area", 
     }
     
     fetchCourseData()
-  }, [courseId, user?.email])
+  }, [courseId, user?.email]) // Only depend on email, not the entire user object
 
   // Fetch course progress
   useEffect(() => {
@@ -185,27 +185,29 @@ export function StudyArea({ courseId, moduleId, lessonId, title = "Study Area", 
           totalLessons: progress?.courseCompletion?.total_lessons
         })
         setCourseProgress(progress)
-        
-        // Check if current lesson is completed
-        if (selectedLesson) {
-          const isCompleted = progress.detailedProgress?.some((p: any) => 
-            p.lesson_id === selectedLesson.id && p.status === 'completed'
-          )
-          console.log('Current lesson completion status:', { lessonId: selectedLesson.id, isCompleted })
-          setLessonCompleted(isCompleted || false)
-          
-          // Add to completed lessons set if completed
-          if (isCompleted) {
-            setCompletedLessons(prev => new Set([...prev, selectedLesson.id]))
-          }
-        }
       } catch (error) {
         console.error('Error fetching course progress:', error)
       }
     }
     
     fetchCourseProgress()
-  }, [courseId, user?.email, selectedLesson?.id])
+  }, [courseId, user?.email]) // Remove selectedLesson?.id to prevent circular dependency
+
+  // Check lesson completion when selected lesson changes
+  useEffect(() => {
+    if (!selectedLesson || !courseProgress) return
+    
+    const isCompleted = courseProgress.detailedProgress?.some((p: any) => 
+      p.lesson_id === selectedLesson.id && p.status === 'completed'
+    )
+    console.log('Current lesson completion status:', { lessonId: selectedLesson.id, isCompleted })
+    setLessonCompleted(isCompleted || false)
+    
+    // Add to completed lessons set if completed
+    if (isCompleted) {
+      setCompletedLessons(prev => new Set([...prev, selectedLesson.id]))
+    }
+  }, [selectedLesson?.id, courseProgress])
 
   // Track time spent on current lesson
   useEffect(() => {
@@ -510,24 +512,72 @@ export function StudyArea({ courseId, moduleId, lessonId, title = "Study Area", 
         )
       }
       
-      if (lesson.content.video_url) {
-        const videoUrl = lesson.content.video_url
+      if (lesson.content.video_url || lesson.content.video?.url) {
+        const videoUrl = lesson.content.video_url || lesson.content.video?.url
+        const videoSource = lesson.content.video?.source || 'upload'
         
-        // Check if it's a YouTube URL
-        const isYouTubeUrl = videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be') || videoUrl.includes('youtube-nocookie.com')
-        
-        if (isYouTubeUrl) {
+        // Handle different video sources
+        if (videoSource === "upload") {
           return (
-            <UniversalMediaPlayer
-              url={videoUrl}
-              title={lesson.title}
-              description={lesson.content.description}
-              fileType={lesson.content.video_type}
-            />
+            <div className="space-y-4">
+              <div className="aspect-video bg-black rounded-lg">
+                <video
+                  controls
+                  className="w-full h-full rounded-lg"
+                  src={videoUrl}
+                  poster={lesson.content.thumbnail_url}
+                >
+                  Your browser does not support the video tag.
+                </video>
+              </div>
+              {lesson.content.description && (
+                <div className="bg-white/5 p-4 rounded-lg">
+                  <p className="text-slate-300">{lesson.content.description}</p>
+                </div>
+              )}
+            </div>
+          )
+        } else if (videoSource === "onedrive") {
+          return (
+            <div className="space-y-4">
+              <div className="aspect-video bg-black rounded-lg">
+                <iframe
+                  src={videoUrl}
+                  className="w-full h-full rounded-lg"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+              {lesson.content.description && (
+                <div className="bg-white/5 p-4 rounded-lg">
+                  <p className="text-slate-300">{lesson.content.description}</p>
+                </div>
+              )}
+            </div>
+          )
+        } else if (videoSource === "googledrive") {
+          return (
+            <div className="space-y-4">
+              <div className="aspect-video bg-black rounded-lg">
+                <iframe
+                  src={videoUrl.replace('/view', '/preview')}
+                  className="w-full h-full rounded-lg"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+              {lesson.content.description && (
+                <div className="bg-white/5 p-4 rounded-lg">
+                  <p className="text-slate-300">{lesson.content.description}</p>
+                </div>
+              )}
+            </div>
           )
         }
         
-        // Handle direct video files
+        // Fallback for direct video files
         return (
           <div className="space-y-4">
             <div className="aspect-video bg-black rounded-lg">
@@ -838,6 +888,7 @@ export function StudyArea({ courseId, moduleId, lessonId, title = "Study Area", 
     }
   }
 
+  // Main component render logic
   if (loading) {
     return (
       <GlassCard className="p-6">
@@ -880,11 +931,12 @@ export function StudyArea({ courseId, moduleId, lessonId, title = "Study Area", 
   const canGoPrevious = currentLessonIndex > 0 || currentModuleIndex > 0
 
   return (
-    <div className="flex h-screen bg-slate-900">
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <div className="p-4 border-b border-white/10">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <div className="flex h-screen">
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col">
+          {/* Header */}
+          <GlassCard className="m-4 mb-0 p-6 border-b border-white/10">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-white">{title}</h1>
@@ -932,21 +984,50 @@ export function StudyArea({ courseId, moduleId, lessonId, title = "Study Area", 
               </div>
             </div>
           </div>
-        </div>
+          </GlassCard>
 
-        {/* Content Area */}
-        <div className="flex-1 overflow-hidden">
-          <GlassCard className="h-full p-0">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-              <TabsList className="grid w-full grid-cols-4 bg-white/10">
-                <TabsTrigger value="content" className="text-white">Content</TabsTrigger>
-                <TabsTrigger value="notes" className="text-white">Notes</TabsTrigger>
-                <TabsTrigger value="goals" className="text-white">Goals</TabsTrigger>
-                <TabsTrigger value="discussions" className="text-white">Discussions</TabsTrigger>
-              </TabsList>
+          {/* Content Area */}
+          <div className="flex-1 overflow-hidden mx-4 mb-4">
+            <GlassCard className="h-full p-0">
+            <div className="h-full flex flex-col">
+              <div className="p-4 border-b border-white/10">
+                <FluidTabs
+                  tabs={[
+                    { 
+                      id: 'content', 
+                      label: 'Content', 
+                      icon: <BookOpen className="h-4 w-4" />,
+                      badge: selectedLesson ? 1 : 0
+                    },
+                    { 
+                      id: 'notes', 
+                      label: 'Notes', 
+                      icon: <StickyNote className="h-4 w-4" />,
+                      badge: notes.length > 0 ? notes.length : 0
+                    },
+                    { 
+                      id: 'goals', 
+                      label: 'Goals', 
+                      icon: <Target className="h-4 w-4" />,
+                      badge: studyGoals.length
+                    },
+                    { 
+                      id: 'discussions', 
+                      label: 'Discussions', 
+                      icon: <MessageSquare className="h-4 w-4" />,
+                      badge: discussions.length
+                    }
+                  ]}
+                  activeTab={activeTab}
+                  onTabChange={setActiveTab}
+                  variant="default"
+                  width="full"
+                />
+              </div>
               
-              <TabsContent value="content" className="flex-1 overflow-y-auto p-6">
-                {selectedLesson ? (
+              <div className="flex-1 overflow-y-auto p-6">
+                {activeTab === 'content' && (
+                  selectedLesson ? (
                   <div className="space-y-6">
                     {/* Lesson Header */}
                     <div className="flex items-center justify-between">
@@ -1006,7 +1087,8 @@ export function StudyArea({ courseId, moduleId, lessonId, title = "Study Area", 
                               description: "Congratulations! You've completed the entire course.",
                             })
                           }}
-                          className="bg-purple-600 hover:bg-purple-700 text-white ml-2"
+                          className="ml-2"
+                          variant="primary"
                         >
                           <Trophy className="h-4 w-4 mr-2" />
                           Course Complete!
@@ -1033,11 +1115,10 @@ export function StudyArea({ courseId, moduleId, lessonId, title = "Study Area", 
                     <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
                     <p>Select a lesson to start studying</p>
                   </div>
+                )
                 )}
-              </TabsContent>
 
-              {/* Notes Tab */}
-              <TabsContent value="notes" className="flex-1 overflow-y-auto p-6">
+                {activeTab === 'notes' && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h3 className="text-white font-medium">Study Notes</h3>
@@ -1057,10 +1138,9 @@ export function StudyArea({ courseId, moduleId, lessonId, title = "Study Area", 
                     className="w-full h-64 bg-white/5 border border-white/10 text-white rounded-md p-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
-              </TabsContent>
+                )}
 
-              {/* Goals Tab */}
-              <TabsContent value="goals" className="flex-1 overflow-y-auto p-6">
+                {activeTab === 'goals' && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h3 className="text-white font-medium">Study Goals</h3>
@@ -1119,10 +1199,9 @@ export function StudyArea({ courseId, moduleId, lessonId, title = "Study Area", 
                     )}
                   </div>
                 </div>
-              </TabsContent>
+                )}
 
-              {/* Discussions Tab */}
-              <TabsContent value="discussions" className="flex-1 overflow-y-auto p-6">
+                {activeTab === 'discussions' && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h3 className="text-white font-medium">Course Discussions</h3>
@@ -1211,13 +1290,15 @@ export function StudyArea({ courseId, moduleId, lessonId, title = "Study Area", 
                     </div>
                   )}
                 </div>
-              </TabsContent>
-            </Tabs>
+                )}
+              </div>
+            </div>
           </GlassCard>
         </div>
 
-        {/* Navigation Buttons */}
-        <div className="flex items-center justify-between p-4 border-t border-white/10">
+          {/* Navigation Buttons */}
+          <GlassCard className="mx-4 mb-4 p-4">
+            <div className="flex items-center justify-between">
           <Button
             onClick={goToPrevious}
             disabled={!canGoPrevious}
@@ -1240,13 +1321,14 @@ export function StudyArea({ courseId, moduleId, lessonId, title = "Study Area", 
             Next
             <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
+            </div>
+          </GlassCard>
         </div>
-      </div>
 
-      {/* Enhanced Sidebar - Now on the RIGHT */}
-      {showSidebar && (
-        <div className="w-96 border-l border-white/10">
-          <GlassCard className="h-full p-0">
+        {/* Enhanced Sidebar - Now on the RIGHT */}
+        {showSidebar && (
+          <div className="w-96">
+            <GlassCard className="h-full m-4 ml-0 p-0">
             <div className="p-4 border-b border-white/10">
               <div className="flex items-center justify-between">
                 <h3 className="text-white font-medium">Course Navigation</h3>
@@ -1395,16 +1477,17 @@ export function StudyArea({ courseId, moduleId, lessonId, title = "Study Area", 
         </div>
       )}
 
-      {/* Show Sidebar Button when hidden */}
-      {!showSidebar && (
-        <Button
-          onClick={() => setShowSidebar(true)}
-          className="fixed top-4 right-4 bg-blue-600/80 hover:bg-blue-600"
-        >
-          <BookOpen className="h-4 w-4 mr-2" />
-          Show Navigation
-        </Button>
-      )}
+        {/* Show Sidebar Button when hidden */}
+        {!showSidebar && (
+          <Button
+            onClick={() => setShowSidebar(true)}
+            className="fixed top-4 right-4 bg-blue-600/80 hover:bg-blue-600 text-white shadow-lg"
+          >
+            <BookOpen className="h-4 w-4 mr-2" />
+            Show Navigation
+          </Button>
+        )}
+      </div>
 
       {/* Document Viewer Modal */}
       <DocumentViewer

@@ -1,9 +1,9 @@
 "use client"
 import { useState, useEffect, useCallback } from 'react'
-import { getSettings, updateSettings, upsertSettings, type UserSettings } from './api'
+import { getSettings, updateSettings, upsertSettings, type UserSettings, type TeacherSettings } from './api'
 
-export function useSettingsFn(userId: string) {
-  const [settings, setSettings] = useState<UserSettings | null>(null)
+export function useSettingsFn(userId: string, userRole: 'teacher' | 'student' = 'student') {
+  const [settings, setSettings] = useState<UserSettings | TeacherSettings | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -13,7 +13,7 @@ export function useSettingsFn(userId: string) {
     setLoading(true)
     setError(null)
     try {
-      const settingsData = await getSettings(userId)
+      const settingsData = await getSettings(userId, userRole)
       setSettings(settingsData)
     } catch (err: any) {
       if (err.status === 404) {
@@ -26,25 +26,25 @@ export function useSettingsFn(userId: string) {
     } finally {
       setLoading(false)
     }
-  }, [userId])
+  }, [userId, userRole])
 
   useEffect(() => {
     fetchSettings()
   }, [fetchSettings])
 
-  const update = useCallback(async (data: Partial<Omit<UserSettings, 'id' | 'user_id' | 'created_at' | 'updated_at'>>) => {
+  const update = useCallback(async (data: Partial<Omit<UserSettings | TeacherSettings, 'id' | 'user_id' | 'created_at' | 'updated_at'>>) => {
     if (!userId) throw new Error("No user ID")
     
     setError(null)
     try {
-      const updatedSettings = await upsertSettings(userId, data)
+      const updatedSettings = await upsertSettings(userId, data, userRole)
       setSettings(updatedSettings)
       return updatedSettings
     } catch (err: any) {
       setError(err.message || "Failed to update settings")
       throw err
     }
-  }, [userId])
+  }, [userId, userRole])
 
   return {
     settings,

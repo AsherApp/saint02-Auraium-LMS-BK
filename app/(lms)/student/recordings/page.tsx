@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuthStore } from "@/store/auth-store"
 import { useToast } from "@/hooks/use-toast"
 import { http } from "@/services/http"
+import { dateUtils } from "@/utils/date-utils"
 import { 
   Search, 
   Filter, 
@@ -99,7 +100,7 @@ export default function StudentRecordingsPage() {
     if (user?.email) {
       fetchRecordings()
     }
-  }, [user?.email, toast])
+  }, [user?.email]) // Remove toast from dependencies to prevent infinite loop
 
   // Filter and sort recordings
   const filteredRecordings = useMemo(() => {
@@ -396,12 +397,12 @@ export default function StudentRecordingsPage() {
                   
                   <div className="flex items-center gap-1">
                     <User className="h-3 w-3" />
-                    <span>{recording.teacher_name || recording.teacher_email}</span>
+                    <span>{recording.teacher_name || recording.teacher_email?.split('@')[0] || 'Teacher'}</span>
                   </div>
                   
                   <div className="flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
-                    <span>{new Date(recording.recorded_at).toLocaleDateString()}</span>
+                    <span>{dateUtils.short(recording.recorded_at)}</span>
                   </div>
                   
                   <div className="flex items-center gap-1">
@@ -527,11 +528,11 @@ export default function StudentRecordingsPage() {
                 </div>
                 <div>
                   <p className="text-slate-400">Teacher</p>
-                  <p className="text-white">{selectedRecording.teacher_name || selectedRecording.teacher_email}</p>
+                  <p className="text-white">{selectedRecording.teacher_name || selectedRecording.teacher_email?.split('@')[0] || 'Teacher'}</p>
                 </div>
                 <div>
                   <p className="text-slate-400">Recorded</p>
-                  <p className="text-white">{new Date(selectedRecording.recorded_at).toLocaleString()}</p>
+                  <p className="text-white">{dateUtils.full(selectedRecording.recorded_at)}</p>
                 </div>
                 <div>
                   <p className="text-slate-400">Duration</p>

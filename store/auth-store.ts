@@ -5,13 +5,18 @@ import { getCurrentUser, getStoredToken, logout as logoutApi } from "@/services/
 
 export type UserRole = "teacher" | "student"
 type AuthUser = { 
-  id?: string
+  id: string
   email: string | null
   role: UserRole
   name?: string
   student_code?: string
   subscription_status?: string
   max_students_allowed?: number
+  // Profile information
+  first_name?: string
+  last_name?: string
+  full_name?: string
+  user_type?: string
 } | null
 
 type AuthState = {

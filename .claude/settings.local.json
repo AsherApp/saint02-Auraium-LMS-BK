@@ -12,7 +12,8 @@
       "Bash(npm run lint)",
       "Bash(cp:*)",
       "Bash(npx tsc:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Read(/Users/tosinojo/Desktop/**)"
     ],
     "deny": []
   }

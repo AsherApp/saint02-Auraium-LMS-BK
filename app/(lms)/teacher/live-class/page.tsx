@@ -202,88 +202,133 @@ export default function TeacherLiveClass() {
   }
 
   // Session card component
-  const SessionCard = ({ session }: { session: any }) => (
-    <GlassCard key={session.id} className="p-6">
-      <div className="flex items-center justify-between">
-        <div className="flex-1">
-          <div className="flex items-center gap-3 mb-2">
-            <Link href={`/teacher/live-class/${session.id}`}>
-              <h3 className="text-lg font-semibold text-white hover:text-blue-400 cursor-pointer transition-colors">
-                {session.title}
-              </h3>
-            </Link>
-            {getStatusBadge(session)}
-            <Badge variant="outline" className="text-xs border-blue-500/30 text-blue-400">
-              {session.sessionType}
-            </Badge>
-          </div>
-          <p className="text-slate-400 mb-3">{session.description}</p>
-          <div className="flex items-center gap-4 text-sm text-slate-400 mb-2">
-            <div className="flex items-center gap-1">
-              <Calendar className="h-4 w-4" />
-              {new Date(session.startAt).toLocaleDateString()}
-            </div>
-            <div className="flex items-center gap-1">
-              <Clock className="h-4 w-4" />
-              {new Date(session.startAt).toLocaleTimeString()}
-            </div>
-            <div className="flex items-center gap-1">
-              <Users className="h-4 w-4" />
-              {session.participants?.length || 0} participants
-            </div>
-          </div>
-          {(session.courseTitle || session.moduleTitle) && (
-            <div className="flex items-center gap-2 text-xs text-slate-500">
-              {session.courseTitle && (
-                <span>Course: {session.courseTitle}</span>
-              )}
-              {session.moduleTitle && (
-                <>
-                  <span>•</span>
-                  <span>Module: {session.moduleTitle}</span>
-                </>
-              )}
-          </div>
-        )}
-        </div>
-        
-        <div className="flex gap-2">
-          <Link href={`/teacher/live-class/${session.id}`}>
-            <Button variant="outline">
-              View Details
-            </Button>
-          </Link>
-          
-          {session.status === 'scheduled' && !session.isStarted && (
-            <Button 
-              onClick={() => handleStartSession(session.id)}
-              variant="success"
-            >
-              <Play className="h-4 w-4 mr-2" />
-              Start Class
-            </Button>
-          )}
-          {session.status === 'active' && (
-            <div className="flex gap-2">
-              <Link href={`/live/${session.id}`}>
-                <Button variant="default">
-                  <Video className="h-4 w-4 mr-2" />
-                  Join Room
-                </Button>
+  const SessionCard = ({ session }: { session: any }) => {
+    const [participantCount, setParticipantCount] = useState(0)
+    const [attendanceStats, setAttendanceStats] = useState({
+      present: 0,
+      late: 0,
+      absent: 0
+    })
+
+    // Fetch participant and attendance data
+    useEffect(() => {
+      const fetchSessionData = async () => {
+        try {
+          // Get participants
+          const participantsResponse = await http.get(`/api/live/${session.id}/participants`)
+          const participants = participantsResponse.data?.items || []
+          setParticipantCount(participants.length)
+
+          // Get attendance data if session is ended
+          if (session.status === 'ended') {
+            const attendanceResponse = await http.get(`/api/live-attendance/session/${session.id}`)
+            const attendanceData = attendanceResponse.data
+            
+            if (attendanceData) {
+              setAttendanceStats({
+                present: attendanceData.present_count || 0,
+                late: attendanceData.late_count || 0,
+                absent: attendanceData.absent_count || 0
+              })
+            }
+          }
+        } catch (error) {
+          console.error('Failed to fetch session data:', error)
+        }
+      }
+
+      fetchSessionData()
+    }, [session.id, session.status])
+
+    return (
+      <GlassCard key={session.id} className="p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-2">
+              <Link href={`/teacher/live-class/${session.id}`}>
+                <h3 className="text-lg font-semibold text-white hover:text-blue-400 cursor-pointer transition-colors">
+                  {session.title}
+                </h3>
               </Link>
-              <Button 
-                onClick={() => handleEndSession(session.id)}
-                variant="destructive"
-              >
-                <Square className="h-4 w-4 mr-2" />
-                End
-              </Button>
+              {getStatusBadge(session)}
+              <Badge variant="outline" className="text-xs border-blue-500/30 text-blue-400">
+                {session.sessionType}
+              </Badge>
+            </div>
+            <p className="text-slate-400 mb-3">{session.description}</p>
+            <div className="flex items-center gap-4 text-sm text-slate-400 mb-2">
+              <div className="flex items-center gap-1">
+                <Calendar className="h-4 w-4" />
+                {new Date(session.startAt).toLocaleDateString()}
+              </div>
+              <div className="flex items-center gap-1">
+                <Clock className="h-4 w-4" />
+                {new Date(session.startAt).toLocaleTimeString()}
+              </div>
+              <div className="flex items-center gap-1">
+                <Users className="h-4 w-4" />
+                {participantCount} participants
+              </div>
+              {session.status === 'ended' && (
+                <div className="flex items-center gap-1">
+                  <Check className="h-4 w-4 text-green-400" />
+                  <span className="text-green-400">{attendanceStats.present} present</span>
+                </div>
+              )}
+            </div>
+            {(session.courseTitle || session.moduleTitle) && (
+              <div className="flex items-center gap-2 text-xs text-slate-500">
+                {session.courseTitle && (
+                  <span>Course: {session.courseTitle}</span>
+                )}
+                {session.moduleTitle && (
+                  <>
+                    <span>•</span>
+                    <span>Module: {session.moduleTitle}</span>
+                  </>
+                )}
+            </div>
+          )}
           </div>
-        )}
+          
+          <div className="flex gap-2">
+            <Link href={`/teacher/live-class/${session.id}`}>
+              <Button variant="outline">
+                View Details
+              </Button>
+            </Link>
+            
+            {session.status === 'scheduled' && !session.isStarted && (
+              <Button 
+                onClick={() => handleStartSession(session.id)}
+                variant="success"
+              >
+                <Play className="h-4 w-4 mr-2" />
+                Start Class
+              </Button>
+            )}
+            {session.status === 'active' && (
+              <div className="flex gap-2">
+                <Link href={`/live/${session.id}`}>
+                  <Button variant="default">
+                    <Video className="h-4 w-4 mr-2" />
+                    Join Room
+                  </Button>
+                </Link>
+                <Button 
+                  onClick={() => handleEndSession(session.id)}
+                  variant="destructive"
+                >
+                  <Square className="h-4 w-4 mr-2" />
+                  End
+                </Button>
+            </div>
+          )}
+          </div>
         </div>
-      </div>
-    </GlassCard>
-  )
+      </GlassCard>
+    )
+  }
 
   if (loading && sessions.length === 0) {
     return (

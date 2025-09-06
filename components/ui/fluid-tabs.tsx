@@ -40,17 +40,24 @@ function FluidTab({ id, label, icon, badge, isActive, onClick, variant = 'defaul
       onClick={onClick}
       className={cn(
         // Base styles with flex-1 for equal width distribution
-        "relative flex items-center justify-center gap-2 rounded-lg font-medium transition-all duration-300",
+        "relative flex items-center justify-center gap-2 rounded-lg font-medium transition-colors duration-300",
         "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/50",
         "hover:scale-[1.02] active:scale-[0.98] flex-1 min-w-0",
         sizeClasses[variant],
-        // Active state
+        // Active state - remove color classes to avoid conflicts with Framer Motion
         isActive 
-          ? "text-white shadow-lg" 
-          : "text-slate-300 hover:text-white hover:bg-white/5"
+          ? "shadow-lg" 
+          : "hover:bg-white/5"
       )}
-      whileHover={{ y: -1 }}
+      whileHover={{ 
+        y: -1,
+        color: "rgb(255, 255, 255)"
+      }}
       whileTap={{ scale: 0.98 }}
+      animate={{
+        color: isActive ? "rgb(255, 255, 255)" : "rgb(203, 213, 225)"
+      }}
+      transition={{ duration: 0.3, ease: "easeInOut" }}
     >
       {/* Active background with glassmorphism */}
       <AnimatePresence>
@@ -98,9 +105,15 @@ function FluidTab({ id, label, icon, badge, isActive, onClick, variant = 'defaul
           </motion.div>
         )}
         
-        <span className="whitespace-nowrap font-medium">
+        <motion.span 
+          className="whitespace-nowrap font-medium"
+          animate={{
+            color: isActive ? "rgb(255, 255, 255)" : "rgb(203, 213, 225)"
+          }}
+          transition={{ duration: 0.3, ease: "easeInOut" }}
+        >
           {label}
-        </span>
+        </motion.span>
         
         {badge && (
           <motion.div

@@ -34,6 +34,8 @@ export default function TeacherAssignmentSubmissionsPage() {
   const course = useCourseStore((s) => s.getById(params.id))
   
   const [assignment, setAssignment] = useState<AssignmentWithStats | null>(null)
+  const [analytics, setAnalytics] = useState<any>(null)
+  const [timeline, setTimeline] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -57,6 +59,21 @@ export default function TeacherAssignmentSubmissionsPage() {
           // If stats fail, just set assignment without stats
           console.warn('Failed to fetch assignment stats:', statsError)
           setAssignment(assignmentData)
+        }
+
+        // Fetch analytics data
+        try {
+          const [analyticsData, timelineData] = await Promise.all([
+            http.get(`/api/assignments/${params.aid}/analytics`),
+            http.get(`/api/assignments/${params.aid}/submission-timeline`)
+          ])
+          setAnalytics(analyticsData)
+          setTimeline(timelineData)
+        } catch (analyticsError) {
+          console.warn('Failed to fetch analytics data:', analyticsError)
+          // Set empty data if analytics fail
+          setAnalytics(null)
+          setTimeline([])
         }
       } catch (error) {
         console.error('Failed to fetch assignment:', error)
@@ -370,41 +387,42 @@ export default function TeacherAssignmentSubmissionsPage() {
                 <GlassCard className="p-6">
                   <h4 className="text-lg font-medium text-white mb-4">Submission Timeline</h4>
                   <div className="space-y-3">
-                    {/* Mock timeline data */}
-                    {[
-                      { date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), count: 2 },
-                      { date: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000), count: 5 },
-                      { date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), count: 8 },
-                      { date: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000), count: 12 },
-                      { date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), count: 15 },
-                      { date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), count: 18 },
-                      { date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), count: 25 }
-                    ].map(({ date, count }, index, arr) => {
-                      const maxCount = Math.max(...arr.map(d => d.count))
-                      return (
-                        <div key={date.toISOString()} className="flex items-center gap-3">
-                          <span className="text-slate-300 text-sm w-20">
-                            {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                          </span>
-                          <div className="flex-1 bg-white/10 rounded-full h-2">
-                            <div 
-                              className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                              style={{ width: `${(count / maxCount) * 100}%` }}
-          />
-        </div>
-                          <span className="text-white font-medium w-6 text-right text-sm">{count}</span>
-                        </div>
-                      )
-                    })}
+                    {timeline.length > 0 ? (
+                      timeline.map(({ date, count }, index, arr) => {
+                        const maxCount = Math.max(...arr.map(d => d.count), 1)
+                        return (
+                          <div key={date.toISOString()} className="flex items-center gap-3">
+                            <span className="text-slate-300 text-sm w-20">
+                              {new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            </span>
+                            <div className="flex-1 bg-white/10 rounded-full h-2">
+                              <div 
+                                className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                                style={{ width: `${(count / maxCount) * 100}%` }}
+                              />
+                            </div>
+                            <span className="text-white font-medium w-6 text-right text-sm">{count}</span>
+                          </div>
+                        )
+                      })
+                    ) : (
+                      <div className="text-slate-400 text-sm text-center py-4">
+                        No submission data available yet
+                      </div>
+                    )}
                   </div>
                   <div className="mt-4 pt-4 border-t border-white/10">
                     <div className="grid grid-cols-2 gap-4 text-center">
                       <div>
-                        <div className="text-lg font-bold text-green-400">{assignment.stats.on_time_submissions || Math.floor(assignment.stats.total_submissions * 0.8)}</div>
+                        <div className="text-lg font-bold text-green-400">
+                          {analytics?.on_time_submissions || assignment?.stats?.on_time_submissions || 0}
+                        </div>
                         <div className="text-xs text-slate-400">On Time</div>
                       </div>
                       <div>
-                        <div className="text-lg font-bold text-red-400">{assignment.stats.late_submissions || Math.floor(assignment.stats.total_submissions * 0.2)}</div>
+                        <div className="text-lg font-bold text-red-400">
+                          {analytics?.late_submissions || assignment?.stats?.late_submissions || 0}
+                        </div>
                         <div className="text-xs text-slate-400">Late</div>
                       </div>
                     </div>
@@ -422,15 +440,15 @@ export default function TeacherAssignmentSubmissionsPage() {
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-slate-400">Average:</span>
-                        <span className="text-white">{assignment.stats.average_time_spent || 45} minutes</span>
+                        <span className="text-white">{analytics?.average_time_spent || 0} minutes</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-400">Longest:</span>
-                        <span className="text-white">{assignment.stats.max_time_spent || 120} minutes</span>
+                        <span className="text-white">{analytics?.max_time_spent || 0} minutes</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-400">Shortest:</span>
-                        <span className="text-white">{assignment.stats.min_time_spent || 15} minutes</span>
+                        <span className="text-white">{analytics?.min_time_spent || 0} minutes</span>
                       </div>
                     </div>
                   </div>
@@ -441,15 +459,15 @@ export default function TeacherAssignmentSubmissionsPage() {
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-slate-400">Single Attempt:</span>
-                        <span className="text-white">{Math.floor(assignment.stats.total_submissions * 0.7)}</span>
+                        <span className="text-white">{analytics?.single_attempt || 0}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-400">Multiple Attempts:</span>
-                        <span className="text-white">{Math.floor(assignment.stats.total_submissions * 0.3)}</span>
+                        <span className="text-white">{analytics?.multiple_attempts || 0}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-400">Max Attempts Used:</span>
-                        <span className="text-white">{assignment.max_attempts}</span>
+                        <span className="text-white">{analytics?.max_attempts_used || assignment?.max_attempts || 0}</span>
                       </div>
                     </div>
                   </div>
@@ -460,15 +478,15 @@ export default function TeacherAssignmentSubmissionsPage() {
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-slate-400">Pass Rate:</span>
-                        <span className="text-white">{Math.round((assignment.stats.graded_submissions / assignment.stats.total_submissions) * 100) || 85}%</span>
+                        <span className="text-white">{analytics?.pass_rate || 0}%</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-400">Above Average:</span>
-                        <span className="text-white">{Math.floor(assignment.stats.total_submissions * 0.6)}</span>
+                        <span className="text-white">{analytics?.above_average || 0}%</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-400">Needs Help:</span>
-                        <span className="text-white">{Math.floor(assignment.stats.total_submissions * 0.15)}</span>
+                        <span className="text-white">{analytics?.needs_help || 0}%</span>
                       </div>
                     </div>
                   </div>
@@ -497,9 +515,9 @@ export default function TeacherAssignmentSubmissionsPage() {
         </div>
       </div>
                         <div className="grid grid-cols-3 gap-4 text-xs text-slate-400">
-                          <div>Strong: {Math.floor(assignment.stats.total_submissions * 0.4)}</div>
-                          <div>Satisfactory: {Math.floor(assignment.stats.total_submissions * 0.35)}</div>
-                          <div>Needs Work: {Math.floor(assignment.stats.total_submissions * 0.25)}</div>
+                          <div>Strong: {analytics?.above_average || 0}%</div>
+                          <div>Satisfactory: {analytics?.pass_rate || 0}%</div>
+                          <div>Needs Work: {analytics?.needs_help || 0}%</div>
                         </div>
                       </div>
                     ))}

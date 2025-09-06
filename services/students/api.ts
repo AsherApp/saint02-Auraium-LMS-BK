@@ -16,23 +16,8 @@ export type Enrollment = {
   progress?: number
 }
 
-// Mock data for fallback
-const mockStudents: Student[] = [
-  {
-    id: "student-1",
-    email: "student1@school.edu",
-    name: "Alice Johnson",
-    status: "active",
-    created_at: new Date().toISOString()
-  },
-  {
-    id: "student-2", 
-    email: "student2@school.edu",
-    name: "Bob Smith",
-    status: "active",
-    created_at: new Date().toISOString()
-  }
-]
+// No mock data - return empty results when API fails
+const mockStudents: Student[] = []
 
 export async function listStudents() {
   // Try real API first

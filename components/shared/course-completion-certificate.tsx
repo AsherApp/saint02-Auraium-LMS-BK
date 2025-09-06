@@ -151,7 +151,7 @@ export function CourseCompletionCertificate({
           <Button
             onClick={handleDownload}
             disabled={downloading}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
+            variant="default"
           >
             <Download className="h-4 w-4 mr-2" />
             {downloading ? "Downloading..." : "Download Certificate"}

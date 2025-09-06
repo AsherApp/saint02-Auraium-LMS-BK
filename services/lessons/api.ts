@@ -34,43 +34,8 @@ function getHeadersWithUserEmail() {
   }
 }
 
-// Mock data for fallback
-const mockLessons: Lesson[] = [
-  {
-    id: 'lesson-1',
-    module_id: 'module-1',
-    title: 'Introduction to Variables',
-    type: 'video',
-    description: 'A comprehensive introduction to variables',
-    content: {
-      video: {
-        url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-        description: 'A comprehensive introduction to variables'
-      }
-    },
-    position: 0
-  },
-  {
-    id: 'lesson-2',
-    module_id: 'module-1',
-    title: 'Variables Quiz',
-    type: 'quiz',
-    description: 'Test your knowledge on variables',
-    content: {
-      quiz: {
-        questions: [
-          {
-            id: 'q1',
-            question: 'What is a variable?',
-            options: ['A container for data', 'A function', 'A loop', 'A comment'],
-            correctIndex: 0
-          }
-        ]
-      }
-    },
-    position: 1
-  }
-]
+// No mock data - return empty results when API fails
+const mockLessons: Lesson[] = []
 
 export async function getLessonsByModule(moduleId: string) {
   try {

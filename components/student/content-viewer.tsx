@@ -24,6 +24,7 @@ import { http } from "@/services/http"
 import { ProgressAPI } from '@/services/progress/api'
 import { useToast } from "@/hooks/use-toast"
 import { useAuthStore } from "@/store/auth-store"
+import { VideoProgressTracker } from "./video-progress-tracker"
 
 type ContentViewerProps = {
   lesson: {
@@ -180,43 +181,75 @@ function VideoViewer({ content }: { content: any }) {
     )
   }
 
-  const isYouTube = content.video.url.includes('youtube.com') || content.video.url.includes('youtu.be')
-  const isVimeo = content.video.url.includes('vimeo.com')
-
-  const getEmbedUrl = (url: string) => {
-    if (isYouTube) {
-      const videoId = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/)?.[1]
-      return videoId ? `https://www.youtube.com/embed/${videoId}` : null
-    }
-    if (isVimeo) {
-      const videoId = url.match(/vimeo\.com\/(\d+)/)?.[1]
-      return videoId ? `https://player.vimeo.com/video/${videoId}` : null
-    }
-    return null
-  }
-
-  const embedUrl = getEmbedUrl(content.video.url)
-
-  return (
-    <div className="space-y-4">
-      {embedUrl ? (
+  const renderVideoContent = () => {
+    if (content.video.source === "upload") {
+      return (
+        <div className="aspect-video bg-black rounded-lg overflow-hidden">
+          <video 
+            controls 
+            className="w-full h-full"
+            id={`video-${content.lessonId}`}
+          >
+            <source src={content.video.url} type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
+        </div>
+      )
+    } else if (content.video.source === "onedrive") {
+      return (
         <div className="aspect-video bg-black rounded-lg overflow-hidden">
           <iframe
-            src={embedUrl}
+            src={content.video.url}
             className="w-full h-full"
             frameBorder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
           />
         </div>
-      ) : (
-        <div className="aspect-video bg-black rounded-lg flex items-center justify-center">
-          <video controls className="w-full h-full">
-            <source src={content.video.url} type="video/mp4" />
-            Your browser does not support the video tag.
-          </video>
+      )
+    } else if (content.video.source === "googledrive") {
+      return (
+        <div className="aspect-video bg-black rounded-lg overflow-hidden">
+          <iframe
+            src={content.video.url.replace('/view', '/preview')}
+            className="w-full h-full"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
         </div>
-      )}
+      )
+    }
+
+    // Fallback for direct video URLs
+    return (
+      <div className="aspect-video bg-black rounded-lg overflow-hidden">
+        <video 
+          controls 
+          className="w-full h-full"
+          id={`video-${content.lessonId}`}
+        >
+          <source src={content.video.url} type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      {renderVideoContent()}
+      
+      {/* Progress Tracker */}
+      <VideoProgressTracker
+        lessonId={content.lessonId}
+        courseId={content.courseId}
+        moduleId={content.moduleId}
+        videoSource={content.video.source || 'upload'}
+        allowSkip={true}
+        minWatchTime={30}
+      />
+
       {content.video.description && (
         <div className="bg-white/5 p-3 rounded-lg">
           <p className="text-sm text-slate-300">{content.video.description}</p>

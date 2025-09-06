@@ -76,6 +76,7 @@ export default function NewCourseWizardPage() {
   // Step 1: Basics
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
+  const [thumbnailUrl, setThumbnailUrl] = useState("")
   const [status, setStatus] = useState<"draft" | "published">("draft")
   const [visibility, setVisibility] = useState<"private" | "unlisted" | "public">("private")
   const [enrollmentPolicy, setEnrollmentPolicy] = useState<"invite_only" | "request" | "open">("invite_only")
@@ -118,7 +119,8 @@ export default function NewCourseWizardPage() {
         teacher_email: user.email,
         status,
         visibility,
-        enrollment_policy: enrollmentPolicy
+        enrollment_policy: enrollmentPolicy,
+        thumbnail_url: thumbnailUrl.trim() || undefined
       })
       
       // Step 2: Create modules and lessons
@@ -412,7 +414,7 @@ export default function NewCourseWizardPage() {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g., Introduction to Programming"
-                className="bg-white/5 border-white/10 text-white placeholder:text-slate-400"
+                className="bg-white/5 border-white/10 text-white placeholder:text-slate-400 h-11"
               />
             </div>
             <div className="space-y-2">
@@ -422,8 +424,30 @@ export default function NewCourseWizardPage() {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Short summary of the course content and objectives"
-                className="bg-white/5 border-white/10 text-white placeholder:text-slate-400"
+                className="bg-white/5 border-white/10 text-white placeholder:text-slate-400 h-11"
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="thumbnail">Thumbnail URL (Optional)</Label>
+              <Input
+                id="thumbnail"
+                value={thumbnailUrl}
+                onChange={(e) => setThumbnailUrl(e.target.value)}
+                placeholder="https://example.com/image.jpg"
+                className="bg-white/5 border-white/10 text-white placeholder:text-slate-400 h-11"
+              />
+              {thumbnailUrl && (
+                <div className="mt-2">
+                  <img 
+                    src={thumbnailUrl} 
+                    alt="Thumbnail preview" 
+                    className="w-32 h-20 object-cover rounded border border-white/20"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none'
+                    }}
+                  />
+                </div>
+              )}
             </div>
           </section>
         )}
@@ -447,7 +471,7 @@ export default function NewCourseWizardPage() {
                     value={newModuleTitle}
                     onChange={(e) => setNewModuleTitle(e.target.value)}
                     placeholder="e.g., Getting Started"
-                    className="bg-white/5 border-white/10 text-white placeholder:text-slate-400"
+                    className="bg-white/5 border-white/10 text-white placeholder:text-slate-400 h-11"
                   />
                 </div>
                 <div className="space-y-2">
@@ -456,7 +480,7 @@ export default function NewCourseWizardPage() {
                     value={newModuleDescription}
                     onChange={(e) => setNewModuleDescription(e.target.value)}
                     placeholder="Brief description of this module"
-                    className="bg-white/5 border-white/10 text-white placeholder:text-slate-400"
+                    className="bg-white/5 border-white/10 text-white placeholder:text-slate-400 h-11"
                   />
                 </div>
               </div>
@@ -511,28 +535,28 @@ export default function NewCourseWizardPage() {
                       <div className="grid gap-3 sm:grid-cols-2">
                         <div className="space-y-1">
                           <Label className="text-xs text-slate-300">Title *</Label>
-                            <Input
+                          <Input
                             value={selectedModuleId === module.id ? newLessonTitle : ""}
                             onChange={(e) => {
                               setSelectedModuleId(module.id)
                               setNewLessonTitle(e.target.value)
                             }}
                             placeholder="Enter lesson title"
-                            className="bg-white/5 border-white/10 text-white placeholder:text-slate-400 text-sm"
+                            className="bg-white/5 border-white/10 text-white placeholder:text-slate-400 text-sm h-9"
                           />
                         </div>
                         <div className="space-y-1">
                           <Label className="text-xs text-slate-300">Type</Label>
-                            <Select
+                          <Select
                             value={selectedModuleId === module.id ? newLessonType : "video"}
                             onValueChange={(v: "video" | "quiz" | "file" | "discussion" | "poll") => {
                               setSelectedModuleId(module.id)
                               setNewLessonType(v)
                             }}
                           >
-                            <SelectTrigger className="bg-white/5 border-white/10 text-white text-sm">
+                            <SelectTrigger className="bg-white/5 border-white/10 text-white text-sm h-9">
                               <SelectValue />
-                              </SelectTrigger>
+                            </SelectTrigger>
                               <SelectContent className="bg-slate-900/95 text-white border-white/10">
                               <SelectItem value="video">
                                 <div className="flex items-center gap-2">
@@ -567,8 +591,8 @@ export default function NewCourseWizardPage() {
                               </SelectContent>
                             </Select>
                           <p className="text-xs text-slate-400">{getLessonTypeDescription(newLessonType)}</p>
-                    </div>
-                  </div>
+                        </div>
+                      </div>
 
                       <div className="space-y-1">
                         <Label className="text-xs text-slate-300">Description</Label>
@@ -579,7 +603,7 @@ export default function NewCourseWizardPage() {
                             setNewLessonDescription(e.target.value)
                           }}
                           placeholder="Brief description of the lesson content"
-                          className="bg-white/5 border-white/10 text-white placeholder:text-slate-400 text-sm"
+                          className="bg-white/5 border-white/10 text-white placeholder:text-slate-400 text-sm h-9"
                         />
                       </div>
 
@@ -595,12 +619,12 @@ export default function NewCourseWizardPage() {
                               setSelectedModuleId(module.id)
                               setNewLessonDuration(parseInt(e.target.value) || 30)
                             }}
-                            className="bg-white/5 border-white/10 text-white text-sm"
-                        />
-                      </div>
-                      <div className="space-y-1">
+                            className="bg-white/5 border-white/10 text-white text-sm h-9"
+                          />
+                        </div>
+                        <div className="space-y-1">
                           <Label className="text-xs text-slate-300">Points</Label>
-                        <Input
+                          <Input
                             type="number"
                             min="0"
                             max="100"
@@ -609,7 +633,7 @@ export default function NewCourseWizardPage() {
                               setSelectedModuleId(module.id)
                               setNewLessonPoints(parseInt(e.target.value) || 10)
                             }}
-                            className="bg-white/5 border-white/10 text-white text-sm"
+                            className="bg-white/5 border-white/10 text-white text-sm h-9"
                           />
                         </div>
                         <div className="space-y-1">

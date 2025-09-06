@@ -45,8 +45,8 @@ export function PollWidget({ sessionId, isHost = false }: { sessionId: string; i
 
     fetchPolls()
     
-    // Set up polling to refresh polls every 3 seconds for real-time updates
-    const interval = setInterval(fetchPolls, 3000)
+    // Set up polling to refresh polls every 10 seconds for real-time updates (reduced frequency)
+    const interval = setInterval(fetchPolls, 10000)
     return () => clearInterval(interval)
   }, [sessionId])
 

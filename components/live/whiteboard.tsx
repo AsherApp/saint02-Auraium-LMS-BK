@@ -1,373 +1,304 @@
-"use client"
+'use client'
 
-import type React from "react"
+import React, { useRef, useEffect, useState, useCallback } from 'react'
+import { Room } from 'livekit-client'
 
-import { useEffect, useRef, useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Slider } from "@/components/ui/slider"
-import { http } from "@/services/http"
-import { WhiteboardFallback } from "./whiteboard-fallback"
-
-type StrokePoint = { x: number; y: number }
-type Stroke = {
-  id: string
-  sessionId: string
-  points: StrokePoint[]
-  color: string
-  width: number
-  by: string
+interface WhiteboardProps {
+  room: Room | null
+  isVisible: boolean
+  onClose: () => void
+  participantName: string
 }
 
-export function Whiteboard({ sessionId, isHost = false }: { sessionId: string; isHost?: boolean }) {
+interface DrawingData {
+  type: 'draw' | 'clear'
+  x?: number
+  y?: number
+  prevX?: number
+  prevY?: number
+  color?: string
+  lineWidth?: number
+}
+
+export default function Whiteboard({ room, isVisible, onClose, participantName }: WhiteboardProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
-  const [drawing, setDrawing] = useState(false)
-  const [color, setColor] = useState("#e5e7eb") // slate-200
-  const [width, setWidth] = useState(3)
-  const [strokes, setStrokes] = useState<Stroke[]>([])
-  const [loading, setLoading] = useState(false)
-  const [apiAvailable, setApiAvailable] = useState(true)
+  const [isDrawing, setIsDrawing] = useState(false)
+  const [currentColor, setCurrentColor] = useState('#000000')
+  const [currentLineWidth, setCurrentLineWidth] = useState(2)
+  const [lastPoint, setLastPoint] = useState<{ x: number; y: number } | null>(null)
 
-  // Fetch strokes
-  useEffect(() => {
-    const fetchStrokes = async () => {
-      if (!sessionId) return
-      
-      setLoading(true)
-      
-      try {
-        const response = await http<any>(`/api/live/${sessionId}/whiteboard`)
-        const strokesData = response.items || response || []
-        
-        // Validate and filter strokes data
-        const validStrokes = strokesData.filter((stroke: any) => {
-          if (!stroke) return false
-          
-          let points
-          try {
-            // Handle both array and JSON string formats
-            points = typeof stroke.points === 'string' ? JSON.parse(stroke.points) : stroke.points
-          } catch {
-            return false
-          }
-          
-          return Array.isArray(points) && 
-                 points.length > 0 &&
-                 points.every((point: any) => 
-                   point && typeof point.x === 'number' && typeof point.y === 'number'
-                 )
-        }).map((stroke: any) => ({
-          ...stroke,
-          points: typeof stroke.points === 'string' ? JSON.parse(stroke.points) : stroke.points
-        }))
-        
-        setStrokes(validStrokes)
-      } catch (err: any) {
-        console.error('Failed to load whiteboard strokes:', err)
-        setStrokes([])
-        // If API is not available, switch to fallback mode
-        if (err.message?.includes('404') || err.message?.includes('not found')) {
-          setApiAvailable(false)
-        }
-      } finally {
-        setLoading(false)
-      }
-    }
+  // Drawing colors
+  const colors = [
+    '#000000', '#FF0000', '#00FF00', '#0000FF', '#FFFF00', 
+    '#FF00FF', '#00FFFF', '#FFA500', '#800080', '#008000'
+  ]
 
-    fetchStrokes()
-    
-    // Set up polling for new strokes
-    const interval = setInterval(fetchStrokes, 1000)
-    return () => clearInterval(interval)
-  }, [sessionId])
+  // Line widths
+  const lineWidths = [1, 2, 4, 8, 12]
 
-  async function addStroke(stroke: Stroke) {
-    try {
-      // Add stroke locally immediately for responsiveness
-      setStrokes(prev => [...prev, stroke])
-      
-      // Send to backend
-      await http(`/api/live/${sessionId}/whiteboard`, {
-        method: 'POST',
-        body: {
-          points: JSON.stringify(stroke.points),
-          color: stroke.color,
-          width: stroke.width
-        }
-      })
-    } catch (err: any) {
-      console.error('Failed to add stroke:', err)
-      // Keep stroke locally even if API fails
-    }
-  }
-
-  async function clear() {
-    try {
-      await http(`/api/live/${sessionId}/whiteboard`, {
-        method: 'DELETE'
-      })
-      setStrokes([])
-    } catch (err: any) {
-      console.error('Failed to clear whiteboard:', err)
-    }
-  }
-
-  // Resize to container and draw strokes - with better performance
+  // Initialize canvas
   useEffect(() => {
     const canvas = canvasRef.current
-    const wrap = containerRef.current
-    if (!canvas || !wrap) return
+    if (!canvas) return
 
-    const dpr = Math.max(1, window.devicePixelRatio || 1)
-    const rect = wrap.getBoundingClientRect()
-    
-    // Only resize if dimensions actually changed
-    const currentWidth = canvas.width / dpr
-    const currentHeight = canvas.height / dpr
-    
-    if (Math.abs(currentWidth - rect.width) > 1 || Math.abs(currentHeight - rect.height) > 1) {
-      canvas.width = rect.width * dpr
-      canvas.height = rect.height * dpr
-      canvas.style.width = `${rect.width}px`
-      canvas.style.height = `${rect.height}px`
-    }
-
-    const ctx = canvas.getContext("2d")
+    const ctx = canvas.getContext('2d')
     if (!ctx) return
-    
-    // Only set scale if canvas was resized
-    if (Math.abs(currentWidth - rect.width) > 1 || Math.abs(currentHeight - rect.height) > 1) {
-      ctx.scale(dpr, dpr)
-    }
-    
-    ctx.clearRect(0, 0, rect.width, rect.height)
 
-    // Draw strokes with better validation
-    for (const s of strokes) {
-      if (!s) continue
+    // Set canvas size
+    const resizeCanvas = () => {
+      canvas.width = canvas.offsetWidth
+      canvas.height = canvas.offsetHeight
       
-      let points
-      try {
-        points = typeof s.points === 'string' ? JSON.parse(s.points) : s.points
-      } catch {
-        continue
-      }
-      
-      if (!Array.isArray(points) || points.length === 0) continue
-      
-      ctx.strokeStyle = s.color || '#e5e7eb'
-      ctx.lineWidth = s.width || 3
-      ctx.lineJoin = "round"
-      ctx.lineCap = "round"
-      ctx.beginPath()
-      
-      points.forEach((p, i) => {
-        if (p && typeof p.x === 'number' && typeof p.y === 'number') {
-          if (i === 0) ctx.moveTo(p.x, p.y)
-          else ctx.lineTo(p.x, p.y)
-        }
-      })
-      ctx.stroke()
+      // Set drawing properties
+      ctx.lineCap = 'round'
+      ctx.lineJoin = 'round'
+      ctx.strokeStyle = currentColor
+      ctx.lineWidth = currentLineWidth
     }
-  }, [strokes])
 
-  // Redraw on container resize - with debouncing to prevent excessive redraws
-  useEffect(() => {
-    let lastW = 0
-    let lastH = 0
-    let resizeTimeout: NodeJS.Timeout | null = null
-    
-    function handle() {
-      const c = canvasRef.current
-      const wrap = containerRef.current
-      if (!c || !wrap) return
-      
-      const dpr = Math.max(1, window.devicePixelRatio || 1)
-      const rect = wrap.getBoundingClientRect()
-      const nextW = Math.floor(rect.width)
-      const nextH = Math.floor(rect.height)
-      
-      // Only redraw if size actually changed
-      if (nextW === lastW && nextH === lastH) return
-      
-      // Clear any pending resize
-      if (resizeTimeout) {
-        clearTimeout(resizeTimeout)
-      }
-      
-      // Debounce resize to prevent excessive redraws
-      resizeTimeout = setTimeout(() => {
-        lastW = nextW
-        lastH = nextH
-        
-        c.width = nextW * dpr
-        c.height = nextH * dpr
-        c.style.width = `${nextW}px`
-        c.style.height = `${nextH}px`
-        
-        const ctx = c.getContext("2d")
-        if (!ctx) return
-        
-        ctx.setTransform(1, 0, 0, 1, 0, 0)
-        ctx.scale(dpr, dpr)
-        ctx.clearRect(0, 0, nextW, nextH)
-        
-        // Redraw all strokes
-        for (const s of strokes) {
-          if (!s) continue
-          
-          let points
-          try {
-            points = typeof s.points === 'string' ? JSON.parse(s.points) : s.points
-          } catch {
-            continue
-          }
-          
-          if (!Array.isArray(points) || points.length === 0) continue
-          
-          ctx.strokeStyle = s.color || '#e5e7eb'
-          ctx.lineWidth = s.width || 3
-          ctx.lineJoin = "round"
-          ctx.lineCap = "round"
-          ctx.beginPath()
-          
-          points.forEach((p, i) => {
-            if (p && typeof p.x === 'number' && typeof p.y === 'number') {
-              if (i === 0) ctx.moveTo(p.x, p.y)
-              else ctx.lineTo(p.x, p.y)
-            }
-          })
-          ctx.stroke()
-        }
-      }, 100) // 100ms debounce
-    }
-    
-    const obs = new ResizeObserver(handle)
-    if (containerRef.current) obs.observe(containerRef.current)
-    
+    resizeCanvas()
+    window.addEventListener('resize', resizeCanvas)
+
     return () => {
-      obs.disconnect()
-      if (resizeTimeout) {
-        clearTimeout(resizeTimeout)
-      }
+      window.removeEventListener('resize', resizeCanvas)
     }
-  }, [strokes])
+  }, [currentColor, currentLineWidth])
 
-  function getPos(e: React.MouseEvent<HTMLCanvasElement, MouseEvent>): StrokePoint {
-    const rect = (e.target as HTMLCanvasElement).getBoundingClientRect()
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top }
-  }
+  // Handle drawing start
+  const startDrawing = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!canvasRef.current) return
+    
+    const rect = canvasRef.current.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+    
+    setIsDrawing(true)
+    setLastPoint({ x, y })
+  }, [])
 
-  const currentPoints = useRef<StrokePoint[]>([])
+  // Handle drawing
+  const draw = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isDrawing || !canvasRef.current || !lastPoint) return
 
-  function onDown(e: React.MouseEvent<HTMLCanvasElement>) {
-    setDrawing(true)
-    currentPoints.current = [getPos(e)]
-  }
-  function onMove(e: React.MouseEvent<HTMLCanvasElement>) {
-    if (!drawing) return
-    currentPoints.current.push(getPos(e))
-    // Draw live for responsiveness
     const canvas = canvasRef.current
-    const ctx = canvas?.getContext("2d")
-    if (!canvas || !ctx) return
-    ctx.strokeStyle = color
-    ctx.lineWidth = width
-    ctx.lineJoin = "round"
-    ctx.lineCap = "round"
-    const pts = currentPoints.current
-    const last2 = pts.slice(-2)
-    if (last2.length === 2) {
-      ctx.beginPath()
-      ctx.moveTo(last2[0].x, last2[0].y)
-      ctx.lineTo(last2[1].x, last2[1].y)
-      ctx.stroke()
-    }
-  }
-  function onUp() {
-    setDrawing(false)
-    const pts = currentPoints.current
-    if (pts.length > 1) {
-      const stroke: Stroke = {
-        id: `stroke_${Date.now()}`,
-        sessionId,
-        points: pts.slice(),
-        color,
-        width,
-        by: "local",
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    const rect = canvas.getBoundingClientRect()
+    const currentX = e.clientX - rect.left
+    const currentY = e.clientY - rect.top
+
+    // Draw on canvas
+    ctx.beginPath()
+    ctx.moveTo(lastPoint.x, lastPoint.y)
+    ctx.lineTo(currentX, currentY)
+    ctx.stroke()
+
+    // Send drawing data to other participants
+    if (room) {
+      const drawingData: DrawingData = {
+        type: 'draw',
+        x: currentX,
+        y: currentY,
+        prevX: lastPoint.x,
+        prevY: lastPoint.y,
+        color: currentColor,
+        lineWidth: currentLineWidth
       }
-      addStroke(stroke)
+
+      const data = new TextEncoder().encode(JSON.stringify({
+        type: 'whiteboard_draw',
+        data: drawingData,
+        participant: participantName
+      }))
+
+      room.localParticipant.publishData(data, { reliable: true })
     }
-    currentPoints.current = []
-  }
 
-  // If API is not available, use fallback whiteboard
-  if (!apiAvailable) {
-    return <WhiteboardFallback sessionId={sessionId} isHost={isHost} />
-  }
+    setLastPoint({ x: currentX, y: currentY })
+  }, [isDrawing, lastPoint, currentColor, currentLineWidth, room, participantName])
 
-  if (loading) {
-    return (
-      <div className="flex flex-col gap-2 h-full">
-        <div className="flex items-center gap-2 text-xs text-slate-300">
-          <span>Whiteboard</span>
-        </div>
-        <div className="flex items-center justify-center h-full">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
-        </div>
-      </div>
-    )
-  }
+  // Handle drawing end
+  const stopDrawing = useCallback(() => {
+    setIsDrawing(false)
+    setLastPoint(null)
+  }, [])
+
+  // Clear whiteboard
+  const clearWhiteboard = useCallback(() => {
+    if (!canvasRef.current) return
+
+    const canvas = canvasRef.current
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+    // Send clear data to other participants
+    if (room) {
+      const data = new TextEncoder().encode(JSON.stringify({
+        type: 'whiteboard_clear',
+        participant: participantName
+      }))
+
+      room.localParticipant.publishData(data, { reliable: true })
+    }
+  }, [room, participantName])
+
+  // Handle incoming drawing data
+  useEffect(() => {
+    if (!room) return
+
+    const handleDataReceived = (payload: Uint8Array) => {
+      try {
+        const message = JSON.parse(new TextDecoder().decode(payload))
+        
+        if (message.type === 'whiteboard_draw' && message.data) {
+          const { x, y, prevX, prevY, color, lineWidth } = message.data
+          
+          if (!canvasRef.current) return
+          
+          const canvas = canvasRef.current
+          const ctx = canvas.getContext('2d')
+          if (!ctx) return
+
+          // Save current state
+          const currentStrokeStyle = ctx.strokeStyle
+          const currentLineWidth = ctx.lineWidth
+
+          // Set drawing properties
+          ctx.strokeStyle = color || '#000000'
+          ctx.lineWidth = lineWidth || 2
+
+          // Draw the line
+          ctx.beginPath()
+          ctx.moveTo(prevX, prevY)
+          ctx.lineTo(x, y)
+          ctx.stroke()
+
+          // Restore state
+          ctx.strokeStyle = currentStrokeStyle
+          ctx.lineWidth = currentLineWidth
+        } else if (message.type === 'whiteboard_clear') {
+          if (!canvasRef.current) return
+          
+          const canvas = canvasRef.current
+          const ctx = canvas.getContext('2d')
+          if (!ctx) return
+
+          ctx.clearRect(0, 0, canvas.width, canvas.height)
+        }
+      } catch (error) {
+        console.error('Error processing whiteboard data:', error)
+      }
+    }
+
+    room.on('dataReceived', handleDataReceived)
+
+    return () => {
+      room.off('dataReceived', handleDataReceived)
+    }
+  }, [room])
+
+  if (!isVisible) return null
 
   return (
-    <div className="flex flex-col gap-2 h-full">
-      <div className="flex items-center gap-2 text-xs text-slate-300">
-        <div className="flex items-center gap-2">
-          <input
-            aria-label="Color"
-            type="color"
-            value={color}
-            onChange={(e) => setColor(e.target.value)}
-            className="h-6 w-6 rounded border border-white/20 bg-transparent p-0"
-          />
-          <span>Pen</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span>Width</span>
-          <Slider
-            defaultValue={[width]}
-            onValueCommit={(v) => setWidth(v[0] ?? 3)}
-            min={1}
-            max={10}
-            step={1}
-            className="w-24"
-          />
-        </div>
-        {isHost ? (
-          <Button
-            variant="secondary"
-            className="ml-auto bg-white/10 text-white hover:bg-white/20"
-            onClick={() => clear(sessionId)}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div className="w-full max-w-4xl h-[80vh] mx-4 bg-white/10 backdrop-blur-md rounded-xl border border-white/20 shadow-2xl">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-white/20">
+          <div className="flex items-center gap-3">
+            <div className="w-2 h-2 bg-red-400 rounded-full"></div>
+            <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
+            <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+            <span className="ml-3 text-white font-medium text-lg">Collaborative Whiteboard</span>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-white/70 hover:text-white text-xl font-bold transition-colors"
           >
-            Clear
-          </Button>
-        ) : null}
-      </div>
+            ×
+          </button>
+        </div>
 
-      <div 
-        ref={containerRef} 
-        className="relative h-full rounded-md border border-white/10 bg-white/5 overflow-hidden"
-        style={{ minHeight: '300px', maxHeight: '100%' }}
-      >
-        <canvas
-          ref={canvasRef}
-          className="h-full w-full cursor-crosshair"
-          onMouseDown={onDown}
-          onMouseMove={onMove}
-          onMouseUp={onUp}
-          onMouseLeave={onUp}
-          style={{ touchAction: 'none' }}
-        />
+        {/* Toolbar */}
+        <div className="p-4 border-b border-white/20">
+          <div className="flex items-center gap-4">
+            {/* Colors */}
+            <div className="flex items-center gap-2">
+              <span className="text-white/80 text-sm font-medium">Colors:</span>
+              <div className="flex items-center gap-1">
+                {colors.map((color) => (
+                  <button
+                    key={color}
+                    onClick={() => setCurrentColor(color)}
+                    className={`w-8 h-8 rounded-full border-2 transition-all duration-200 hover:scale-110 ${
+                      currentColor === color 
+                        ? 'border-white shadow-lg shadow-white/50' 
+                        : 'border-white/30 hover:border-white/60'
+                    }`}
+                    style={{ backgroundColor: color }}
+                    title={color}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Line width */}
+            <div className="flex items-center gap-2">
+              <span className="text-white/80 text-sm font-medium">Size:</span>
+              <div className="flex items-center gap-1">
+                {lineWidths.map((width) => (
+                  <button
+                    key={width}
+                    onClick={() => setCurrentLineWidth(width)}
+                    className={`w-10 h-8 rounded-lg border transition-all duration-200 hover:scale-105 ${
+                      currentLineWidth === width 
+                        ? 'bg-blue-500/80 border-blue-400 text-white shadow-lg' 
+                        : 'bg-white/10 border-white/30 text-white/80 hover:bg-white/20'
+                    }`}
+                    title={`Line width: ${width}px`}
+                  >
+                    <div 
+                      className="bg-current mx-auto rounded"
+                      style={{ 
+                        width: `${Math.max(1, width - 1)}px`, 
+                        height: '2px' 
+                      }}
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Clear button */}
+            <button
+              onClick={clearWhiteboard}
+              className="px-4 py-2 bg-red-500/80 hover:bg-red-500 text-white text-sm rounded-lg transition-all duration-200 hover:scale-105 shadow-lg"
+            >
+              Clear Board
+            </button>
+          </div>
+        </div>
+
+        {/* Canvas */}
+        <div className="flex-1 p-4">
+          <canvas
+            ref={canvasRef}
+            className="w-full h-full bg-white rounded-lg border border-white/20 cursor-crosshair shadow-inner"
+            onMouseDown={startDrawing}
+            onMouseMove={draw}
+            onMouseUp={stopDrawing}
+            onMouseLeave={stopDrawing}
+          />
+        </div>
+
+        {/* Footer */}
+        <div className="p-3 border-t border-white/20">
+          <div className="text-xs text-white/60 text-center">
+            Draw together in real-time • Changes sync automatically with all participants
+          </div>
+        </div>
       </div>
     </div>
   )

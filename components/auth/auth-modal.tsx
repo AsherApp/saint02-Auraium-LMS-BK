@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast"
 import { useAuthFn } from "@/services/auth/hook"
 import { cn } from "@/lib/utils"
 import { GraduationCap, User, ArrowRight, Loader2 } from "lucide-react"
+import { BillingSignupFlow } from "./billing-signup-flow"
 
 type Props = {
   label?: string
@@ -41,6 +42,8 @@ export function AuthModal({ label = "Login", className, asPlainButton = false }:
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [studentCode, setStudentCode] = useState("")
+  const [showBillingFlow, setShowBillingFlow] = useState(false)
+  const [registeredTeacher, setRegisteredTeacher] = useState<{ name: string; email: string } | null>(null)
 
 
   const resetForm = () => {
@@ -92,16 +95,12 @@ export function AuthModal({ label = "Login", className, asPlainButton = false }:
         // Signup mode
         if (role === "teacher") {
           const user = await registerTeacher({ name, email, password })
-          toast({ 
-            title: "Account created!", 
-            description: `Welcome, ${user.name}! You're being redirected to your dashboard.` 
-          })
-          setOpen(false)
-          resetForm()
-          // Auto-login and redirect
-          setTimeout(() => {
-            router.push("/teacher/dashboard")
-          }, 1000)
+          
+          // Store teacher info and show billing flow
+          setRegisteredTeacher({ name: user.name || name, email: user.email || email })
+          setShowBillingFlow(true)
+          
+          // Don't close modal yet - let billing flow handle it
         } else {
           // Students should register via invite links only
           toast({ 
@@ -244,7 +243,7 @@ export function AuthModal({ label = "Login", className, asPlainButton = false }:
                   <Input
                     id="name"
                     placeholder="Enter your full name"
-                    className="bg-white/5 border-white/10 text-white placeholder:text-slate-400 focus:border-blue-500/50 transition-colors"
+                    className="bg-white/5 border-white/10 text-white placeholder:text-slate-400 focus:border-blue-500/50 transition-colors h-11"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required={mode === "signup"}
@@ -260,7 +259,7 @@ export function AuthModal({ label = "Login", className, asPlainButton = false }:
                     id="email"
                     type="email"
                     placeholder="your@email.com"
-                    className="bg-white/5 border-white/10 text-white placeholder:text-slate-400 focus:border-blue-500/50 transition-colors"
+                    className="bg-white/5 border-white/10 text-white placeholder:text-slate-400 focus:border-blue-500/50 transition-colors h-11"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
@@ -277,7 +276,7 @@ export function AuthModal({ label = "Login", className, asPlainButton = false }:
                       id="password"
                       type="password"
                       placeholder="••••••••"
-                      className="bg-white/5 border-white/10 text-white placeholder:text-slate-400 focus:border-blue-500/50 transition-colors"
+                      className="bg-white/5 border-white/10 text-white placeholder:text-slate-400 focus:border-blue-500/50 transition-colors h-11"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
@@ -291,7 +290,7 @@ export function AuthModal({ label = "Login", className, asPlainButton = false }:
                         id="confirm-password"
                         type="password"
                         placeholder="••••••••"
-                        className="bg-white/5 border-white/10 text-white placeholder:text-slate-400 focus:border-blue-500/50 transition-colors"
+                        className="bg-white/5 border-white/10 text-white placeholder:text-slate-400 focus:border-blue-500/50 transition-colors h-11"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         required={mode === "signup"}
@@ -311,7 +310,7 @@ export function AuthModal({ label = "Login", className, asPlainButton = false }:
                           id="student-code"
                           type="text"
                           placeholder="e.g., NT25081701"
-                          className="bg-white/5 border-white/10 text-white placeholder:text-slate-400 focus:border-blue-500/50 transition-colors"
+                          className="bg-white/5 border-white/10 text-white placeholder:text-slate-400 focus:border-blue-500/50 transition-colors h-11"
                           value={studentCode}
                           onChange={(e) => setStudentCode(e.target.value)}
                           required
@@ -324,7 +323,7 @@ export function AuthModal({ label = "Login", className, asPlainButton = false }:
                           id="student-password"
                           type="password"
                           placeholder="••••••••"
-                          className="bg-white/5 border-white/10 text-white placeholder:text-slate-400 focus:border-blue-500/50 transition-colors"
+                          className="bg-white/5 border-white/10 text-white placeholder:text-slate-400 focus:border-blue-500/50 transition-colors h-11"
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
                           required
@@ -340,7 +339,7 @@ export function AuthModal({ label = "Login", className, asPlainButton = false }:
                         id="student-code"
                         type="text"
                         placeholder="Enter 6-digit code"
-                        className="bg-white/5 border-white/10 text-white placeholder:text-slate-400 focus:border-blue-500/50 transition-colors"
+                        className="bg-white/5 border-white/10 text-white placeholder:text-slate-400 focus:border-blue-500/50 transition-colors h-11"
                         value={studentCode}
                         onChange={(e) => setStudentCode(e.target.value)}
                         required={role === "student"}
@@ -393,6 +392,21 @@ export function AuthModal({ label = "Login", className, asPlainButton = false }:
           </div>
         </div>
       </DialogContent>
+
+      {/* Billing Signup Flow */}
+      {showBillingFlow && registeredTeacher && (
+        <BillingSignupFlow
+          isOpen={showBillingFlow}
+          onClose={() => {
+            setShowBillingFlow(false)
+            setRegisteredTeacher(null)
+            setOpen(false)
+            resetForm()
+          }}
+          teacherEmail={registeredTeacher.email}
+          teacherName={registeredTeacher.name}
+        />
+      )}
     </Dialog>
   )
 } 

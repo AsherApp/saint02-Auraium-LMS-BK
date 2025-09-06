@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
 import { http } from "@/services/http"
+import { dateUtils } from "@/utils/date-utils"
 import { useRouter } from "next/navigation"
 import {
   Calendar,
@@ -653,13 +654,15 @@ export default function StudentCalendar() {
                   <div>
                     <div className="text-white">
                       {selectedEvent.is_assignment ? 
-                        `Due: ${new Date(selectedEvent.start_time).toLocaleDateString()} at ${new Date(selectedEvent.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` :
-                        `${new Date(selectedEvent.start_time).toLocaleDateString()} at ${new Date(selectedEvent.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                        `Due: ${dateUtils.short(selectedEvent.start_time)} at ${dateUtils.time(selectedEvent.start_time)}` :
+                        `${dateUtils.short(selectedEvent.start_time)} at ${dateUtils.time(selectedEvent.start_time)}`
                       }
                     </div>
                     {!selectedEvent.is_assignment && (
                       <div className="text-slate-400 text-xs">
-                        Duration: {Math.round((new Date(selectedEvent.end_time).getTime() - new Date(selectedEvent.start_time).getTime()) / (1000 * 60))} minutes
+                        Duration: {selectedEvent.end_time && selectedEvent.start_time ? 
+                          Math.round((new Date(selectedEvent.end_time).getTime() - new Date(selectedEvent.start_time).getTime()) / (1000 * 60)) : 0
+                        } minutes
                       </div>
                     )}
                   </div>
@@ -704,7 +707,8 @@ export default function StudentCalendar() {
                         router.push(`/live/${selectedEvent.live_session_id}`)
                         setShowEventDetails(false)
                       }}
-                      className="bg-red-600 hover:bg-red-700 text-white"
+                      variant="destructive"
+                      className=""
                     >
                       <Play className="h-4 w-4 mr-2" />
                       Join Live Session
@@ -731,7 +735,8 @@ export default function StudentCalendar() {
                         router.push(`/student/assignment/${selectedEvent.assignment_id}`)
                         setShowEventDetails(false)
                       }}
-                      className="bg-orange-600 hover:bg-orange-700 text-white"
+                      variant="warning"
+                      className=""
                     >
                       <FileText className="h-4 w-4 mr-2" />
                       View Assignment
@@ -744,7 +749,7 @@ export default function StudentCalendar() {
                   <div className="pt-3 border-t border-white/10">
                     <h4 className="font-medium text-white mb-3">RSVP Status</h4>
                     <div className="flex gap-2">
-                      <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white">
+                      <Button size="sm" variant="success">
                         <CheckCircle className="h-4 w-4 mr-2" />
                         Accept
                       </Button>

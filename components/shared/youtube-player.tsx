@@ -84,7 +84,8 @@ export function YouTubePlayer({ url, title, description, className = "" }: YouTu
               <Button
                 onClick={() => setIsPlaying(true)}
                 size="lg"
-                className="bg-red-600 hover:bg-red-700 text-white rounded-full w-16 h-16 flex items-center justify-center"
+                className="rounded-full w-16 h-16 flex items-center justify-center"
+                variant="destructive"
               >
                 <Play className="h-8 w-8 ml-1" />
               </Button>

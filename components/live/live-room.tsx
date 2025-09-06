@@ -8,9 +8,8 @@ import { ChatWidget } from "./chat-widget"
 import { ParticipantsList } from "./participants-list"
 import { ResourceList } from "./resource-list"
 import { PollWidget } from "./poll-widget"
-import { Whiteboard } from "./whiteboard"
 import { AttendanceWidget } from "./attendance-widget"
-import { ArrowLeft, Plus, StickyNote, ListChecks, Target, Loader2, Users } from "lucide-react"
+import { ArrowLeft, Plus, StickyNote, ListChecks, Target, Loader2, Users, Power } from "lucide-react"
 import Link from "next/link"
 import { useLiveActivitiesFn } from "@/services/live-activities/hook"
 import { useAuthStore } from "@/store/auth-store"
@@ -63,6 +62,33 @@ export default function LiveRoom({ sessionId, currentUserEmail }: { sessionId: s
   const [newQuiz, setNewQuiz] = useState({ title: "", questions: [{ type: "multiple_choice", question: "", options: ["", ""] }] })
   const [newPoll, setNewPoll] = useState({ question: "", options: ["", ""] })
   const [newClasswork, setNewClasswork] = useState({ title: "", description: "" })
+  const [endingSession, setEndingSession] = useState(false)
+
+  const handleEndSession = async () => {
+    if (!confirm('Are you sure you want to end this live session? This action cannot be undone.')) {
+      return
+    }
+    
+    setEndingSession(true)
+    try {
+      const { http } = await import('@/services/http')
+      await http(`/api/live/${sessionId}/end`, { method: 'POST' })
+      toast({ 
+        title: "Session ended", 
+        description: "The live session has been ended successfully." 
+      })
+      // Redirect to session details page
+      window.location.href = `/teacher/live-class/${sessionId}`
+    } catch (err: any) {
+      toast({ 
+        title: "Failed to end session", 
+        description: err.message || "An error occurred while ending the session",
+        variant: "destructive" 
+      })
+    } finally {
+      setEndingSession(false)
+    }
+  }
 
   useEffect(() => {
     if (session) join(session.id, currentUserEmail)
@@ -199,16 +225,44 @@ export default function LiveRoom({ sessionId, currentUserEmail }: { sessionId: s
           <div className="text-white text-xl font-semibold">{session.title}</div>
           <div className="text-slate-300 text-sm">Host: {session.hostEmail}</div>
         </div>
-        <Link href="/student/live-class">
-          <Button variant="secondary" className="bg-white/10 text-white hover:bg-white/20">
-            <ArrowLeft className="h-4 w-4 mr-1" /> Back
-          </Button>
-        </Link>
+        <div className="flex gap-2">
+          <Link href="/student/live-class">
+            <Button variant="secondary" className="bg-white/10 text-white hover:bg-white/20">
+              <ArrowLeft className="h-4 w-4 mr-1" /> Back
+            </Button>
+          </Link>
+          
+          {/* End session button for teachers */}
+          {isHost && (
+            <Button 
+              onClick={handleEndSession}
+              disabled={endingSession}
+              variant="destructive" 
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {endingSession ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  Ending...
+                </>
+              ) : (
+                <>
+                  <Power className="h-4 w-4 mr-1" />
+                  End Session
+                </>
+              )}
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <GlassCard className="p-3 lg:col-span-2">
-          <Whiteboard sessionId={session.id} />
+          <div className="text-center py-8 text-slate-400">
+            <div className="text-4xl mb-4">📚</div>
+            <p>Live Class Tools</p>
+            <p className="text-sm mt-2">Use the tabs below to access polls, classwork, and attendance</p>
+          </div>
         </GlassCard>
 
         <div className="space-y-4">

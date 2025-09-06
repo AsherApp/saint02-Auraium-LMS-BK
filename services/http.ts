@@ -30,11 +30,6 @@ export async function http<T>(path: string, opts: HttpOptions = {}): Promise<T> 
   // Add JWT authentication if token exists
   if (token) {
     headers['Authorization'] = `Bearer ${token}`
-  } else if (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) {
-    // Use development bypass for testing
-    headers['x-dev'] = 'true'
-    headers['x-user-email'] = 'mecki@test.com'
-    headers['x-user-role'] = 'teacher'
   }
   
   const res = await fetch(url, {

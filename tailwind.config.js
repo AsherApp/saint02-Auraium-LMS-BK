@@ -57,6 +57,11 @@ module.exports = {
         '4xl': '72px',
         '5xl': '96px',
       },
+      boxShadow: {
+        'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
+        'glass-light': '0 4px 16px 0 rgba(31, 38, 135, 0.2)',
+        'glass-heavy': '0 12px 48px 0 rgba(31, 38, 135, 0.5)',
+      },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-in-out',
         'fade-in-up': 'fadeInUp 0.5s ease-in-out',

@@ -5,17 +5,41 @@ import { GlassCard } from "@/components/shared/glass-card"
 import { StatCard, QuickActionCard } from "@/components/shared/stat-card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Progress } from "@/components/ui/progress"
 import Link from "next/link"
 import { useAuthStore } from "@/store/auth-store"
 import { http } from "@/services/http"
-import { BookOpen, ListChecks, Award, Calendar, Users, Clock } from "lucide-react"
-import { StudentHeader } from "@/components/student/student-header"
+import { 
+  BookOpen, 
+  ListChecks, 
+  Award, 
+  Calendar, 
+  Users, 
+  Clock, 
+  TrendingUp, 
+  Target, 
+  Star, 
+  Activity,
+  Bell,
+  MessageSquare,
+  FileText,
+  PlayCircle,
+  CheckCircle2,
+  AlertCircle,
+  Megaphone,
+  User,
+  Key,
+  GraduationCap
+} from "lucide-react"
+import { motion } from "framer-motion"
 
 export default function StudentDashboardPage() {
   const { user } = useAuthStore()
   const [enrolledCourses, setEnrolledCourses] = useState<any[]>([])
   const [assignments, setAssignments] = useState<any[]>([])
   const [liveSessions, setLiveSessions] = useState<any[]>([])
+  const [announcements, setAnnouncements] = useState<any[]>([])
+  const [studentCode, setStudentCode] = useState<string>("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
@@ -25,24 +49,6 @@ export default function StudentDashboardPage() {
     console.log('Student Dashboard - Auth Token:', localStorage.getItem('auth-token'))
   }, [user])
   
-  // Calculate statistics
-  const stats = {
-    totalCourses: enrolledCourses.length,
-    totalAssignments: assignments.length,
-    upcomingAssignments: assignments.filter(a => 
-      a.due_at && new Date(a.due_at) > new Date()
-    ).length,
-    overdueAssignments: assignments.filter(a => 
-      a.due_at && new Date(a.due_at) < new Date()
-    ).length,
-    completedAssignments: assignments.filter(a => 
-      a.status === 'submitted' || a.status === 'graded'
-    ).length,
-    upcomingSessions: liveSessions.filter(s => 
-      s.start_at && new Date(s.start_at) > new Date()
-    ).length
-  }
-
   // Fetch student data
   useEffect(() => {
     if (!user?.email) {
@@ -58,16 +64,27 @@ export default function StudentDashboardPage() {
       try {
         console.log('Student Dashboard - Fetching courses...')
         // Get enrolled courses
-        const coursesResponse = await http<any>(`/api/students/${user.email}/courses`)
+        const coursesResponse = await http<any>(`/api/students/me/courses`)
         console.log('Student Dashboard - Courses response:', coursesResponse)
-        setEnrolledCourses(coursesResponse.items || [])
+        const enrolledCourses = coursesResponse.items || []
+        
+        // Check if any course is in public mode
+        const hasPublicCourses = enrolledCourses.some((course: any) => course.courses?.course_mode === 'public')
+        
+        if (hasPublicCourses) {
+          // Redirect to public mode dashboard
+          window.location.href = '/student/public-dashboard'
+          return
+        }
+        
+        setEnrolledCourses(enrolledCourses)
         
         // Get assignments for enrolled courses
-        const assignmentPromises = (coursesResponse.items || []).map(async (course: any) => {
+        const assignmentPromises = (enrolledCourses || []).map(async (course: any) => {
           try {
             console.log('Student Dashboard - Fetching assignments for course:', course.course_id)
             const assignmentsResponse = await http<any>(`/api/courses/${course.course_id}/assignments`)
-            return assignmentsResponse.items.map((assignment: any) => ({
+            return (assignmentsResponse.items || []).map((assignment: any) => ({
               ...assignment,
               course_title: course.courses?.title || "Unknown Course"
             }))
@@ -92,6 +109,27 @@ export default function StudentDashboardPage() {
           console.error('Failed to fetch live sessions:', err)
           setLiveSessions([])
         }
+
+        // Get announcements for the student
+        try {
+          console.log('Student Dashboard - Fetching announcements...')
+          const announcementsResponse = await http<any>(`/api/announcements/student`)
+          console.log('Student Dashboard - Announcements response:', announcementsResponse)
+          setAnnouncements(announcementsResponse.items || [])
+        } catch (err) {
+          console.error('Failed to fetch announcements:', err)
+          setAnnouncements([])
+        }
+
+        // Get student code
+        try {
+          const profileResponse = await http<any>(`/api/students/me/profile`)
+          if (profileResponse.student_code) {
+            setStudentCode(profileResponse.student_code)
+          }
+        } catch (err) {
+          console.error('Failed to fetch student code:', err)
+        }
         
       } catch (err: any) {
         console.error('Student Dashboard - Error fetching data:', err)
@@ -103,6 +141,26 @@ export default function StudentDashboardPage() {
 
     fetchStudentData()
   }, [user?.email])
+
+  // Calculate statistics based on real data
+  const stats = {
+    totalCourses: enrolledCourses.length,
+    totalAssignments: assignments.length,
+    upcomingAssignments: assignments.filter((a: any) => 
+      a.due_at && new Date(a.due_at) > new Date()
+    ).length,
+    overdueAssignments: assignments.filter((a: any) => 
+      a.due_at && new Date(a.due_at) < new Date()
+    ).length,
+    completedAssignments: assignments.filter((a: any) => 
+      a.status === 'submitted' || a.status === 'graded'
+    ).length,
+    upcomingSessions: liveSessions.filter((s: any) => 
+      s.start_at && new Date(s.start_at) > new Date()
+    ).length,
+    completionRate: enrolledCourses.length > 0 && assignments.length > 0 ? 
+      Math.round((assignments.filter((a: any) => a.status === 'submitted' || a.status === 'graded').length / assignments.length) * 100) : 0
+  }
 
   if (loading) {
     return (
@@ -126,127 +184,334 @@ export default function StudentDashboardPage() {
     )
   }
 
-  return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Student Header with Name and Code */}
-      <StudentHeader />
-      
-      {/* Welcome Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-2 truncate">
-            Welcome back, {user?.name || 'Student'}! 👋
-          </h1>
-          <p className="text-slate-300 text-sm sm:text-base">
-            Here's what's happening with your courses and assignments today.
-          </p>
-        </div>
-        <div className="flex gap-3 shrink-0">
-          <Button 
-            onClick={() => window.location.href = '/student/courses'}
-            variant="primary"
-            className="w-full sm:w-auto text-sm sm:text-base"
-          >
-            View Courses
-          </Button>
-        </div>
-      </div>
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  }
 
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 }
+  }
+
+  return (
+    <motion.div 
+      className="space-y-6"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      {/* Enhanced Student Header */}
+      <motion.div variants={itemVariants}>
+        <GlassCard className="p-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-6">
+              <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                <User className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">
+                  {user?.name || 'Student'}
+                </h1>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <Key className="h-4 w-4 text-blue-300" />
+                    <span className="text-blue-200 text-lg font-mono bg-blue-500/20 px-3 py-1 rounded">
+                      {studentCode || "Loading..."}
+                    </span>
+                  </div>
+                  <Badge variant="secondary" className="bg-green-500/20 text-green-300 border-green-500/30 px-3 py-1">
+                    <GraduationCap className="h-4 w-4 mr-1" />
+                    Student
+                  </Badge>
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <Button 
+                onClick={() => window.location.href = '/student/courses'}
+                variant="primary"
+                className="text-sm sm:text-base"
+              >
+                View Courses
+              </Button>
+            </div>
+          </div>
+        </GlassCard>
+      </motion.div>
+
+      {/* Announcements - Prominent Display */}
+      {announcements.length > 0 && (
+        <motion.div variants={itemVariants}>
+          <GlassCard className="p-6 border-blue-500/30">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 rounded-lg bg-blue-500/20">
+                <Megaphone className="h-6 w-6 text-blue-400" />
+              </div>
+              <h2 className="text-white text-xl font-bold">Latest Announcements</h2>
+            </div>
+            
+            <div className="space-y-4">
+              {announcements.slice(0, 3).map((announcement, index) => (
+                <motion.div 
+                  key={announcement.id}
+                  className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/15 transition-all duration-300"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <h3 className="text-white font-semibold text-lg mb-2">
+                        {announcement.title || 'Announcement'}
+                      </h3>
+                      <p className="text-blue-100 text-sm mb-2">
+                        {announcement.message || announcement.content}
+                      </p>
+                      <div className="flex items-center gap-4 text-xs text-blue-200">
+                        {announcement.teachers?.name && (
+                          <span>From: {announcement.teachers.name}</span>
+                        )}
+                        {announcement.created_at && (
+                          <span>{new Date(announcement.created_at).toLocaleDateString()}</span>
+                        )}
+                        {announcement.priority && announcement.priority !== 'normal' && (
+                          <Badge 
+                            variant="secondary" 
+                            className={`${
+                              announcement.priority === 'high' ? 'bg-red-500/20 text-red-300' :
+                              announcement.priority === 'urgent' ? 'bg-orange-500/20 text-orange-300' :
+                              'bg-yellow-500/20 text-yellow-300'
+                            }`}
+                          >
+                            {announcement.priority.toUpperCase()}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+            
+            {announcements.length > 3 && (
+              <div className="mt-4 text-center">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => window.location.href = '/student/discussions'}
+                  className="text-blue-300 border-blue-500/30 hover:bg-blue-500/10"
+                >
+                  View All Announcements
+                </Button>
+              </div>
+            )}
+          </GlassCard>
+        </motion.div>
+      )}
+
+      {/* Simplified Stats Overview */}
+      <motion.div 
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+        variants={itemVariants}
+      >
         <StatCard
-          title="Enrolled Courses"
+          title="Courses"
           value={stats.totalCourses}
-          description="Enrolled Courses"
+          description="Enrolled"
           icon={BookOpen}
           iconColor="blue"
-          className="animate-fade-in-up"
         />
         
         <StatCard
-          title="Total Assignments"
+          title="Assignments"
           value={stats.totalAssignments}
-          description="Total Assignments"
+          description="Total Tasks"
           icon={ListChecks}
           iconColor="green"
-          className="animate-fade-in-up"
         />
         
         <StatCard
           title="Completed"
           value={stats.completedAssignments}
-          description="Completed"
+          description="Finished"
           icon={Award}
           iconColor="purple"
-          className="animate-fade-in-up"
         />
         
         <StatCard
-          title="Upcoming"
+          title="Due Soon"
           value={stats.upcomingAssignments}
           description="Upcoming"
           icon={Clock}
           iconColor="orange"
-          className="animate-fade-in-up"
         />
-      </div>
+      </motion.div>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+      {/* Progress Overview - Simplified */}
+      <motion.div variants={itemVariants}>
+        <GlassCard className="p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 rounded-lg bg-blue-500/20">
+              <TrendingUp className="h-5 w-5 text-blue-400" />
+            </div>
+            <h2 className="text-white text-lg font-semibold">Your Progress</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <div className="flex justify-between text-sm mb-2">
+                <span className="text-slate-400">Assignment Completion</span>
+                <span className="text-white font-medium">
+                  {stats.totalAssignments > 0 ? Math.round((stats.completedAssignments / stats.totalAssignments) * 100) : 0}%
+                </span>
+              </div>
+              <Progress 
+                value={stats.totalAssignments > 0 ? (stats.completedAssignments / stats.totalAssignments) * 100 : 0} 
+                className="h-3" 
+              />
+              <p className="text-slate-400 text-xs mt-2">
+                {stats.completedAssignments} of {stats.totalAssignments} assignments completed
+              </p>
+            </div>
+            
+            <div>
+              <div className="flex justify-between text-sm mb-2">
+                <span className="text-slate-400">On-Time Submission</span>
+                <span className="text-white font-medium">
+                  {stats.totalAssignments > 0 ? Math.round(((stats.totalAssignments - stats.overdueAssignments) / stats.totalAssignments) * 100) : 100}%
+                </span>
+              </div>
+              <Progress 
+                value={stats.totalAssignments > 0 ? ((stats.totalAssignments - stats.overdueAssignments) / stats.totalAssignments) * 100 : 100} 
+                className="h-3" 
+              />
+              <p className="text-slate-400 text-xs mt-2">
+                {stats.overdueAssignments} overdue assignments
+              </p>
+            </div>
+          </div>
+        </GlassCard>
+      </motion.div>
+
+      {/* Quick Actions - Simplified */}
+      <motion.div 
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+        variants={itemVariants}
+      >
         <QuickActionCard
           title="My Courses"
-          description="Access modules and lessons."
+          description="Access modules and lessons"
           icon={BookOpen}
           iconColor="blue"
           href="/student/courses"
-          className="animate-fade-in-up"
         />
         
         <QuickActionCard
           title="Assignments"
-          description="View due tasks and submit work."
+          description="View and submit tasks"
           icon={ListChecks}
           iconColor="green"
           href="/student/assignments"
-          className="animate-fade-in-up"
         />
         
         <QuickActionCard
           title="Live Classes"
-          description="Join live sessions."
+          description="Join live sessions"
           icon={Users}
           iconColor="purple"
           href="/student/live-class"
-          className="animate-fade-in-up"
         />
-      </div>
+        
+        <QuickActionCard
+          title="Discussions"
+          description="View announcements and discussions"
+          icon={MessageSquare}
+          iconColor="blue"
+          href="/student/discussions"
+        />
+      </motion.div>
 
-      {/* Recent Assignments */}
-      {assignments.length > 0 && (
-        <div>
-          <h2 className="text-white text-lg font-semibold mb-4">Recent Assignments</h2>
-          <div className="grid gap-3">
-            {assignments.slice(0, 3).map((assignment) => (
-              <GlassCard key={assignment.id} className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-white font-medium">{assignment.title}</h3>
-                    <p className="text-slate-400 text-sm">{assignment.course_title}</p>
-                    {assignment.due_at && (
-                      <p className="text-slate-500 text-xs mt-1">
-                        Due: {new Date(assignment.due_at).toLocaleDateString()}
-                      </p>
-                    )}
-                  </div>
-                  <Badge variant="outline" className="text-xs">
-                    {assignment.type}
-                  </Badge>
-                </div>
-              </GlassCard>
-            ))}
+      {/* Recent Assignments - Simplified */}
+      <motion.div variants={itemVariants}>
+        <GlassCard className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-orange-500/20">
+                <ListChecks className="h-5 w-5 text-orange-400" />
+              </div>
+              <div>
+                <h2 className="text-white text-xl font-semibold">Recent Assignments</h2>
+                <p className="text-slate-400 text-sm">Your latest tasks and deadlines</p>
+              </div>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => window.location.href = '/student/assignments'}
+              className="text-orange-300 border-orange-500/30 hover:bg-orange-500/10"
+            >
+              View All
+            </Button>
           </div>
-        </div>
-      )}
-    </div>
+          
+          {assignments.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {assignments.slice(0, 4).map((assignment, index) => (
+                <motion.div 
+                  key={assignment.id} 
+                  className="p-4 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-all duration-300"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={`p-2 rounded-lg ${
+                      assignment.status === 'submitted' || assignment.status === 'graded' 
+                        ? 'bg-green-500/20' 
+                        : new Date(assignment.due_at) < new Date() 
+                        ? 'bg-red-500/20' 
+                        : 'bg-blue-500/20'
+                    }`}>
+                      {assignment.status === 'submitted' || assignment.status === 'graded' ? (
+                        <CheckCircle2 className="h-4 w-4 text-green-400" />
+                      ) : new Date(assignment.due_at) < new Date() ? (
+                        <AlertCircle className="h-4 w-4 text-red-400" />
+                      ) : (
+                        <Clock className="h-4 w-4 text-blue-400" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-white font-medium mb-1">{assignment.title}</h3>
+                      <p className="text-slate-400 text-sm mb-2">{assignment.course_title}</p>
+                      {assignment.due_at && (
+                        <p className={`text-xs ${
+                          new Date(assignment.due_at) < new Date() 
+                            ? 'text-red-400' 
+                            : 'text-slate-500'
+                        }`}>
+                          Due: {new Date(assignment.due_at).toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <ListChecks className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+              <p className="text-slate-400 mb-4">No assignments yet</p>
+              <p className="text-slate-500 text-sm">Your teachers will assign tasks here</p>
+            </div>
+          )}
+        </GlassCard>
+      </motion.div>
+    </motion.div>
   )
 }

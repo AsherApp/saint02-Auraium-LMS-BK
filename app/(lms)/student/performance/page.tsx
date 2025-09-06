@@ -89,7 +89,7 @@ export default function StudentPerformancePage() {
       setLoading(true)
       
       // Fetch enrolled courses first
-      const enrollmentsResponse = await http<{ items: any[] }>(`/api/students/${user?.email}/enrollments`)
+      const enrollmentsResponse = await http<{ items: any[] }>(`/api/students/me/enrollments`)
       const enrollments = enrollmentsResponse.items || []
       console.log('Enrolled courses:', enrollments)
       
@@ -203,15 +203,15 @@ export default function StudentPerformancePage() {
       // Fetch engagement data (polls, discussions, study time)
       try {
         // Get poll participation data
-        const pollResponse = await http<any[]>(`/api/students/${user?.email}/poll-participation`)
+        const pollResponse = await http<any[]>(`/api/students/me/poll-participation`)
         const pollData = pollResponse || []
         
         // Get discussion participation data
-        const discussionResponse = await http<any[]>(`/api/students/${user?.email}/discussion-participation`)
+        const discussionResponse = await http<any[]>(`/api/students/me/discussion-participation`)
         const discussionData = discussionResponse || []
         
         // Get study time data
-        const studyTimeResponse = await http<any>(`/api/students/${user?.email}/study-time`)
+        const studyTimeResponse = await http<any>(`/api/students/me/study-time`)
         const studyTimeData = studyTimeResponse || { total_seconds: 0 }
         
         // Update stats with real engagement data
@@ -493,7 +493,8 @@ export default function StudentPerformancePage() {
                         <Button
                           size="sm"
                           onClick={() => handleShowCertificate(course)}
-                          className="bg-green-600 hover:bg-green-700 text-white"
+                          variant="success"
+                          className=""
                         >
                           <Award className="h-4 w-4 mr-2" />
                           View Certificate
@@ -632,7 +633,7 @@ export default function StudentPerformancePage() {
       {showCertificate && selectedCourse && (
         <CourseCompletionCertificate
           courseTitle={selectedCourse.course_title}
-          studentName={user?.name || user?.email || 'Student'}
+          studentName={user?.name || user?.studentCode || (user?.email ? user.email.split('@')[0] : 'Student')}
           completionDate={selectedCourse.completed_at || new Date().toISOString()}
           courseId={selectedCourse.course_id}
           totalLessons={selectedCourse.total_lessons}

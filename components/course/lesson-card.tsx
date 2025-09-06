@@ -28,7 +28,7 @@ export function LessonCard({
         <div className="text-xs text-blue-400 capitalize truncate font-semibold">{type}</div>
       </div>
       <button
-        className="text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 transition-colors flex items-center justify-center px-4 py-2 rounded-md w-full sm:w-auto shadow-md"
+        className="text-sm font-bold flex items-center justify-center px-4 py-2 w-full sm:w-auto"
         aria-label={`Start ${title} ${type}`}
       >
         Start

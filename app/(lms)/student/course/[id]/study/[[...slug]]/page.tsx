@@ -30,6 +30,20 @@ export default function StudyAreaPage() {
       
       try {
         const courseResponse = await http<any>(`/api/courses/${params.id}`)
+        
+        // Check if course is in public mode
+        if (courseResponse.course_mode === 'public') {
+          // Redirect to public mode study area
+          if (moduleId && lessonId) {
+            window.location.href = `/student/public-study/${params.id}/${moduleId}/${lessonId}`
+          } else if (moduleId) {
+            window.location.href = `/student/public-study/${params.id}/${moduleId}`
+          } else {
+            window.location.href = `/student/public-course/${params.id}`
+          }
+          return
+        }
+        
         setCourse(courseResponse)
       } catch (err: any) {
         setError(err.message || "Failed to load course")

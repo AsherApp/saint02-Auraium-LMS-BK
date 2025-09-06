@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { GlassCard } from "@/components/shared/glass-card"
 import { useAuthStore } from "@/store/auth-store"
 import { useToast } from "@/hooks/use-toast"
+import { dateUtils } from "@/utils/date-utils"
 import { 
   Calendar as CalendarIcon, 
   Plus, 
@@ -197,18 +198,11 @@ export function CalendarView() {
   }
 
   const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit'
-    })
+    return dateUtils.time(dateString)
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric'
-    })
+    return dateUtils.short(dateString)
   }
 
   return (
@@ -457,7 +451,7 @@ export function CalendarView() {
             </div>
 
             <div className="flex gap-2">
-              <Button onClick={handleCreateEvent} className="bg-blue-600 hover:bg-blue-700 text-white">
+              <Button onClick={handleCreateEvent} variant="default">
                 Create Event
               </Button>
               <Button 
@@ -536,7 +530,7 @@ export function CalendarView() {
                     <Button
                       size="sm"
                       onClick={() => handleRSVP(selectedEvent.id, 'accepted')}
-                      className="bg-green-600 hover:bg-green-700 text-white"
+                      variant="success"
                     >
                       <CheckCircle className="h-4 w-4 mr-2" />
                       Accept

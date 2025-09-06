@@ -160,14 +160,22 @@ body {
   }
   
   .lk-control-bar {
-    padding: 8px !important;
+    padding: 8px 12px !important;
     gap: 8px !important;
+    bottom: 10px !important;
+    max-width: 95vw !important;
   }
   
   .lk-button {
-    min-width: 40px !important;
-    min-height: 40px !important;
-    padding: 8px !important;
+    min-width: 80px !important;
+    height: 36px !important;
+    padding: 6px 12px !important;
+    font-size: 12px !important;
+  }
+  
+  .lk-button svg {
+    width: 14px !important;
+    height: 14px !important;
   }
 }
 
@@ -179,6 +187,24 @@ body {
   .lk-participant-tile {
     min-width: 120px !important;
     min-height: 90px !important;
+  }
+  
+  .lk-control-bar {
+    padding: 6px 8px !important;
+    gap: 6px !important;
+    bottom: 8px !important;
+  }
+  
+  .lk-button {
+    min-width: 70px !important;
+    height: 32px !important;
+    padding: 4px 8px !important;
+    font-size: 11px !important;
+  }
+  
+  .lk-button svg {
+    width: 12px !important;
+    height: 12px !important;
   }
 }
 
@@ -737,4 +763,424 @@ body {
   background-color: rgba(15, 23, 42, 0.35);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* LiveKit UI Cleanup and Overlap Fix */
+.lk-focus-layout {
+  display: none !important;
+}
+
+.lk-participant-tile {
+  display: none !important;
+}
+
+.lk-participant-list {
+  display: none !important;
+}
+
+.lk-participant-count {
+  display: none !important;
+}
+
+.lk-connection-quality {
+  display: none !important;
+}
+
+.lk-participant-name {
+  display: none !important;
+}
+
+.lk-video-muted-indicator {
+  display: none !important;
+}
+
+.lk-audio-muted-indicator {
+  display: none !important;
+}
+
+.lk-default-ui {
+  display: none !important;
+}
+
+.lk-controls {
+  display: none !important;
+}
+
+.lk-participants-bar {
+  display: none !important;
+}
+
+/* Hide any other LiveKit UI elements that might interfere */
+.lk-participant-indicators,
+.lk-participant-avatars,
+.lk-participant-dots {
+  display: none !important;
+}
+
+/* UI Consistency Utilities */
+@layer utilities {
+  /* Standardized glass effects */
+  .glass-light {
+    @apply bg-white/5 backdrop-blur-md border border-white/10;
+  }
+  
+  .glass-medium {
+    @apply bg-white/10 backdrop-blur-md border border-white/20;
+  }
+  
+  .glass-heavy {
+    @apply bg-white/15 backdrop-blur-md border border-white/30;
+  }
+  
+  /* Standardized text colors */
+  .text-primary {
+    @apply text-white;
+  }
+  
+  .text-secondary {
+    @apply text-slate-300;
+  }
+  
+  .text-muted {
+    @apply text-slate-400;
+  }
+  
+  .text-accent {
+    @apply text-blue-400;
+  }
+  
+  .text-success {
+    @apply text-green-400;
+  }
+  
+  .text-warning {
+    @apply text-orange-400;
+  }
+  
+  .text-error {
+    @apply text-red-400;
+  }
+  
+  /* Standardized spacing */
+  .spacing-container {
+    @apply p-6;
+  }
+  
+  .spacing-container-sm {
+    @apply p-4;
+  }
+  
+  .spacing-container-lg {
+    @apply p-8;
+  }
+  
+  .spacing-section {
+    @apply py-6;
+  }
+  
+  .spacing-section-sm {
+    @apply py-4;
+  }
+  
+  .spacing-section-lg {
+    @apply py-8;
+  }
+  
+  /* Standardized transitions */
+  .transition-fast {
+    @apply transition-all duration-150 ease-in-out;
+  }
+  
+  .transition-normal {
+    @apply transition-all duration-200 ease-in-out;
+  }
+  
+  .transition-slow {
+    @apply transition-all duration-300 ease-in-out;
+  }
+  
+  /* Standardized focus states */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-slate-900;
+  }
+  
+  .focus-ring-inset {
+    @apply focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-inset;
+  }
+  
+  /* Standardized hover states */
+  .hover-glass {
+    @apply hover:bg-white/10 transition-colors duration-200;
+  }
+  
+  .hover-glass-medium {
+    @apply hover:bg-white/15 transition-colors duration-200;
+  }
+  
+  .hover-glass-heavy {
+    @apply hover:bg-white/20 transition-colors duration-200;
+  }
+  
+  /* Standardized button base */
+  .btn-base {
+    @apply inline-flex items-center justify-center rounded-md font-medium transition-all duration-200 disabled:pointer-events-none disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-2;
+  }
+  
+  /* Standardized form elements */
+  .form-input {
+    @apply w-full px-3 py-2 bg-white/5 border border-white/10 rounded-md text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50;
+  }
+  
+  .form-textarea {
+    @apply w-full px-3 py-2 bg-white/5 border border-white/10 rounded-md text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 resize-vertical;
+  }
+  
+  .form-select {
+    @apply w-full px-3 py-2 bg-white/5 border border-white/10 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50;
+  }
+  
+  .form-label {
+    @apply block text-sm font-medium text-slate-300 mb-1;
+  }
+  
+  .form-error {
+    @apply text-sm text-red-400 mt-1;
+  }
+  
+  .form-help {
+    @apply text-sm text-slate-400 mt-1;
+  }
+  
+  /* Standardized card styles */
+  .card-glass {
+    @apply bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-glass;
+  }
+  
+  .card-glass-hover {
+    @apply bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-glass hover:bg-white/15 transition-all duration-200;
+  }
+  
+  .card-solid {
+    @apply bg-slate-800 border border-slate-700 rounded-xl shadow-md;
+  }
+  
+  .card-solid-hover {
+    @apply bg-slate-800 border border-slate-700 rounded-xl shadow-md hover:bg-slate-750 transition-all duration-200;
+  }
+  
+  /* Standardized badge styles */
+  .badge-default {
+    @apply bg-slate-700 text-slate-300 border border-slate-600;
+  }
+  
+  .badge-primary {
+    @apply bg-blue-600/30 text-blue-100 border border-blue-500/30;
+  }
+  
+  .badge-success {
+    @apply bg-green-600/30 text-green-100 border border-green-500/30;
+  }
+  
+  .badge-warning {
+    @apply bg-orange-600/30 text-orange-100 border border-orange-500/30;
+  }
+  
+  .badge-destructive {
+    @apply bg-red-600/30 text-red-100 border border-red-500/30;
+  }
+  
+  .badge-outline {
+    @apply bg-transparent text-slate-300 border border-white/20;
+  }
+  
+  /* Standardized table styles */
+  .table-container {
+    @apply w-full overflow-hidden rounded-lg border border-white/10;
+  }
+  
+  .table-header {
+    @apply bg-white/5 border-b border-white/10;
+  }
+  
+  .table-header-cell {
+    @apply px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider;
+  }
+  
+  .table-row {
+    @apply border-b border-white/5 hover:bg-white/5 transition-colors duration-150;
+  }
+  
+  .table-cell {
+    @apply px-4 py-3 text-sm text-slate-300;
+  }
+  
+  .table-cell-muted {
+    @apply px-4 py-3 text-sm text-slate-400;
+  }
+  
+  /* Standardized loading states */
+  .loading-spinner {
+    @apply animate-spin rounded-full border-2 border-white/20 border-t-white;
+  }
+  
+  .loading-skeleton {
+    @apply animate-pulse bg-white/10 rounded;
+  }
+  
+  .loading-dots {
+    @apply flex space-x-1;
+  }
+  
+  .loading-dot {
+    @apply w-2 h-2 bg-white/40 rounded-full animate-pulse;
+  }
+}
+
+/* Clean Modern LiveKit Control Styles */
+/* Control bar container */
+.lk-control-bar {
+  position: fixed !important;
+  bottom: 20px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  background: rgba(20, 20, 30, 0.85) !important;
+  border-radius: 12px !important;
+  padding: 12px 20px !important;
+  backdrop-filter: blur(8px) !important;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4) !important;
+  display: flex !important;
+  gap: 12px !important;
+  justify-content: center !important;
+  align-items: center !important;
+  z-index: 1000 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  min-width: auto !important;
+  max-width: 600px !important;
+}
+
+/* Buttons */
+.lk-button,
+[data-lk-button] {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  padding: 8px 16px !important;
+  font-size: 14px !important;
+  font-family: 'Segoe UI', Roboto, sans-serif !important;
+  font-weight: 500 !important;
+  border-radius: 8px !important;
+  transition: all 0.2s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  height: 40px !important;
+  white-space: nowrap !important;
+  cursor: pointer !important;
+  min-width: 120px !important;
+}
+
+/* Fix icon and text alignment */
+.lk-button svg, [data-lk-button] svg {
+  width: 16px !important;
+  height: 16px !important;
+  flex-shrink: 0 !important;
+}
+
+/* Hover effects */
+.lk-button:hover,
+[data-lk-button]:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Active state */
+.lk-button:active,
+[data-lk-button]:active {
+  background: rgba(255, 255, 255, 0.2) !important;
+  transform: translateY(0) !important;
+}
+
+/* Disabled state */
+.lk-button:not(:disabled) {
+  opacity: 1 !important;
+}
+
+.lk-button:disabled {
+  opacity: 0.4 !important;
+  cursor: not-allowed !important;
+}
+
+/* Special "Leave" button */
+.lk-button.leave,
+[data-lk-button="leave"] {
+  background: rgba(239, 68, 68, 0.8) !important;
+  border-color: rgba(239, 68, 68, 0.6) !important;
+}
+
+.lk-button.leave:hover,
+[data-lk-button="leave"]:hover {
+  background: rgba(239, 68, 68, 1) !important;
+  border-color: rgba(239, 68, 68, 0.8) !important;
+}
+
+/* Active state styling */
+.lk-button.active, [data-lk-button].active {
+  background: rgba(59, 130, 246, 0.8) !important;
+  border-color: rgba(59, 130, 246, 0.6) !important;
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.3) !important;
+}
+
+/* Screen share active state */
+.lk-button[data-lk-button="screen-share"].active {
+  background: rgba(168, 85, 247, 0.8) !important;
+  border-color: rgba(168, 85, 247, 0.6) !important;
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.3) !important;
+}
+
+/* Chat button special styling */
+.lk-button[data-lk-button="chat"] {
+  background: rgba(34, 197, 94, 0.8) !important;
+  border-color: rgba(34, 197, 94, 0.6) !important;
+}
+
+.lk-button[data-lk-button="chat"]:hover {
+  background: rgba(34, 197, 94, 1) !important;
+  border-color: rgba(34, 197, 94, 0.8) !important;
+}
+
+/* Dropdown menu styling */
+.lk-device-menu {
+  background: rgba(30, 30, 40, 0.9) !important;
+  border-radius: 10px !important;
+  padding: 8px 0 !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+  margin-top: 8px !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+.lk-device-menu button {
+  background: transparent !important;
+  color: white !important;
+  padding: 8px 16px !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  width: 100% !important;
+  text-align: left !important;
+  transition: background 0.2s !important;
+  border: none !important;
+  cursor: pointer !important;
+}
+
+.lk-device-menu button:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Ensure proper z-index and positioning */
+.lk-room-container {
+  position: relative !important;
+  z-index: 1 !important;
 }

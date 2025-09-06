@@ -182,7 +182,8 @@ export function UniversalMediaPlayer({
                 <Button
                   onClick={handlePlay}
                   size="lg"
-                  className="bg-red-600 hover:bg-red-700 text-white rounded-full w-16 h-16 flex items-center justify-center"
+                  className="rounded-full w-16 h-16 flex items-center justify-center"
+                  variant="destructive"
                   disabled={isLoading}
                 >
                   {isLoading ? (

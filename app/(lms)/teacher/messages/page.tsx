@@ -743,6 +743,11 @@ function ComposeMessageForm({
   onCancel: () => void
 }) {
   const [showToolbar, setShowToolbar] = useState(false)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [showStudentList, setShowStudentList] = useState(false)
+  const [loadingStudents, setLoadingStudents] = useState(false)
+  const [filteredStudents, setFilteredStudents] = useState<any[]>([])
+  const studentDropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (replyTo) {
@@ -758,30 +763,76 @@ function ComposeMessageForm({
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="text-sm font-medium text-slate-300">To:</label>
-          <Input
-            value={data.to}
-            onChange={(e) => setData({ ...data, to: e.target.value })}
-            placeholder="student@school.edu"
-            className="mt-1 bg-white/5 border-white/10 text-white"
-            required
-          />
+        <div className="relative" ref={studentDropdownRef}>
+            <label className="text-sm font-medium text-slate-300">To:</label>
+            <div className="relative">
+              <Input
+                value={data.to}
+                onChange={(e) => {
+                  setData({ ...data, to: e.target.value })
+                  setSearchTerm(e.target.value)
+                  setShowStudentList(true)
+                }}
+                onFocus={() => setShowStudentList(true)}
+                placeholder="Search enrolled students..."
+                className="mt-1 bg-white/5 border-white/10 text-white pr-10"
+                required
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowStudentList(!showStudentList)}
+                className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 text-slate-400 hover:text-white"
+              >
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            {/* Student Dropdown with proper z-index */}
+            {showStudentList && (
+              <div className="absolute z-[9999] w-full mt-1 bg-slate-800 border border-white/20 rounded-lg shadow-2xl max-h-60 overflow-y-auto">
+                {loadingStudents ? (
+                  <div className="p-3 text-center text-slate-400">Loading students...</div>
+                ) : filteredStudents.length === 0 ? (
+                  <div className="p-3 text-center text-slate-400">No students found</div>
+                ) : (
+                  <div className="py-1">
+                    {filteredStudents.map((student) => (
+                      <button
+                        key={student.id}
+                        type="button"
+                        onClick={() => {
+                          setData({ ...data, to: student.student_email })
+                          setShowStudentList(false)
+                          setSearchTerm("")
+                        }}
+                        className="w-full text-left px-3 py-2 hover:bg-white/10 text-white text-sm flex flex-col"
+                      >
+                        <span className="font-medium">{student.student_name || 'Unknown Student'}</span>
+                        <span className="text-slate-400 text-xs">{student.student_email}</span>
+                        <span className="text-slate-500 text-xs">{student.course_title}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          <div>
+            <label className="text-sm font-medium text-slate-300">Priority:</label>
+            <Select value={data.priority} onValueChange={(value) => setData({ ...data, priority: value })}>
+              <SelectTrigger className="mt-1 bg-white/5 border-white/10 text-white">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-white/10 border-white/20 text-white z-[9999]">
+                <SelectItem value="low">Low</SelectItem>
+                <SelectItem value="normal">Normal</SelectItem>
+                <SelectItem value="high">High</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-        <div>
-          <label className="text-sm font-medium text-slate-300">Priority:</label>
-          <Select value={data.priority} onValueChange={(value) => setData({ ...data, priority: value })}>
-            <SelectTrigger className="mt-1 bg-white/5 border-white/10 text-white">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-white/10 border-white/20 text-white">
-              <SelectItem value="low">Low</SelectItem>
-              <SelectItem value="normal">Normal</SelectItem>
-              <SelectItem value="high">High</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
       
       <div>
         <label className="text-sm font-medium text-slate-300">Subject:</label>

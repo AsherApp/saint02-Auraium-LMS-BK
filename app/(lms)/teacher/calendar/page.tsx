@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { FluidTabs, useFluidTabs } from "@/components/ui/fluid-tabs"
 import { useToast } from "@/hooks/use-toast"
 import { http } from "@/services/http"
+import { dateUtils } from "@/utils/date-utils"
 import { useRouter } from "next/navigation"
 import {
   Calendar,
@@ -732,14 +733,12 @@ export default function TeacherCalendar() {
                   <Clock className="h-4 w-4 text-slate-400" />
                   <div>
                     <div className="text-white">
-                      {new Date(selectedEvent.start_time).toLocaleDateString()} at{' '}
-                      {new Date(selectedEvent.start_time).toLocaleTimeString([], { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                      })}
+                      {dateUtils.short(selectedEvent.start_time)} at {dateUtils.time(selectedEvent.start_time)}
                     </div>
                     <div className="text-slate-400 text-xs">
-                      Duration: {Math.round((new Date(selectedEvent.end_time).getTime() - new Date(selectedEvent.start_time).getTime()) / (1000 * 60))} minutes
+                      Duration: {selectedEvent.end_time && selectedEvent.start_time ? 
+                        Math.round((new Date(selectedEvent.end_time).getTime() - new Date(selectedEvent.start_time).getTime()) / (1000 * 60)) : 0
+                      } minutes
                     </div>
                   </div>
                 </div>

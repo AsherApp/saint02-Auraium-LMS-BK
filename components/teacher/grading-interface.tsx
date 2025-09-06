@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Progress } from "@/components/ui/progress"
-import { AssignmentProAPI, type Assignment, type Submission, type RubricCriterion } from "@/services/assignment-pro/api"
+import { AssignmentProAPI, type Assignment, type Submission, type RubricCriteria } from "@/services/assignment-pro/api"
 import { DocumentViewer } from "@/components/shared/document-viewer"
 import { PresentationViewer } from "@/components/shared/presentation-viewer"
 import { 
@@ -110,7 +110,7 @@ export function GradingInterface({ assignment, onClose }: GradingInterfaceProps)
           comparison = a.student_email.localeCompare(b.student_email)
           break
         case "submitted_at":
-          comparison = new Date(a.submitted_at).getTime() - new Date(b.submitted_at).getTime()
+          comparison = new Date(a.submitted_at || 0).getTime() - new Date(b.submitted_at || 0).getTime()
           break
         case "grade":
           comparison = (a.grade || 0) - (b.grade || 0)
@@ -125,7 +125,7 @@ export function GradingInterface({ assignment, onClose }: GradingInterfaceProps)
       const updatedSubmission = await AssignmentProAPI.gradeSubmission(submissionId, {
         grade,
         feedback,
-        rubric_scores: rubricScores
+        rubric_scores: Object.entries(rubricScores).map(([criterionId, score]) => ({ criterion_id: criterionId, score }))
       })
       setSubmissions(prev => prev.map(s => s.id === submissionId ? updatedSubmission : s))
       // Move to next ungraded submission
@@ -147,7 +147,7 @@ export function GradingInterface({ assignment, onClose }: GradingInterfaceProps)
         AssignmentProAPI.gradeSubmission(id, {
           grade: bulkGrade,
           feedback: bulkFeedback,
-          rubric_scores: {}
+          rubric_scores: []
         })
       )
       const updatedSubmissions = await Promise.all(updates)
@@ -172,7 +172,7 @@ export function GradingInterface({ assignment, onClose }: GradingInterfaceProps)
     setCurrentSubmission(submission)
     setGrade(submission.grade || 0)
     setFeedback(submission.feedback || "")
-    setRubricScores(submission.rubric_scores || {})
+    setRubricScores((submission.rubric_scores || []).reduce((acc, score) => ({ ...acc, [score.criterion_id]: score.score }), {}))
   }
 
   const toggleSubmissionSelection = (submissionId: string) => {
@@ -337,7 +337,7 @@ export function GradingInterface({ assignment, onClose }: GradingInterfaceProps)
                     
                     <div className="flex items-center gap-2 text-xs text-slate-400 mb-2">
                       <Clock className="h-3 w-3" />
-                      <span>{new Date(submission.submitted_at).toLocaleDateString()}</span>
+                      <span>{new Date(submission.submitted_at || 0).toLocaleDateString()}</span>
                     </div>
                     
                     <div className="flex items-center justify-between">
@@ -384,7 +384,7 @@ export function GradingInterface({ assignment, onClose }: GradingInterfaceProps)
                       {(currentSubmission.student_name || currentSubmission.student_email.split('@')[0])}'s Submission
                     </h3>
                     <p className="text-slate-400 text-sm">
-                      Submitted on {new Date(currentSubmission.submitted_at).toLocaleString()}
+                      Submitted on {new Date(currentSubmission.submitted_at || 0).toLocaleString()}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -442,55 +442,55 @@ export function GradingInterface({ assignment, onClose }: GradingInterfaceProps)
                     )}
 
                     {/* Project Content */}
-                    {assignment.type === "project" && currentSubmission.content.project && (
+                    {assignment.type === "project" && (currentSubmission.content as any).project && (
                       <div className="bg-white/5 rounded-lg p-4 mb-4">
                         <h5 className="text-white font-medium mb-2">Project Description</h5>
                         <div className="text-white whitespace-pre-wrap">
-                          {currentSubmission.content.project}
+                          {(currentSubmission.content as any).project}
                         </div>
                       </div>
                     )}
 
                     {/* Discussion Content */}
-                    {assignment.type === "discussion" && currentSubmission.content.discussion && (
+                    {assignment.type === "discussion" && (currentSubmission.content as any).discussion && (
                       <div className="bg-white/5 rounded-lg p-4 mb-4">
                         <h5 className="text-white font-medium mb-2">Discussion Response</h5>
                         <div className="text-white whitespace-pre-wrap">
-                          {currentSubmission.content.discussion}
+                          {(currentSubmission.content as any).discussion}
                         </div>
                       </div>
                     )}
 
                     {/* Presentation Content */}
-                    {assignment.type === "presentation" && currentSubmission.content.presentation && (
+                    {assignment.type === "presentation" && (currentSubmission.content as any).presentation && (
                       <div className="bg-white/5 rounded-lg p-4 mb-4">
                         <h5 className="text-white font-medium mb-2">Presentation Notes</h5>
                         <div className="text-white whitespace-pre-wrap">
-                          {currentSubmission.content.presentation}
+                          {(currentSubmission.content as any).presentation}
                         </div>
                       </div>
                     )}
 
                     {/* Code Submission */}
-                    {assignment.type === "code_submission" && currentSubmission.content.code_submission && (
+                    {assignment.type === "code_submission" && (currentSubmission.content as any).code_submission && (
                       <div className="bg-white/5 rounded-lg p-4 mb-4">
                         <h5 className="text-white font-medium mb-2">Code Submission</h5>
                         <div className="bg-slate-900 rounded-lg p-4">
                           <pre className="text-green-400 font-mono text-sm whitespace-pre-wrap">
-                            {currentSubmission.content.code_submission}
+                            {(currentSubmission.content as any).code_submission}
                           </pre>
                         </div>
                       </div>
                     )}
 
                     {/* File Upload Content */}
-                    {assignment.type === "file_upload" && currentSubmission.content.file_upload && (
+                    {assignment.type === "file_upload" && (currentSubmission.content as any).file_upload && (
                       <div className="bg-white/5 rounded-lg p-4 mb-4">
                         <h5 className="text-white font-medium mb-2">Uploaded Files</h5>
                         <div className="text-white">
-                          {Array.isArray(currentSubmission.content.file_upload) 
-                            ? currentSubmission.content.file_upload.join(', ')
-                            : currentSubmission.content.file_upload
+                          {Array.isArray((currentSubmission.content as any).file_upload) 
+                            ? (currentSubmission.content as any).file_upload.join(', ')
+                            : (currentSubmission.content as any).file_upload
                           }
                         </div>
                       </div>
@@ -498,11 +498,11 @@ export function GradingInterface({ assignment, onClose }: GradingInterfaceProps)
 
                     {/* No Content Message */}
                     {!currentSubmission.content.essay && 
-                     !currentSubmission.content.project && 
-                     !currentSubmission.content.discussion && 
-                     !currentSubmission.content.presentation && 
-                     !currentSubmission.content.code_submission && 
-                     !currentSubmission.content.file_upload && 
+                                           !(currentSubmission.content as any).project &&
+                      !(currentSubmission.content as any).discussion &&
+                      !(currentSubmission.content as any).presentation &&
+                      !(currentSubmission.content as any).code_submission &&
+                      !(currentSubmission.content as any).file_upload && 
                      (!currentSubmission.attachments || currentSubmission.attachments.length === 0) && (
                       <div className="bg-white/5 rounded-lg p-4 mb-4">
                         <div className="text-slate-400 text-center py-8">
@@ -646,7 +646,7 @@ export function GradingInterface({ assignment, onClose }: GradingInterfaceProps)
                         <h4 className="text-lg font-medium text-white">Rubric Assessment</h4>
                         <div className="text-right">
                           <div className="text-xl font-bold text-white">
-                            {calculateRubricTotal()}/{assignment.rubric.reduce((sum, c) => sum + c.max_points, 0)}
+                            {calculateRubricTotal()}/{assignment.rubric.reduce((sum, c) => sum + c.maxPoints, 0)}
                           </div>
                           <div className="text-sm text-slate-400">Total Points</div>
                         </div>
@@ -666,7 +666,7 @@ export function GradingInterface({ assignment, onClose }: GradingInterfaceProps)
                                 <Input
                                   type="number"
                                   min="0"
-                                  max={criterion.max_points}
+                                  max={criterion.maxPoints}
                                   value={rubricScores[criterion.id] || 0}
                                   onChange={(e) => setRubricScores(prev => ({
                                     ...prev,
@@ -675,14 +675,14 @@ export function GradingInterface({ assignment, onClose }: GradingInterfaceProps)
                                   className="bg-white/5 border-white/10 text-white w-20"
                                 />
                                 <div className="text-xs text-slate-400 text-center mt-1">
-                                  /{criterion.max_points}
+                                  /{criterion.maxPoints}
                                 </div>
                               </div>
                             </div>
                             
                             <div className="mt-2">
                               <Progress 
-                                value={(rubricScores[criterion.id] || 0) / criterion.max_points * 100} 
+                                value={(rubricScores[criterion.id] || 0) / criterion.maxPoints * 100} 
                                 className="h-2"
                               />
                             </div>

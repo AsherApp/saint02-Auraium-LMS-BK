@@ -98,7 +98,7 @@ export function Features() {
                 <f.icon className="h-8 w-8 text-white" />
               </div>
               
-              <h3 className="text-white font-bold text-xl mb-4 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-blue-400 group-hover:to-purple-400 group-hover:bg-clip-text transition-all duration-300">
+              <h3 className="text-white font-bold text-xl mb-4 group-hover:bg-gradient-to-r group-hover:from-blue-400 group-hover:to-purple-400 group-hover:bg-clip-text group-hover:text-transparent">
                 {f.title}
               </h3>
               

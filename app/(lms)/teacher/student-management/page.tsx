@@ -8,13 +8,14 @@ import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Progress } from "@/components/ui/progress"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { UserDisplay } from "@/components/shared/user-avatar"
 import { useAuthStore } from "@/store/auth-store"
 import { useCoursesFn } from "@/services/courses/hook"
 import { http } from "@/services/http"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 import { PendingInvitesWidget } from "@/components/teacher/pending-invites-widget"
+import { StudentLimitEnforcer, useStudentLimit } from "@/components/shared/student-limit-enforcer"
 import { 
   Users, 
   Search, 
@@ -83,6 +84,9 @@ export default function TeacherStudentManagement() {
     email: string;
   } | null>(null)
 
+  // Student limit enforcement
+  const { canAddStudents, getUpgradeMessage, subscriptionStatus } = useStudentLimit()
+
   // Fetch consolidated student data with live updates
   useEffect(() => {
     if (!user?.email) return
@@ -104,7 +108,7 @@ export default function TeacherStudentManagement() {
 
     fetchStudents()
     
-    // Set up polling for live updates every 30 seconds
+    // Set up polling for live updates every 60 seconds (reduced frequency)
     const interval = setInterval(async () => {
       try {
         const response = await http<any>('/api/students/consolidated')
@@ -112,7 +116,7 @@ export default function TeacherStudentManagement() {
       } catch (err: any) {
         console.error('Failed to refresh student data:', err)
       }
-    }, 30000)
+    }, 60000)
     
     return () => clearInterval(interval)
   }, [user?.email])
@@ -371,14 +375,40 @@ export default function TeacherStudentManagement() {
           <div>
             <h2 className="text-white text-xl font-semibold">Student Management</h2>
             <p className="text-slate-400 mt-1">Manage all students and their course enrollments.</p>
+            {subscriptionStatus && (
+              <div className="flex items-center gap-2 mt-2">
+                <Badge 
+                  variant={subscriptionStatus.subscription_status === 'pro' ? 'default' : 'secondary'}
+                  className={`${
+                    subscriptionStatus.subscription_status === 'pro' 
+                      ? 'bg-green-600/80 text-white' 
+                      : 'bg-white/10 text-slate-200'
+                  }`}
+                >
+                  {subscriptionStatus.subscription_status === 'pro' ? 'Pro Plan' : 'Free Plan'}
+                </Badge>
+                <span className="text-sm text-slate-400">
+                  {students.length} / {subscriptionStatus.max_students_allowed} students
+                </span>
+                {!canAddStudents(students.length) && (
+                  <span className="text-sm text-orange-400">
+                    • {getUpgradeMessage(students.length)}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
-          <Dialog open={addStudentOpen} onOpenChange={setAddStudentOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Student
-              </Button>
-            </DialogTrigger>
+          <StudentLimitEnforcer 
+            currentStudentCount={students.length}
+            showUpgradePrompt={true}
+          >
+            <Dialog open={addStudentOpen} onOpenChange={setAddStudentOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Student
+                </Button>
+              </DialogTrigger>
             <DialogContent className="bg-slate-900/95 border-white/10 text-white">
               <DialogHeader>
                 <DialogTitle>Add New Student</DialogTitle>
@@ -424,7 +454,7 @@ export default function TeacherStudentManagement() {
                           navigator.clipboard.writeText(`${signupInfo.signupUrl}\nStudent Code: ${signupInfo.studentCode}\nEmail: ${signupInfo.email}`)
                           toast({ title: "Signup information copied to clipboard" })
                         }}
-                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                        className=""
                       >
                         Copy to Clipboard
                       </Button>
@@ -435,7 +465,8 @@ export default function TeacherStudentManagement() {
                           setNewStudent({ email: "", name: "", course_id: "" })
                           window.location.reload()
                         }}
-                        className="bg-green-600 hover:bg-green-700 text-white"
+                        variant="success"
+                        className=""
                       >
                         Done
                       </Button>
@@ -481,7 +512,7 @@ export default function TeacherStudentManagement() {
                     </select>
                   </div>
                   <div className="flex gap-2">
-                    <Button onClick={handleAddStudent} className="bg-blue-600 hover:bg-blue-700 text-white">
+                    <Button onClick={handleAddStudent}>
                       <Plus className="h-4 w-4 mr-2" />
                       Add Student
                     </Button>
@@ -497,6 +528,7 @@ export default function TeacherStudentManagement() {
               )}
             </DialogContent>
           </Dialog>
+          </StudentLimitEnforcer>
         </div>
 
         {/* Search and Filters */}
@@ -567,16 +599,16 @@ export default function TeacherStudentManagement() {
                   <tr key={index} className="border-b border-white/5 hover:bg-white/5">
                     <td className="py-4 px-4">
                       <div className="flex items-center gap-3">
-                        <Avatar className="h-8 w-8">
-                          <AvatarFallback className="bg-blue-600/20 text-blue-400 text-xs">
-                            {student.name?.charAt(0)?.toUpperCase() || student.email?.charAt(0)?.toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <div className="text-white font-medium">{student.name}</div>
-                          <div className="text-slate-400 text-sm">{student.email}</div>
-                          <div className="text-slate-500 text-xs">ID: {student.student_code}</div>
-                        </div>
+                        <UserDisplay 
+                          user={{
+                            name: student.name,
+                            email: student.email,
+                            studentCode: student.student_code,
+                            profile_picture_url: student.profile_picture_url
+                          }}
+                          avatarSize="sm"
+                          className="flex-1"
+                        />
                       </div>
                     </td>
                     <td className="py-4 px-4">

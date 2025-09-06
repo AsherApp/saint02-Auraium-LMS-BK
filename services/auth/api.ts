@@ -1,12 +1,18 @@
 import { http } from "../http"
 
 export type User = {
+  id: string
   email: string
   role: 'teacher' | 'student'
   name?: string
   student_code?: string
   subscription_status?: string
   max_students_allowed?: number
+  // Profile information
+  first_name?: string
+  last_name?: string
+  full_name?: string
+  user_type?: string
 }
 
 export type Student = {

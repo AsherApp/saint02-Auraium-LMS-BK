@@ -395,9 +395,32 @@ export default function TeacherAssignmentsPage() {
               <FluidTabs
                 tabs={[
                   { id: 'all', label: 'All', badge: assignments.length },
-                  { id: 'pending', label: 'Pending', badge: assignments.filter(a => !a.stats?.graded_count).length },
-                  { id: 'graded', label: 'Graded', badge: assignments.filter(a => a.stats?.graded_count).length },
-                  { id: 'overdue', label: 'Overdue', badge: assignments.filter(a => a.due_date && new Date(a.due_date) < new Date()).length }
+                  { 
+                    id: 'pending', 
+                    label: 'Pending', 
+                    badge: assignments.filter(a => {
+                      const pendingCount = a.stats?.pending_grading || 0
+                      return pendingCount > 0
+                    }).length 
+                  },
+                  { 
+                    id: 'graded', 
+                    label: 'Graded', 
+                    badge: assignments.filter(a => {
+                      const totalSubmissions = a.stats?.total_submissions || 0
+                      const pendingCount = a.stats?.pending_grading || 0
+                      return totalSubmissions > 0 && pendingCount === 0
+                    }).length 
+                  },
+                  { 
+                    id: 'overdue', 
+                    label: 'Overdue', 
+                    badge: assignments.filter(a => {
+                      const now = new Date().getTime()
+                      const dueAt = a.due_at ? new Date(a.due_at).getTime() : null
+                      return dueAt && dueAt < now
+                    }).length 
+                  }
                 ]}
                 activeTab={filterType}
                 onTabChange={(filter) => setFilterType(filter as "all" | "pending" | "graded" | "overdue")}

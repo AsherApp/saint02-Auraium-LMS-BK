@@ -461,7 +461,7 @@ export class AssignmentProAPI {
     }
   }
 
-  static async getSubmission(submissionId: string): Promise<Submission> {
+  static async getSubmissionById(submissionId: string): Promise<Submission> {
     const response = await http<any>(`/api/submissions/${submissionId}`)
     
     // Transform backend response to match frontend type

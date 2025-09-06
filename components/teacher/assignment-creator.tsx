@@ -8,7 +8,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsContent } from "@/components/ui/tabs"
+import { FluidTabs } from "@/components/ui/fluid-tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { AssignmentProAPI, type Assignment, type AssignmentType, type RubricCriteria } from "@/services/assignment-pro/api"
@@ -230,41 +231,35 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
   }
 
   return (
-    <div className="space-y-6 w-full">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex flex-col items-center">
-        <TabsList className="w-full flex justify-center bg-white/10">
-          <TabsTrigger value="basic" className="text-white data-[state=active]:bg-blue-600/80">
-            <FileText className="h-4 w-4 mr-2" />
-            Basic Info
-          </TabsTrigger>
-          <TabsTrigger value="content" className="text-white data-[state=active]:bg-blue-600/80">
-            <BookOpen className="h-4 w-4 mr-2" />
-            Content
-          </TabsTrigger>
-          <TabsTrigger value="grading" className="text-white data-[state=active]:bg-blue-600/80">
-            <Star className="h-4 w-4 mr-2" />
-            Grading
-          </TabsTrigger>
-          <TabsTrigger value="rubric" className="text-white data-[state=active]:bg-blue-600/80">
-            <FileText className="h-4 w-4 mr-2" />
-            Rubric
-          </TabsTrigger>
-          <TabsTrigger value="settings" className="text-white data-[state=active]:bg-blue-600/80">
-            <Settings className="h-4 w-4 mr-2" />
-            Settings
-          </TabsTrigger>
-        </TabsList>
+    <div className="space-y-6 w-full max-w-none">
+      <div className="w-full">
+        <FluidTabs
+          tabs={[
+            { id: 'basic', label: 'Basic', icon: <FileText className="h-4 w-4" /> },
+            { id: 'content', label: 'Content', icon: <BookOpen className="h-4 w-4" /> },
+            { id: 'grading', label: 'Grading', icon: <Star className="h-4 w-4" /> },
+            { id: 'rubric', label: 'Rubric', icon: <FileText className="h-4 w-4" /> },
+            { id: 'settings', label: 'Settings', icon: <Settings className="h-4 w-4" /> }
+          ]}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          variant="default"
+          width="full"
+        />
+      </div>
+      
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
 
-        <form onSubmit={handleSubmit}>
-          <TabsContent value="basic" className="space-y-6 w-full flex justify-center">
-            <Card className="bg-white/5 border-white/10 w-full">
+        <form onSubmit={handleSubmit} className="w-full max-w-none">
+          <TabsContent value="basic" className="space-y-6 w-full max-w-none mt-6">
+            <Card className="bg-white/5 border-white/10 w-full max-w-none">
               <CardHeader>
                 <CardTitle className="text-white">Assignment Details</CardTitle>
                 <CardDescription className="text-slate-400">
                   Basic information about your assignment
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4 w-full">
+              <CardContent className="space-y-6 w-full">
                 <div className="space-y-2">
                   <Label htmlFor="title" className="text-white">Title *</Label>
                   <Input
@@ -272,43 +267,43 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="Enter assignment title..."
-                    className="bg-white/5 border-white/10 text-white placeholder-slate-400"
+                    className="bg-white/5 border-white/10 text-white placeholder-slate-400 h-11"
                     required
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="course" className="text-white">Course *</Label>
-                  {loadingCourses ? (
-                    <div className="text-slate-400 text-sm">Loading courses...</div>
-                  ) : courses.length === 0 ? (
-                    <div className="text-red-400 text-sm">No courses available. Please create a course first.</div>
-                  ) : (
-                    <Select value={courseId} onValueChange={setCourseId} required>
-                      <SelectTrigger className="bg-white/5 border-white/10 text-white">
-                        <SelectValue placeholder="Select a course" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {courses.map((course) => (
-                          <SelectItem key={course.id} value={course.id}>
-                            {course.title}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="course" className="text-white">Course *</Label>
+                    {loadingCourses ? (
+                      <div className="text-slate-400 text-sm">Loading courses...</div>
+                    ) : courses.length === 0 ? (
+                      <div className="text-red-400 text-sm">No courses available. Please create a course first.</div>
+                    ) : (
+                      <Select value={courseId} onValueChange={setCourseId} required>
+                        <SelectTrigger className="bg-white/5 border-white/10 text-white h-11">
+                          <SelectValue placeholder="Select a course" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-900/95 text-white border-white/20 backdrop-blur-md">
+                          {courses.map((course) => (
+                            <SelectItem key={course.id} value={course.id} className="hover:bg-white/10">
+                              {course.title}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
 
-                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="type" className="text-white">Assignment Type *</Label>
                     <Select value={type} onValueChange={(value: AssignmentType) => setType(value)}>
-                      <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                      <SelectTrigger className="bg-white/5 border-white/10 text-white h-11">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-slate-900/95 text-white border-white/20 backdrop-blur-md">
                         {Object.entries(assignmentTypeIcons).map(([typeKey, Icon]) => (
-                          <SelectItem key={typeKey} value={typeKey}>
+                          <SelectItem key={typeKey} value={typeKey} className="hover:bg-white/10">
                             <div className="flex items-center gap-2">
                               <Icon className="h-4 w-4" />
                               <span className="capitalize">{typeKey.replace('_', ' ')}</span>
@@ -322,13 +317,13 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
                   <div className="space-y-2">
                     <Label htmlFor="scope" className="text-white">Scope Level</Label>
                     <Select value={scopeLevel} onValueChange={(value: "course" | "module" | "lesson") => setScopeLevel(value)}>
-                      <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                      <SelectTrigger className="bg-white/5 border-white/10 text-white h-11">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="course">Course Wide</SelectItem>
-                        <SelectItem value="module">Module Specific</SelectItem>
-                        <SelectItem value="lesson">Lesson Specific</SelectItem>
+                      <SelectContent className="bg-slate-900/95 text-white border-white/20 backdrop-blur-md">
+                        <SelectItem value="course" className="hover:bg-white/10">Course Wide</SelectItem>
+                        <SelectItem value="module" className="hover:bg-white/10">Module Specific</SelectItem>
+                        <SelectItem value="lesson" className="hover:bg-white/10">Lesson Specific</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -339,12 +334,12 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
                     <div className="space-y-2">
                       <Label htmlFor="module" className="text-white">Module</Label>
                       <Select value={moduleId} onValueChange={setModuleId}>
-                        <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                        <SelectTrigger className="bg-white/5 border-white/10 text-white h-11">
                           <SelectValue placeholder="Select module" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-slate-900/95 text-white border-white/20 backdrop-blur-md">
                           {selectedCourse.modules.map((module) => (
-                            <SelectItem key={module.id} value={module.id}>
+                            <SelectItem key={module.id} value={module.id} className="hover:bg-white/10">
                               {module.title}
                             </SelectItem>
                           ))}
@@ -356,14 +351,14 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
                       <div className="space-y-2">
                         <Label htmlFor="lesson" className="text-white">Lesson</Label>
                         <Select value={lessonId} onValueChange={setLessonId}>
-                          <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                          <SelectTrigger className="bg-white/5 border-white/10 text-white h-11">
                             <SelectValue placeholder="Select lesson" />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="bg-slate-900/95 text-white border-white/20 backdrop-blur-md">
                             {selectedCourse.modules
                               .find(m => m.id === moduleId)?.lessons
                               .map((lesson) => (
-                                <SelectItem key={lesson.id} value={lesson.id}>
+                                <SelectItem key={lesson.id} value={lesson.id} className="hover:bg-white/10">
                                   {lesson.title}
                                 </SelectItem>
                               )) || []
@@ -375,36 +370,38 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
                   </div>
                 )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="description" className="text-white">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Brief description of the assignment..."
-                    className="bg-white/5 border-white/10 text-white placeholder-slate-400 min-h-20"
-                  />
-                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="description" className="text-white">Description</Label>
+                    <Textarea
+                      id="description"
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="Brief description of the assignment..."
+                      className="bg-white/5 border-white/10 text-white placeholder-slate-400 min-h-32 resize-none w-full"
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="instructions" className="text-white">Instructions *</Label>
-                  <Textarea
-                    id="instructions"
-                    value={instructions}
-                    onChange={(e) => setInstructions(e.target.value)}
-                    placeholder="Detailed instructions for students..."
-                    className="bg-white/5 border-white/10 text-white placeholder-slate-400 min-h-32"
-                    required
-                  />
+                  <div className="space-y-2">
+                    <Label htmlFor="instructions" className="text-white">Instructions *</Label>
+                    <Textarea
+                      id="instructions"
+                      value={instructions}
+                      onChange={(e) => setInstructions(e.target.value)}
+                      placeholder="Detailed instructions for students..."
+                      className="bg-white/5 border-white/10 text-white placeholder-slate-400 min-h-32 resize-none w-full"
+                      required
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
 
-          <TabsContent value="content" className="space-y-6">
+          <TabsContent value="content" className="space-y-6 w-full max-w-none">
             {/* Type-specific content builders */}
             {type === "quiz" && (
-              <Card className="bg-white/5 border-white/10">
+              <Card className="bg-white/5 border-white/10 w-full max-w-none">
                 <CardHeader>
                   <CardTitle className="text-white">Quiz Builder</CardTitle>
                   <CardDescription className="text-slate-400">
@@ -498,12 +495,12 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
                                     setQuizQuestions(updated)
                                   }}
                                 >
-                                  <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                                  <SelectTrigger className="bg-white/5 border-white/10 text-white h-11">
                                     <SelectValue />
                                   </SelectTrigger>
-                                  <SelectContent>
+                                  <SelectContent className="bg-slate-900/95 text-white border-white/20 backdrop-blur-md">
                                     {question.options.map((option: string, optIndex: number) => (
-                                      <SelectItem key={optIndex} value={optIndex.toString()}>
+                                      <SelectItem key={optIndex} value={optIndex.toString()} className="hover:bg-white/10">
                                         Option {optIndex + 1}
                                       </SelectItem>
                                     ))}
@@ -535,7 +532,7 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
             )}
 
             {type === "video" && (
-              <Card className="bg-white/5 border-white/10">
+              <Card className="bg-white/5 border-white/10 w-full max-w-none">
                 <CardHeader>
                   <CardTitle className="text-white">Video Assignment Setup</CardTitle>
                   <CardDescription className="text-slate-400">
@@ -606,7 +603,7 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
             )}
 
             {type === "presentation" && (
-              <Card className="bg-white/5 border-white/10">
+              <Card className="bg-white/5 border-white/10 w-full max-w-none">
                 <CardHeader>
                   <CardTitle className="text-white">Presentation Requirements</CardTitle>
                   <CardDescription className="text-slate-400">
@@ -675,7 +672,7 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
             )}
 
             {(type === "essay" || type === "file_upload" || type === "project") && (
-              <Card className="bg-white/5 border-white/10">
+              <Card className="bg-white/5 border-white/10 w-full max-w-none">
                 <CardHeader>
                   <CardTitle className="text-white">Content Guidelines</CardTitle>
                   <CardDescription className="text-slate-400">
@@ -705,16 +702,16 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
             )}
           </TabsContent>
 
-          <TabsContent value="grading" className="space-y-6">
-            <Card className="bg-white/5 border-white/10">
+          <TabsContent value="grading" className="space-y-6 w-full max-w-none mt-6">
+            <Card className="bg-white/5 border-white/10 w-full max-w-none">
               <CardHeader>
                 <CardTitle className="text-white">Grading & Timing</CardTitle>
                 <CardDescription className="text-slate-400">
                   Configure how this assignment will be graded and when it's available
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="points" className="text-white">Total Points</Label>
                     <Input
@@ -724,7 +721,7 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
                       onChange={(e) => setPoints(Number(e.target.value))}
                       min="1"
                       max="1000"
-                      className="bg-white/5 border-white/10 text-white"
+                      className="bg-white/5 border-white/10 text-white h-11"
                     />
                   </div>
 
@@ -737,7 +734,7 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
                       onChange={(e) => setMaxAttempts(Number(e.target.value))}
                       min="1"
                       max="10"
-                      className="bg-white/5 border-white/10 text-white"
+                      className="bg-white/5 border-white/10 text-white h-11"
                     />
                   </div>
                 </div>
@@ -751,7 +748,7 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
                     onChange={(e) => setTimeLimitMinutes(e.target.value ? Number(e.target.value) : null)}
                     placeholder="No time limit"
                     min="1"
-                    className="bg-white/5 border-white/10 text-white placeholder-slate-400"
+                    className="bg-white/5 border-white/10 text-white placeholder-slate-400 h-11"
                   />
                 </div>
 
@@ -823,8 +820,8 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
             </Card>
           </TabsContent>
 
-          <TabsContent value="rubric" className="space-y-6">
-            <Card className="bg-white/5 border-white/10">
+          <TabsContent value="rubric" className="space-y-6 w-full max-w-none">
+            <Card className="bg-white/5 border-white/10 w-full max-w-none">
               <CardHeader>
                 <CardTitle className="text-white">Grading Rubric</CardTitle>
                 <CardDescription className="text-slate-400">
@@ -912,8 +909,8 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
             </Card>
           </TabsContent>
 
-          <TabsContent value="settings" className="space-y-6">
-            <Card className="bg-white/5 border-white/10">
+          <TabsContent value="settings" className="space-y-6 w-full max-w-none">
+            <Card className="bg-white/5 border-white/10 w-full max-w-none">
               <CardHeader>
                 <CardTitle className="text-white">Assignment Settings</CardTitle>
                 <CardDescription className="text-slate-400">

@@ -9,15 +9,16 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-blue-600 hover:bg-blue-700 text-white shadow-sm",
-        primary: "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-sm",
-        secondary: "bg-white/10 hover:bg-white/20 text-white border border-white/20",
-        success: "bg-green-600 hover:bg-green-700 text-white shadow-sm",
-        warning: "bg-orange-600 hover:bg-orange-700 text-white shadow-sm",
-        destructive: "bg-red-600 hover:bg-red-700 text-white shadow-sm",
+        default: "bg-blue-600 hover:bg-blue-700 text-white shadow-md",
+        primary: "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-md",
+        secondary: "bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-md",
+        success: "bg-green-600 hover:bg-green-700 text-white shadow-md",
+        warning: "bg-orange-600 hover:bg-orange-700 text-white shadow-md",
+        destructive: "bg-red-600 hover:bg-red-700 text-white shadow-md",
         outline: "border-2 border-white/30 text-slate-300 hover:bg-white/10 bg-transparent",
         ghost: "hover:bg-white/10 text-slate-300 bg-transparent",
         link: "text-blue-400 underline-offset-4 hover:underline hover:text-blue-300 bg-transparent",
+        glass: "bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-md",
       },
       size: {
         default: "h-10 px-4 py-2 has-[>svg]:px-3",

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Progress } from "@/components/ui/progress"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { FluidTabs, useFluidTabs } from "@/components/ui/fluid-tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAuthStore } from "@/store/auth-store"
@@ -62,7 +62,7 @@ export default function StudentAssignmentsPage() {
       setLoading(true)
       try {
         // First fetch enrolled courses for the student
-        const enrollmentsResponse = await http<{ items: any[] }>(`/api/students/${user.email}/enrollments`)
+        const enrollmentsResponse = await http<{ items: any[] }>(`/api/students/me/enrollments`)
         const enrollments = enrollmentsResponse.items || []
         const enrolledCourses = enrollments.map((enrollment: any) => enrollment.course).filter(Boolean)
         setCourses(enrolledCourses)

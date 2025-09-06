@@ -23,7 +23,7 @@ export default function StudentCoursesPage() {
     const fetchCourses = async () => {
       try {
         console.log('Student Courses - Fetching courses for:', email)
-        const response = await http<any>(`/api/students/${email}/courses`)
+        const response = await http<any>(`/api/students/me/courses`)
         console.log('Student Courses - API Response:', response)
         const enrolledCourses = response.items || []
         console.log('Student Courses - Enrolled courses:', enrolledCourses)
@@ -113,6 +113,7 @@ export default function StudentCoursesPage() {
                 description={courseData.description || "No description available"}
                 modulesCount={stats.modules}
                 studentsCount={stats.students}
+                thumbnailUrl={courseData.thumbnail_url}
                 role="student"
               />
             )

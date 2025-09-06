@@ -104,9 +104,22 @@ export function LessonContentEditor({ lesson, onCancel = () => {}, onSave = () =
       case "video":
         return content?.video?.url ? (
           <div className="aspect-video bg-black rounded-lg overflow-hidden">
-            {content.video.url.includes('youtube.com') || content.video.url.includes('youtu.be') ? (
+            {content.video.source === "upload" ? (
+              <video controls className="w-full h-full">
+                <source src={content.video.url} type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
+            ) : content.video.source === "onedrive" ? (
               <iframe
-                src={content.video.url.replace('watch?v=', 'embed/')}
+                src={content.video.url}
+                className="w-full h-full"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            ) : content.video.source === "googledrive" ? (
+              <iframe
+                src={content.video.url.replace('/view', '/preview')}
                 className="w-full h-full"
                 frameBorder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -251,33 +264,21 @@ export function LessonContentEditor({ lesson, onCancel = () => {}, onSave = () =
                 <div className="space-y-2">
                   <Label>Video Source</Label>
                   <Select 
-                    value={content?.video?.source || "url"} 
+                    value={content?.video?.source || "upload"} 
                     onValueChange={(value) => setField(["video", "source"], value)}
                   >
                     <SelectTrigger className="bg-white/5 border-white/10 text-white">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-slate-900/95 text-white border-white/10">
-                      <SelectItem value="url">Video URL (YouTube, Vimeo, etc.)</SelectItem>
                       <SelectItem value="upload">Upload Video File</SelectItem>
+                      <SelectItem value="onedrive">OneDrive Link</SelectItem>
+                      <SelectItem value="googledrive">Google Drive Link</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
-                {content?.video?.source === "url" ? (
-                  <div className="space-y-2">
-                    <Label>Video URL</Label>
-                    <Input
-                      placeholder="https://youtube.com/watch?v=..."
-                      className="bg-white/5 border-white/10 text-white"
-                      value={content.video?.url || ""}
-                      onChange={(e) => setField(["video", "url"], e.target.value)}
-                    />
-                    <p className="text-xs text-slate-400">
-                      Supports YouTube, Vimeo, and direct video URLs
-                    </p>
-                  </div>
-                ) : (
+                {content?.video?.source === "upload" ? (
                   <div className="space-y-2">
                     <Label>Upload Video</Label>
                     <div className="border-2 border-dashed border-white/20 rounded-lg p-6 text-center">
@@ -310,7 +311,33 @@ export function LessonContentEditor({ lesson, onCancel = () => {}, onSave = () =
                       />
                     </div>
                   </div>
-                )}
+                ) : content?.video?.source === "onedrive" ? (
+                  <div className="space-y-2">
+                    <Label>OneDrive Video Link</Label>
+                    <Input
+                      placeholder="https://onedrive.live.com/embed?resid=..."
+                      className="bg-white/5 border-white/10 text-white"
+                      value={content.video?.url || ""}
+                      onChange={(e) => setField(["video", "url"], e.target.value)}
+                    />
+                    <p className="text-xs text-slate-400">
+                      Paste your OneDrive video embed link. Make sure the video is set to "Anyone with the link can view"
+                    </p>
+                  </div>
+                ) : content?.video?.source === "googledrive" ? (
+                  <div className="space-y-2">
+                    <Label>Google Drive Video Link</Label>
+                    <Input
+                      placeholder="https://drive.google.com/file/d/.../view"
+                      className="bg-white/5 border-white/10 text-white"
+                      value={content.video?.url || ""}
+                      onChange={(e) => setField(["video", "url"], e.target.value)}
+                    />
+                    <p className="text-xs text-slate-400">
+                      Paste your Google Drive video link. Make sure the video is set to "Anyone with the link can view"
+                    </p>
+                  </div>
+                ) : null}
 
                 <div className="space-y-2">
                   <Label>Description (optional)</Label>

@@ -6,7 +6,7 @@ import { GlassCard } from "@/components/shared/glass-card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { UserDisplay } from "@/components/shared/user-avatar"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { FluidTabs, useFluidTabs } from "@/components/ui/fluid-tabs"
@@ -408,17 +408,16 @@ export default function StudentDetailPage() {
       <GlassCard className="p-6">
         <div className="grid md:grid-cols-2 gap-6">
           <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <Avatar className="h-12 w-12">
-                <AvatarFallback className="bg-blue-500/20 text-blue-300">
-                  {student.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <h3 className="text-lg font-semibold text-white">{student.name}</h3>
-                <p className="text-slate-400">{student.email}</p>
-              </div>
-            </div>
+            <UserDisplay 
+              user={{
+                name: student.name,
+                email: student.email,
+                studentCode: student.student_code,
+                profile_picture_url: student.profile_picture_url
+              }}
+              avatarSize="lg"
+              className="mb-4"
+            />
             
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -726,7 +725,7 @@ export default function StudentDetailPage() {
             <Button variant="secondary" onClick={() => setDeleteDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleDeleteStudent} className="bg-red-600 hover:bg-red-700">
+            <Button onClick={handleDeleteStudent} variant="destructive">
               Delete Student
             </Button>
           </div>

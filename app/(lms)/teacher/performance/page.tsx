@@ -100,7 +100,7 @@ export default function TeacherPerformance() {
         </div>
         <Button 
           onClick={handleExportReport}
-          className="bg-blue-600 hover:bg-blue-700 text-white"
+          className=""
         >
           <Download className="h-4 w-4 mr-2" />
           Export Report
@@ -306,7 +306,7 @@ export default function TeacherPerformance() {
                       <div>
                         <h4 className="text-white font-medium">{item.student_name}</h4>
                         <p className="text-slate-400 text-sm">{item.course_title}</p>
-                        <p className="text-slate-400 text-xs">{item.student_email}</p>
+                        <p className="text-slate-400 text-xs">{item.student_name || item.student_email?.split('@')[0] || 'Student'}</p>
                       </div>
                     </div>
                     
@@ -438,14 +438,15 @@ export default function TeacherPerformance() {
                 <div className="grid gap-3 md:grid-cols-2">
                   <Button
                     onClick={handleExportReport}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    className=""
                   >
                     <Download className="h-4 w-4 mr-2" />
                     Export Student Progress
                   </Button>
                   <Button
                     onClick={handleExportReport}
-                    className="bg-green-600 hover:bg-green-700 text-white"
+                    variant="success"
+                    className=""
                   >
                     <Download className="h-4 w-4 mr-2" />
                     Export Course Analytics
