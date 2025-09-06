@@ -41,11 +41,11 @@ const limiter = rateLimit({
 
 //app.use(limiter)
 
-// Log request origins for debugging CORS
-app.use((req, res, next) => {
-  console.log('Origin:', req.headers.origin)
-  next()
-})
+// Log request origins for debugging CORS (disabled to reduce noise)
+// app.use((req, res, next) => {
+//   console.log('Origin:', req.headers.origin)
+//   next()
+// })
 
 // CORS configuration - More robust setup
 const allowedOrigins = process.env.NODE_ENV === 'production' 

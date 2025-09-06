@@ -1,29 +1,14 @@
 import { Router } from 'express'
 import multer from 'multer'
-import path from 'path'
-import fs from 'fs'
+import { requireAuth } from '../middlewares/auth.js'
+import { supabaseAdmin } from '../lib/supabase.js'
+import { asyncHandler } from '../utils/asyncHandler.js'
 
 const router = Router()
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = path.join(process.cwd(), 'uploads')
-    // Create uploads directory if it doesn't exist
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true })
-    }
-    cb(null, uploadDir)
-  },
-  filename: (req, file, cb) => {
-    // Generate unique filename
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname))
-  }
-})
-
+// Configure multer for memory storage (we'll upload directly to Supabase)
 const upload = multer({
-  storage: storage,
+  storage: multer.memoryStorage(),
   limits: {
     fileSize: 100 * 1024 * 1024, // 100MB limit
   },
@@ -43,54 +28,110 @@ const upload = multer({
 })
 
 // Video upload endpoint
-router.post('/video', upload.single('video'), (req, res) => {
+router.post('/video', requireAuth, upload.single('video'), asyncHandler(async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No video file uploaded' })
+  }
+
+  const user = (req as any).user
+  if (!user?.id) {
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
+
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No video file uploaded' })
+    // Generate unique filename
+    const timestamp = Date.now()
+    const randomSuffix = Math.round(Math.random() * 1E9)
+    const fileExtension = req.file.originalname.split('.').pop()
+    const fileName = `videos/${user.id}/${timestamp}-${randomSuffix}.${fileExtension}`
+
+    // Upload to Supabase Storage Files bucket
+    const { data, error } = await supabaseAdmin.storage
+      .from('Files')
+      .upload(fileName, req.file.buffer, {
+        contentType: req.file.mimetype,
+        cacheControl: '3600',
+        upsert: false
+      })
+
+    if (error) {
+      console.error('Supabase upload error:', error)
+      return res.status(500).json({ error: 'Failed to upload video to storage' })
     }
 
-    const fileUrl = `http://localhost:4000/uploads/${req.file.filename}`
-    
+    // Get public URL
+    const { data: urlData } = supabaseAdmin.storage
+      .from('Files')
+      .getPublicUrl(fileName)
+
     res.json({
       success: true,
       file: {
-        url: fileUrl,
+        url: urlData.publicUrl,
         name: req.file.originalname,
         size: req.file.size,
         type: req.file.mimetype,
-        filename: req.file.filename
+        filename: fileName
       }
     })
   } catch (error) {
     console.error('Video upload error:', error)
     res.status(500).json({ error: 'Failed to upload video' })
   }
-})
+}))
 
 // File upload endpoint
-router.post('/file', upload.single('file'), (req, res) => {
+router.post('/file', requireAuth, upload.single('file'), asyncHandler(async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No file uploaded' })
+  }
+
+  const user = (req as any).user
+  if (!user?.id) {
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
+
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' })
+    // Generate unique filename
+    const timestamp = Date.now()
+    const randomSuffix = Math.round(Math.random() * 1E9)
+    const fileExtension = req.file.originalname.split('.').pop()
+    const fileName = `files/${user.id}/${timestamp}-${randomSuffix}.${fileExtension}`
+
+    // Upload to Supabase Storage Files bucket
+    const { data, error } = await supabaseAdmin.storage
+      .from('Files')
+      .upload(fileName, req.file.buffer, {
+        contentType: req.file.mimetype,
+        cacheControl: '3600',
+        upsert: false
+      })
+
+    if (error) {
+      console.error('Supabase upload error:', error)
+      return res.status(500).json({ error: 'Failed to upload file to storage' })
     }
 
-    const fileUrl = `http://localhost:4000/uploads/${req.file.filename}`
-    
+    // Get public URL
+    const { data: urlData } = supabaseAdmin.storage
+      .from('Files')
+      .getPublicUrl(fileName)
+
     res.json({
       success: true,
       file: {
-        url: fileUrl,
+        url: urlData.publicUrl,
         name: req.file.originalname,
         size: req.file.size,
         type: req.file.mimetype,
-        filename: req.file.filename
+        filename: fileName
       }
     })
   } catch (error) {
     console.error('File upload error:', error)
     res.status(500).json({ error: 'Failed to upload file' })
   }
-})
+}))
 
 
 

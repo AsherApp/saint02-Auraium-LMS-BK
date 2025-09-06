@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { requireAuth } from '../middlewares/auth.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { supabaseAdmin } from '../lib/supabase.js'
+import { AccessToken } from 'livekit-server-sdk'
 
 export const router = Router()
 
@@ -32,7 +33,7 @@ router.get('/', requireAuth, asyncHandler(async (req, res) => {
     module_id: session.module_id,
     title: session.title,
     description: session.description,
-    start_at: session.start_at,
+    start_at: session.start_time,
     end_at: session.end_at,
     status: session.status,
     teacher_email: session.teacher_email,
@@ -56,8 +57,8 @@ router.get('/scheduled', requireAuth, asyncHandler(async (req, res) => {
     .select('*')
     .eq('teacher_email', teacher_email)
     .eq('status', 'scheduled')
-    .gte('start_at', new Date().toISOString())
-    .order('start_at', { ascending: true })
+    .gte('start_time', new Date().toISOString())
+    .order('start_time', { ascending: true })
   
   if (error) {
     return res.status(500).json({ error: error.message })
@@ -80,7 +81,7 @@ router.post('/schedule', requireAuth, asyncHandler(async (req, res) => {
     .insert({
       title,
       description,
-      start_at: scheduled_at,
+      start_time: scheduled_at,
       end_at: new Date(new Date(scheduled_at).getTime() + (duration_minutes * 60 * 1000)).toISOString(),
       status: 'scheduled',
       teacher_email,
@@ -99,7 +100,7 @@ router.post('/schedule', requireAuth, asyncHandler(async (req, res) => {
 
 // Create a new live session
 router.post('/', requireAuth, asyncHandler(async (req, res) => {
-  const { course_id, module_id, title, description, start_at, session_type } = req.body
+  const { course_id, module_id, title, description, start_at, session_type, duration_minutes } = req.body
   const teacher_email = (req as any).user?.email
   
   if (!teacher_email) {
@@ -118,6 +119,43 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
     return res.status(400).json({ error: 'module_id_and_course_id_required_for_module_session' })
   }
 
+  // Get teacher's live class settings to apply defaults
+  let liveClassSettings = {
+    default_session_duration: 60,
+    allow_recording: true,
+    require_approval_to_join: false,
+    max_participants: 50
+  }
+  
+  try {
+    // Get teacher ID from email
+    const { data: teacher, error: teacherError } = await supabaseAdmin
+      .from('teachers')
+      .select('id')
+      .eq('email', teacher_email)
+      .single()
+    
+    if (teacher && !teacherError) {
+      // Fetch teacher's live class settings
+      const { data: settings, error: settingsError } = await supabaseAdmin
+        .from('teacher_settings')
+        .select('live_class_settings')
+        .eq('teacher_id', teacher.id)
+        .single()
+      
+      if (settings && !settingsError && settings.live_class_settings) {
+        liveClassSettings = settings.live_class_settings
+      }
+    }
+  } catch (error) {
+    console.log('Could not fetch teacher live class settings, using defaults:', error)
+  }
+
+  // Calculate end time based on settings or provided duration
+  const sessionDuration = duration_minutes || liveClassSettings.default_session_duration
+  const startTime = new Date(start_at)
+  const endTime = new Date(startTime.getTime() + (sessionDuration * 60 * 1000))
+
   const { data, error } = await supabaseAdmin
     .from('live_sessions')
     .insert({
@@ -125,13 +163,18 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
       module_id: module_id || null,
       title,
       description,
-      start_at: new Date(start_at).toISOString(),
+      start_time: startTime.toISOString(),
+      end_at: endTime.toISOString(),
+      duration_minutes: sessionDuration,
       teacher_email,
       host_email: teacher_email, // Add this for compatibility
       status: 'scheduled', // Start as scheduled, not active
       session_type,
       is_started: false, // New field to track if teacher has started the session
-      started_at: null // When teacher actually starts the session
+      started_at: null, // When teacher actually starts the session
+      allow_recording: liveClassSettings.allow_recording,
+      require_approval: liveClassSettings.require_approval_to_join,
+      max_participants: liveClassSettings.max_participants
     })
     .select()
     .single()
@@ -218,19 +261,104 @@ router.post('/:id/end', requireAuth, asyncHandler(async (req, res) => {
     .single()
 
   if (error) return res.status(500).json({ error: error.message })
+  
+  // Auto-generate attendance report when session ends
+  try {
+    // Get all enrolled students
+    const { data: enrolledStudents } = await supabaseAdmin
+      .from('enrollments')
+      .select('student_email')
+      .eq('course_id', session.course_id)
+
+    // Get attendance records
+    const { data: attendanceRecords } = await supabaseAdmin
+      .from('live_attendance_records')
+      .select('*')
+      .eq('session_id', session_id)
+
+    // Calculate statistics
+    const totalEnrolled = enrolledStudents?.length || 0
+    const presentCount = attendanceRecords?.filter(r => r.status === 'present').length || 0
+    const lateCount = attendanceRecords?.filter(r => r.status === 'late').length || 0
+    const absentCount = attendanceRecords?.filter(r => r.status === 'absent').length || 0
+    const excusedCount = attendanceRecords?.filter(r => r.status === 'excused').length || 0
+
+    const averageAttendancePercentage = (attendanceRecords?.length || 0) > 0 
+      ? (attendanceRecords || []).reduce((sum, r) => sum + (r.attendance_percentage || 0), 0) / (attendanceRecords?.length || 1)
+      : 0
+
+    const averageParticipationScore = (attendanceRecords?.length || 0) > 0
+      ? (attendanceRecords || []).reduce((sum, r) => sum + (r.participation_score || 0), 0) / (attendanceRecords?.length || 1)
+      : 0
+
+    const averageEngagementScore = (attendanceRecords?.length || 0) > 0
+      ? (attendanceRecords || []).reduce((sum, r) => sum + (r.engagement_score || 0), 0) / (attendanceRecords?.length || 1)
+      : 0
+
+    const sessionDurationMinutes = session.end_at && session.start_time
+      ? Math.floor((new Date(session.end_at).getTime() - new Date(session.start_time).getTime()) / (1000 * 60))
+      : 0
+
+    // Create or update report
+    await supabaseAdmin
+      .from('live_attendance_reports')
+      .upsert({
+        session_id: session_id,
+        total_enrolled_students: totalEnrolled,
+        present_count: presentCount,
+        late_count: lateCount,
+        absent_count: absentCount,
+        excused_count: excusedCount,
+        average_attendance_percentage: averageAttendancePercentage,
+        average_participation_score: averageParticipationScore,
+        average_engagement_score: averageEngagementScore,
+        session_duration_minutes: sessionDurationMinutes,
+        generated_at: new Date()
+      })
+    
+    console.log(`Auto-generated attendance report for session ${session_id}`)
+  } catch (reportError) {
+    console.error('Failed to auto-generate attendance report:', reportError)
+    // Don't fail the session end if report generation fails
+  }
+  
   res.json(data)
 }))
 
 // Update session status
 router.post('/:id/status', requireAuth, asyncHandler(async (req, res) => {
   const { status } = req.body
+  const teacher_email = (req as any).user?.email
+  const session_id = req.params.id
+  
+  if (!teacher_email) {
+    return res.status(401).json({ error: 'teacher_email_not_found' })
+  }
+  
+  // Get the session to verify teacher ownership
+  const { data: session, error: sessionError } = await supabaseAdmin
+    .from('live_sessions')
+    .select('*')
+    .eq('id', session_id)
+    .single()
+
+  if (sessionError) return res.status(500).json({ error: sessionError.message })
+  if (!session) return res.status(404).json({ error: 'session_not_found' })
+  
+  // Only the teacher can update session status
+  if (session.teacher_email !== teacher_email) {
+    return res.status(403).json({ error: 'only_teacher_can_update_session' })
+  }
+
   const { data, error } = await supabaseAdmin
     .from('live_sessions')
     .update({ 
       status,
+      is_started: status === 'active' ? true : session.is_started, // Set is_started when status becomes active
+      started_at: status === 'active' && !session.is_started ? new Date().toISOString() : session.started_at, // Set started_at when first becoming active
       end_at: status === 'ended' ? new Date().toISOString() : null
     })
-    .eq('id', req.params.id)
+    .eq('id', session_id)
     .select()
     .single()
 
@@ -313,7 +441,7 @@ router.get('/my-sessions', requireAuth, asyncHandler(async (req, res) => {
     }
   }
 
-  const { data, error } = await query.order('start_at', { ascending: false })
+  const { data, error } = await query.order('start_time', { ascending: false })
 
   if (error) return res.status(500).json({ error: error.message })
   
@@ -324,7 +452,7 @@ router.get('/my-sessions', requireAuth, asyncHandler(async (req, res) => {
     moduleId: session.module_id,
     title: session.title,
     description: session.description,
-    startAt: new Date(session.start_at).getTime(),
+    startAt: new Date(session.start_time).getTime(),
     endAt: session.end_at ? new Date(session.end_at).getTime() : undefined,
     status: session.status,
     hostEmail: session.courses?.teacher_email,
@@ -354,7 +482,11 @@ router.get('/:id', requireAuth, asyncHandler(async (req, res) => {
     // Teachers can access sessions for their own courses
     const result = await supabaseAdmin
       .from('live_sessions')
-      .select('*')
+      .select(`
+        *,
+        teachers!inner(first_name, last_name),
+        courses(title)
+      `)
       .eq('id', req.params.id)
       .eq('teacher_email', userEmail)
       .maybeSingle()
@@ -364,7 +496,11 @@ router.get('/:id', requireAuth, asyncHandler(async (req, res) => {
     // Students can access any session (simplified approach)
     const result = await supabaseAdmin
       .from('live_sessions')
-      .select('*')
+      .select(`
+        *,
+        teachers!inner(first_name, last_name),
+        courses(title)
+      `)
       .eq('id', req.params.id)
       .maybeSingle()
     
@@ -398,12 +534,17 @@ router.get('/:id', requireAuth, asyncHandler(async (req, res) => {
     module_id: data.module_id,
     title: data.title,
     description: data.description,
-    scheduled_at: data.start_at,
-    duration: 60, // Default duration
+    scheduled_at: data.start_time,
+    start_time: data.start_time,
+    end_time: data.end_time || data.end_at,
+    duration: data.duration_minutes || 60,
     status: data.status,
     teacher_email: data.teacher_email,
+    teacher_name: data.teachers?.first_name && data.teachers?.last_name 
+      ? `${data.teachers.first_name} ${data.teachers.last_name}`.trim()
+      : null,
     session_type: data.session_type,
-    course_title: data.course_id ? 'Course Session' : 'General Session',
+    course_title: data.courses?.title || (data.course_id ? 'Course Session' : 'General Session'),
     created_at: data.created_at,
     updated_at: data.updated_at,
     is_started: data.is_started || false,
@@ -462,37 +603,94 @@ router.get('/:id/participants', requireAuth, asyncHandler(async (req, res) => {
   }
 
   // Now get participants for the authorized session
-  const { data, error } = await supabaseAdmin
+  const { data: participants, error } = await supabaseAdmin
     .from('live_participants')
     .select('*')
     .eq('session_id', req.params.id)
 
   if (error) return res.status(500).json({ error: error.message })
-  res.json({ items: data || [] })
+  
+  // Get user profile information for each participant
+  const transformedData = await Promise.all((participants || []).map(async (participant) => {
+    // Get user profile from user_profiles view
+    const { data: userProfile } = await supabaseAdmin
+      .from('user_profiles')
+      .select('first_name, last_name, email, user_type')
+      .eq('email', participant.student_email)
+      .single()
+    
+    return {
+      ...participant,
+      name: userProfile 
+        ? `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim()
+        : participant.student_email?.split('@')[0] || 'Unknown User',
+      email: participant.student_email
+    }
+  }))
+  
+  res.json({ items: transformedData })
 }))
 
 // Add participant to a live session
 router.post('/:id/participants', requireAuth, asyncHandler(async (req, res) => {
-  const { email } = req.body
+  const { email, student_ids } = req.body
+  const sessionId = req.params.id
   
-  const { data, error } = await supabaseAdmin
-    .from('live_participants')
-    .insert({
-      session_id: req.params.id,
-      email: email.toLowerCase(),
-      joined_at: new Date().toISOString()
-    })
-    .select()
-    .single()
+  // Handle single email (legacy support)
+  if (email) {
+    const { data, error } = await supabaseAdmin
+      .from('live_participants')
+      .insert({
+        session_id: sessionId,
+        student_email: email.toLowerCase(),
+        joined_at: new Date().toISOString()
+      })
+      .select()
+      .single()
 
-  if (error) return res.status(500).json({ error: error.message })
-  res.json(data)
+    if (error) return res.status(500).json({ error: error.message })
+    return res.json(data)
+  }
+  
+  // Handle multiple student IDs (new functionality)
+  if (student_ids && Array.isArray(student_ids) && student_ids.length > 0) {
+    // First, get the student emails from the IDs
+    const { data: students, error: studentsError } = await supabaseAdmin
+      .from('students')
+      .select('id, email')
+      .in('id', student_ids)
+    
+    if (studentsError) return res.status(500).json({ error: studentsError.message })
+    
+    if (!students || students.length === 0) {
+      return res.status(404).json({ error: 'No students found with provided IDs' })
+    }
+    
+    // Prepare participant records
+    const participants = students.map(student => ({
+      session_id: sessionId,
+      student_email: student.email.toLowerCase(),
+      student_id: student.id,
+      joined_at: new Date().toISOString()
+    }))
+    
+    // Insert participants
+    const { data, error } = await supabaseAdmin
+      .from('live_participants')
+      .insert(participants)
+      .select()
+
+    if (error) return res.status(500).json({ error: error.message })
+    return res.json({ items: data, count: data.length })
+  }
+  
+  return res.status(400).json({ error: 'Either email or student_ids must be provided' })
 }))
 
 // Join a session (with Zoom-like restrictions)
 router.post('/:id/join', requireAuth, asyncHandler(async (req, res) => {
-  const user_email = String(req.headers['x-user-email'] || '').toLowerCase()
-  const user_role = String(req.headers['x-user-role'] || '').toLowerCase()
+  const user_email = (req as any).user?.email?.toLowerCase()
+  const user_role = (req as any).user?.role?.toLowerCase()
   const session_id = req.params.id
   
   // Get session details to check permissions
@@ -526,21 +724,70 @@ router.post('/:id/join', requireAuth, asyncHandler(async (req, res) => {
     .from('live_participants')
     .select('id')
     .eq('session_id', session_id)
-    .eq('email', user_email)
+    .eq('student_email', user_email)
     .single()
 
   if (existing) {
     return res.json({ message: 'Already joined', participant: existing })
   }
 
+  // Check max participants limit (for students)
+  if (user_role === 'student' && session.max_participants) {
+    const { count: currentParticipants } = await supabaseAdmin
+      .from('live_participants')
+      .select('*', { count: 'exact' })
+      .eq('session_id', session_id)
+
+    if (currentParticipants && currentParticipants >= session.max_participants) {
+      return res.status(403).json({ 
+        error: 'session_full',
+        message: `This session has reached the maximum number of participants (${session.max_participants}).`
+      })
+    }
+  }
+
+  // Check if approval is required (for students)
+  if (user_role === 'student' && session.require_approval) {
+    // For now, we'll allow joining but could implement approval workflow later
+    // This could be extended to create a pending approval request
+    console.log(`Student ${user_email} joining session ${session_id} that requires approval`)
+  }
+
+  // Handle both teachers and students
+  let participantData: any = {
+    session_id,
+    student_email: user_email,
+    joined_at: new Date().toISOString()
+  }
+
+  if (user_role === 'student') {
+    // Get student ID for students
+    const { data: student } = await supabaseAdmin
+      .from('students')
+      .select('id')
+      .eq('email', user_email)
+      .single()
+
+    if (!student) {
+      return res.status(400).json({ error: 'Student not found' })
+    }
+    
+    participantData.student_id = student.id
+  } else if (user_role === 'teacher') {
+    // For teachers, we don't need student_id
+    // Teachers can join their own sessions
+    if (session.teacher_email !== user_email) {
+      return res.status(403).json({ error: 'Only the session teacher can join' })
+    }
+    // Don't set student_id for teachers - it will be NULL
+  } else {
+    return res.status(400).json({ error: 'Invalid user role' })
+  }
+
   // Insert new participant
   const { data, error } = await supabaseAdmin
     .from('live_participants')
-    .insert({
-      session_id,
-      email: user_email,
-      joined_at: new Date().toISOString()
-    })
+    .insert(participantData)
     .select()
     .single()
 
@@ -557,7 +804,7 @@ router.post('/:id/leave', requireAuth, asyncHandler(async (req, res) => {
     .from('live_participants')
     .delete()
     .eq('session_id', session_id)
-    .eq('email', user_email)
+    .eq('student_email', user_email)
 
   if (error) return res.status(500).json({ error: error.message })
   res.json({ message: 'Left session' })
@@ -572,7 +819,7 @@ router.put('/:id', requireAuth, asyncHandler(async (req, res) => {
     .update({
       title,
       description,
-      start_at: scheduled_at ? new Date(scheduled_at).toISOString() : undefined,
+      start_time: scheduled_at ? new Date(scheduled_at).toISOString() : undefined,
       duration
     })
     .eq('id', req.params.id)
@@ -881,50 +1128,6 @@ router.post('/:id/polls/:pollId/close', requireAuth, asyncHandler(async (req, re
   res.json(data)
 }))
 
-// Get whiteboard strokes for a live session
-router.get('/:id/whiteboard', requireAuth, asyncHandler(async (req, res) => {
-  const { data, error } = await supabaseAdmin
-    .from('live_whiteboard_strokes')
-    .select('*')
-    .eq('session_id', req.params.id)
-    .order('created_at', { ascending: true })
-
-  if (error) return res.status(500).json({ error: error.message })
-  res.json({ items: data || [] })
-}))
-
-// Add whiteboard stroke
-router.post('/:id/whiteboard', requireAuth, asyncHandler(async (req, res) => {
-  const user_email = String(req.headers['x-user-email'] || '').toLowerCase()
-  const { points, color, width } = req.body
-  
-  const { data, error } = await supabaseAdmin
-    .from('live_whiteboard_strokes')
-    .insert({
-      session_id: req.params.id,
-      points: JSON.stringify(points),
-      color,
-      width,
-      created_by: user_email,
-      created_at: new Date().toISOString()
-    })
-    .select()
-    .single()
-
-  if (error) return res.status(500).json({ error: error.message })
-  res.json(data)
-}))
-
-// Clear whiteboard
-router.delete('/:id/whiteboard', requireAuth, asyncHandler(async (req, res) => {
-  const { error } = await supabaseAdmin
-    .from('live_whiteboard_strokes')
-    .delete()
-    .eq('session_id', req.params.id)
-
-  if (error) return res.status(500).json({ error: error.message })
-  res.json({ success: true })
-}))
 
 // Get live classwork for a session
 router.get('/:id/classwork', requireAuth, asyncHandler(async (req, res) => {
@@ -1263,4 +1466,43 @@ router.delete('/notes/:noteId', requireAuth, asyncHandler(async (req, res) => {
   res.json({ success: true })
 }))
 
+
 export default router
+
+// Generate LiveKit token for room access
+router.post('/:sessionId/token', requireAuth, asyncHandler(async (req, res) => {
+  const { sessionId } = req.params
+  const { identity, room } = req.body
+  const userEmail = (req as any).user?.email
+
+  if (!identity || !room) {
+    return res.status(400).json({ error: 'Identity and room are required' })
+  }
+
+  try {
+    // Create LiveKit access token
+    const token = new AccessToken(
+      process.env.LIVEKIT_API_KEY!,
+      process.env.LIVEKIT_API_SECRET!,
+      {
+        identity: identity,
+        name: identity,
+      }
+    )
+
+    // Grant permissions
+    token.addGrant({
+      room: room,
+      roomJoin: true,
+      canPublish: true,
+      canSubscribe: true,
+    })
+
+    const jwt = await token.toJwt()
+
+    res.json({ token: jwt })
+  } catch (error: any) {
+    console.error('Error generating LiveKit token:', error)
+    res.status(500).json({ error: 'Failed to generate token' })
+  }
+}))

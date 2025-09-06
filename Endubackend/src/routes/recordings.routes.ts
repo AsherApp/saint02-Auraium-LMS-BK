@@ -48,6 +48,10 @@ router.get('/student', requireAuth, asyncHandler(async (req, res) => {
 
     if (error) {
       console.error('Error fetching student recordings:', error)
+      // If table doesn't exist, return empty array instead of error
+      if (error.code === 'PGRST205' || error.message?.includes('Could not find the table')) {
+        return res.json([])
+      }
       return res.status(500).json({ error: 'Failed to fetch recordings' })
     }
 
@@ -102,6 +106,10 @@ router.get('/teacher', requireAuth, asyncHandler(async (req, res) => {
 
     if (error) {
       console.error('Error fetching teacher recordings:', error)
+      // If table doesn't exist, return empty array instead of error
+      if (error.code === 'PGRST205' || error.message?.includes('Could not find the table')) {
+        return res.json([])
+      }
       return res.status(500).json({ error: 'Failed to fetch recordings' })
     }
 
@@ -131,6 +139,84 @@ router.get('/teacher', requireAuth, asyncHandler(async (req, res) => {
     res.json(transformedRecordings)
   } catch (error) {
     console.error('Error in teacher recordings route:', error)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+}))
+
+// Get recording by session ID
+router.get('/session/:sessionId', requireAuth, asyncHandler(async (req, res) => {
+  const userEmail = (req as any).user?.email
+  const userRole = (req as any).user?.role || 'student'
+  const sessionId = req.params.sessionId
+
+  try {
+    let query = supabaseAdmin
+      .from('recordings')
+      .select(`
+        *,
+        courses(title)
+      `)
+      .eq('session_id', sessionId)
+
+    if (userRole === 'student') {
+      // Students can only access recordings from courses they're enrolled in
+      const { data: enrollments, error: enrollmentError } = await supabaseAdmin
+        .from('enrollments')
+        .select('course_id')
+        .eq('student_email', userEmail)
+
+      if (enrollmentError || !enrollments || enrollments.length === 0) {
+        return res.status(404).json({ error: 'Recording not found or access denied' })
+      }
+
+      const courseIds = enrollments.map(e => e.course_id)
+      query = query.in('course_id', courseIds)
+    } else if (userRole === 'teacher') {
+      // Teachers can only access their own recordings
+      query = query.eq('teacher_email', userEmail)
+    }
+
+    const { data: recording, error } = await query.maybeSingle()
+
+    if (error) {
+      console.error('Error fetching recording by session ID:', error)
+      // If table doesn't exist, return 404 instead of error
+      if (error.code === 'PGRST205' || error.message?.includes('Could not find the table')) {
+        return res.status(404).json({ error: 'Recording not found' })
+      }
+      return res.status(500).json({ error: 'Failed to fetch recording' })
+    }
+
+    if (!recording) {
+      return res.status(404).json({ error: 'Recording not found' })
+    }
+
+    // Transform the data
+    const transformedRecording = {
+      id: recording.id,
+      title: recording.title,
+      description: recording.description,
+      session_id: recording.session_id,
+      course_id: recording.course_id,
+      course_title: recording.courses?.title || 'Unknown Course',
+      teacher_email: recording.teacher_email,
+      teacher_name: recording.teacher_name,
+      duration: recording.duration || 0,
+      file_size: recording.file_size || 0,
+      file_url: recording.file_url,
+      thumbnail_url: recording.thumbnail_url,
+      recorded_at: recording.recorded_at,
+      created_at: recording.created_at,
+      view_count: recording.view_count || 0,
+      is_bookmarked: recording.is_bookmarked || false,
+      tags: recording.tags || [],
+      quality: recording.quality || 'medium',
+      format: recording.format || 'mp4'
+    }
+
+    res.json(transformedRecording)
+  } catch (error) {
+    console.error('Error in get recording by session ID route:', error)
     res.status(500).json({ error: 'Internal server error' })
   }
 }))

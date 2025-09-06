@@ -182,41 +182,40 @@ export default function StudentCourseDetailPage() {
 
       {/* Course Navigation */}
       <div className="w-full">
-        <div className="w-full flex justify-center py-4">
-          <FluidTabs
-            tabs={[
-              { id: 'overview', label: 'Overview', icon: <BookOpen className="h-4 w-4" /> },
-              { id: 'curriculum', label: 'Curriculum', icon: <PlayCircle className="h-4 w-4" />, badge: modules?.length || 0 },
-              { id: 'assignments', label: 'Assignments', icon: <ClipboardList className="h-4 w-4" />, badge: assignments?.length || 0 },
-              { id: 'discussions', label: 'Discussions', icon: <MessageSquare className="h-4 w-4" /> },
-              { id: 'resources', label: 'Resources', icon: <FileText className="h-4 w-4" /> }
-            ]}
-            activeTab="curriculum"
-            onTabChange={() => {}}
-            variant="default"
-            width="content-match"
-          />
-        </div>
-        
-        <Tabs defaultValue="curriculum" className="w-full">
-
+          <div className="w-full flex justify-center py-4">
+            <FluidTabs
+              tabs={[
+                { id: 'overview', label: 'Overview', icon: <BookOpen className="h-4 w-4" /> },
+                { id: 'curriculum', label: 'Curriculum', icon: <PlayCircle className="h-4 w-4" />, badge: modules?.length || 0 },
+                { id: 'assignments', label: 'Assignments', icon: <ClipboardList className="h-4 w-4" />, badge: assignments?.length || 0 },
+                { id: 'discussions', label: 'Discussions', icon: <MessageSquare className="h-4 w-4" /> },
+                { id: 'resources', label: 'Resources', icon: <FileText className="h-4 w-4" /> }
+              ]}
+              activeTab="curriculum"
+              onTabChange={() => {}}
+              variant="default"
+              width="content-match"
+            />
+          </div>
+          
+          <Tabs defaultValue="curriculum" className="w-full">
             <TabsContent value="overview" className="mt-4">
               <div className="w-full">
                 <GlassCard className="p-6">
-                  <div className="text-slate-300">
-                    Welcome to {course.title}. Use Resume study to continue where you left off, or explore the curriculum to
-                    jump to a specific lesson.
-                  </div>
-                </GlassCard>
-              </div>
+            <div className="text-slate-300">
+              Welcome to {course.title}. Use Resume study to continue where you left off, or explore the curriculum to
+              jump to a specific lesson.
+            </div>
+            </GlassCard>
+          </div>
             </TabsContent>
 
           <TabsContent value="curriculum" className="mt-4">
             <div className="w-full">
               <GlassCard className="p-0 space-y-4 w-full">
-                {modules.length === 0 ? (
+            {modules.length === 0 ? (
                   <div className="text-slate-300 p-6">No modules available yet.</div>
-                ) : (
+            ) : (
                   <div className="space-y-3 p-6">
                 {modules.map((m: any) => {
                   const total = m.lessons?.length || 0
@@ -310,20 +309,20 @@ export default function StudentCourseDetailPage() {
                     </div>
                   )
                 })}
-                  </div>
-                )}
-              </GlassCard>
-            </div>
-          </TabsContent>
+              </div>
+            )}
+            </GlassCard>
+          </div>
+            </TabsContent>
 
           <TabsContent value="assignments" className="mt-4">
             <div className="w-full">
               <GlassCard className="p-0 space-y-4">
                 <div className="p-6">
-                  {assignments.length === 0 ? (
-                    <div className="text-slate-300 text-sm">No assignments yet.</div>
-                  ) : (
-                    <div className="space-y-3">
+            {assignments.length === 0 ? (
+              <div className="text-slate-300 text-sm">No assignments yet.</div>
+            ) : (
+              <div className="space-y-3">
                 {assignments.map((a: any) => {
                   // For now, we'll assume no submission since we don't have submission tracking yet
                   const status = "not_started"
@@ -370,18 +369,18 @@ export default function StudentCourseDetailPage() {
                     </div>
                   )
                 })}
-                    </div>
-                  )}
+              </div>
+            )}
                 </div>
-              </GlassCard>
-            </div>
-          </TabsContent>
+            </GlassCard>
+          </div>
+            </TabsContent>
 
           <TabsContent value="discussions" className="mt-4">
             <div className="w-full">
               <GlassCard className="p-6">
                 {course?.allow_discussions ? (
-                  <div className="text-slate-300 text-sm">Course discussions will appear here.</div>
+            <div className="text-slate-300 text-sm">Course discussions will appear here.</div>
                 ) : (
                   <div className="text-center space-y-3">
                     <div className="text-slate-400 text-sm">
@@ -393,20 +392,18 @@ export default function StudentCourseDetailPage() {
                     </div>
                   </div>
                 )}
-              </GlassCard>
-            </div>
-          </TabsContent>
+            </GlassCard>
+          </div>
+            </TabsContent>
 
           <TabsContent value="resources" className="mt-4">
             <div className="w-full">
               <GlassCard className="p-6">
-                <div className="text-slate-300 text-sm">Shared files and links will appear here.</div>
-              </GlassCard>
-            </div>
-          </TabsContent>
+            <div className="text-slate-300 text-sm">Shared files and links will appear here.</div>
+            </GlassCard>
+          </div>
+            </TabsContent>
           </Tabs>
-        </div>
-      </div>
 
       {/* Document Viewer Modal */}
       <DocumentViewer
@@ -425,6 +422,7 @@ export default function StudentCourseDetailPage() {
         title="Lesson Presentation"
         subtitle={course?.title}
       />
+      </div>
     </div>
   )
 }
