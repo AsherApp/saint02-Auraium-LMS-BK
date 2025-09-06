@@ -27,10 +27,29 @@ export default function StudentCoursesPage() {
         console.log('Student Courses - API Response:', response)
         const enrolledCourses = response.items || []
         console.log('Student Courses - Enrolled courses:', enrolledCourses)
-        setCourses(enrolledCourses)
+        
+        // Fetch complete course details for each enrolled course
+        const courseDetailsPromises = enrolledCourses.map(async (enrollment: any) => {
+          try {
+            // Fetch full course details including thumbnail
+            const courseResponse = await http<any>(`/api/courses/${enrollment.course_id}`)
+            console.log(`Course details for ${enrollment.course_id}:`, courseResponse)
+            
+            return {
+              ...enrollment,
+              course_details: courseResponse
+            }
+          } catch (err) {
+            console.error(`Failed to fetch course details for ${enrollment.course_id}:`, err)
+            return enrollment
+          }
+        })
+        
+        const coursesWithDetails = await Promise.all(courseDetailsPromises)
+        setCourses(coursesWithDetails)
         
         // Fetch stats for each course
-        const statsPromises = enrolledCourses.map(async (course: any) => {
+        const statsPromises = coursesWithDetails.map(async (course: any) => {
           try {
             const modulesResponse = await http<any>(`/api/modules/course/${course.course_id}`)
             const modulesCount = modulesResponse.items?.length || 0
@@ -104,8 +123,14 @@ export default function StudentCoursesPage() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {courses.map((c) => {
             const stats = courseStats[c.course_id] || { modules: 0, students: 0 }
-            const courseData = c.courses || {}
-            console.log('Course data for thumbnail:', { courseId: c.course_id, thumbnailUrl: courseData.thumbnail_url, courseData })
+            // Use course_details if available, otherwise fall back to c.courses
+            const courseData = c.course_details || c.courses || {}
+            console.log('Course data for thumbnail:', { 
+              courseId: c.course_id, 
+              thumbnailUrl: courseData.thumbnail_url, 
+              courseData,
+              hasCourseDetails: !!c.course_details
+            })
             return (
               <CourseCard
                 key={c.course_id}
