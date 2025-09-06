@@ -1,4 +1,4 @@
-import { http } from "../http"
+import { httpClient } from "../http"
 import { useAuthStore } from "@/store/auth-store"
 
 export type Discussion = {
@@ -31,7 +31,7 @@ const getHeadersWithUserEmail = () => {
 
 export const DiscussionsService = {
   async getByCourse(courseId: string): Promise<Discussion[]> {
-    const response = await http.get(`/discussions/course/${courseId}`, {
+    const response = await httpClient.get(`/discussions/course/${courseId}`, {
       headers: getHeadersWithUserEmail()
     })
     return response.data.items
@@ -42,14 +42,14 @@ export const DiscussionsService = {
     title: string
     description?: string
   }): Promise<Discussion> {
-    const response = await http.post('/discussions', data, {
+    const response = await httpClient.post('/discussions', data, {
       headers: getHeadersWithUserEmail()
     })
     return response.data
   },
 
   async getById(discussionId: string): Promise<Discussion> {
-    const response = await http.get(`/discussions/${discussionId}`, {
+    const response = await httpClient.get(`/discussions/${discussionId}`, {
       headers: getHeadersWithUserEmail()
     })
     return response.data
@@ -59,21 +59,21 @@ export const DiscussionsService = {
     content: string
     parentPostId?: string
   }): Promise<DiscussionPost> {
-    const response = await http.post(`/discussions/${discussionId}/posts`, data, {
+    const response = await httpClient.post(`/discussions/${discussionId}/posts`, data, {
       headers: getHeadersWithUserEmail()
     })
     return response.data
   },
 
   async approvePost(postId: string): Promise<DiscussionPost> {
-    const response = await http.post(`/discussions/posts/${postId}/approve`, {}, {
+    const response = await httpClient.post(`/discussions/posts/${postId}/approve`, {}, {
       headers: getHeadersWithUserEmail()
     })
     return response.data
   },
 
   async deletePost(postId: string): Promise<void> {
-    await http.delete(`/discussions/posts/${postId}`, {
+    await httpClient.delete(`/discussions/posts/${postId}`, {
       headers: getHeadersWithUserEmail()
     })
   },
@@ -83,7 +83,7 @@ export const DiscussionsService = {
     totalParticipants: number
     recentActivity: any[]
   }> {
-    const response = await http.get(`/discussions/${discussionId}/stats`, {
+    const response = await httpClient.get(`/discussions/${discussionId}/stats`, {
       headers: getHeadersWithUserEmail()
     })
     return response.data

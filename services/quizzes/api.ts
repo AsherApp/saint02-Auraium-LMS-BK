@@ -1,4 +1,4 @@
-import { http } from "../http"
+import { httpClient } from "../http"
 import { useAuthStore } from "@/store/auth-store"
 
 export type QuizQuestion = {
@@ -42,7 +42,7 @@ const getHeadersWithUserEmail = () => {
 
 export const QuizzesService = {
   async getByCourse(courseId: string): Promise<Quiz[]> {
-    const response = await http.get(`/quizzes/course/${courseId}`, {
+    const response = await httpClient.get(`/quizzes/course/${courseId}`, {
       headers: getHeadersWithUserEmail()
     })
     return response.data.items
@@ -56,21 +56,21 @@ export const QuizzesService = {
     timeLimitMinutes?: number
     maxAttempts?: number
   }): Promise<Quiz> {
-    const response = await http.post('/quizzes', data, {
+    const response = await httpClient.post('/quizzes', data, {
       headers: getHeadersWithUserEmail()
     })
     return response.data
   },
 
   async getById(quizId: string): Promise<Quiz> {
-    const response = await http.get(`/quizzes/${quizId}`, {
+    const response = await httpClient.get(`/quizzes/${quizId}`, {
       headers: getHeadersWithUserEmail()
     })
     return response.data
   },
 
   async respond(quizId: string, answers: Record<string, any>): Promise<QuizResponse> {
-    const response = await http.post(`/quizzes/${quizId}/respond`, { answers }, {
+    const response = await httpClient.post(`/quizzes/${quizId}/respond`, { answers }, {
       headers: getHeadersWithUserEmail()
     })
     return response.data
@@ -81,14 +81,14 @@ export const QuizzesService = {
     responses: QuizResponse[]
     stats: any
   }> {
-    const response = await http.get(`/quizzes/${quizId}/results`, {
+    const response = await httpClient.get(`/quizzes/${quizId}/results`, {
       headers: getHeadersWithUserEmail()
     })
     return response.data
   },
 
   async close(quizId: string): Promise<Quiz> {
-    const response = await http.post(`/quizzes/${quizId}/close`, {}, {
+    const response = await httpClient.post(`/quizzes/${quizId}/close`, {}, {
       headers: getHeadersWithUserEmail()
     })
     return response.data

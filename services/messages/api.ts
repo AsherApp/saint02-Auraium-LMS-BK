@@ -1,4 +1,4 @@
-import { http } from "../http"
+import { httpClient } from "../http"
 import { useAuthStore } from "@/store/auth-store"
 
 export type Message = {

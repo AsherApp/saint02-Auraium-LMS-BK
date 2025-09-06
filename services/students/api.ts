@@ -1,4 +1,4 @@
-import { http } from "../http"
+import { httpClient } from "../http"
 
 export type Student = {
   id: string

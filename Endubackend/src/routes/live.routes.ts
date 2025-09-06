@@ -3,6 +3,7 @@ import { requireAuth } from '../middlewares/auth.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { supabaseAdmin } from '../lib/supabase.js'
 import { AccessToken } from 'livekit-server-sdk'
+import { env } from '../config/env.js'
 
 export const router = Router()
 
@@ -1480,10 +1481,17 @@ router.post('/:sessionId/token', requireAuth, asyncHandler(async (req, res) => {
   }
 
   try {
+    // Check if LiveKit credentials are configured
+    if (!env.LIVEKIT_API_KEY || !env.LIVEKIT_API_SECRET) {
+      return res.status(500).json({ 
+        error: 'LiveKit not configured. Please add LIVEKIT_API_KEY and LIVEKIT_API_SECRET to environment variables.' 
+      })
+    }
+
     // Create LiveKit access token
     const token = new AccessToken(
-      process.env.LIVEKIT_API_KEY!,
-      process.env.LIVEKIT_API_SECRET!,
+      env.LIVEKIT_API_KEY,
+      env.LIVEKIT_API_SECRET,
       {
         identity: identity,
         name: identity,

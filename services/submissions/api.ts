@@ -1,4 +1,4 @@
-import { http } from "../http"
+import { httpClient } from "../http"
 import { useAuthStore } from "@/store/auth-store"
 
 export type SubmissionStatus = 'draft' | 'submitted' | 'graded' | 'returned' | 'late'
@@ -34,7 +34,7 @@ const getHeadersWithUserEmail = () => {
 
 export const SubmissionsService = {
   async getByAssignment(assignmentId: string): Promise<Submission[]> {
-    const response = await http.get(`/submissions/assignment/${assignmentId}`, {
+    const response = await httpClient.get(`/submissions/assignment/${assignmentId}`, {
       headers: getHeadersWithUserEmail()
     })
     return response.data
@@ -46,7 +46,7 @@ export const SubmissionsService = {
     attachments?: any[]
     timeSpentMinutes?: number
   }): Promise<Submission> {
-    const response = await http.post(`/submissions/assignment/${assignmentId}`, data, {
+    const response = await httpClient.post(`/submissions/assignment/${assignmentId}`, data, {
       headers: getHeadersWithUserEmail()
     })
     return response.data
@@ -58,14 +58,14 @@ export const SubmissionsService = {
     attachments?: any[]
     timeSpentMinutes?: number
   }): Promise<Submission> {
-    const response = await http.put(`/submissions/${submissionId}`, data, {
+    const response = await httpClient.put(`/submissions/${submissionId}`, data, {
       headers: getHeadersWithUserEmail()
     })
     return response.data
   },
 
   async getById(submissionId: string): Promise<Submission> {
-    const response = await http.get(`/submissions/${submissionId}`, {
+    const response = await httpClient.get(`/submissions/${submissionId}`, {
       headers: getHeadersWithUserEmail()
     })
     return response.data

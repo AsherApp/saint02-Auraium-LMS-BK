@@ -1,4 +1,4 @@
-import { http } from "../http"
+import { httpClient } from "../http"
 
 // Professional Assignment Types
 export type AssignmentType = 'essay' | 'file_upload' | 'quiz' | 'project' | 'discussion' | 'presentation' | 'code_submission' | 'peer_review'

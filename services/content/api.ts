@@ -1,4 +1,4 @@
-import { http } from "../http"
+import { httpClient } from "../http"
 
 export interface KnowledgeBaseArticle {
   id: string

@@ -122,10 +122,10 @@ export default function EnhancedVideo({ roomId, name }: EnhancedVideoProps) {
 
   // Initialize component and connect to LiveKit
   useEffect(() => {
-    setStatus("Connecting to room...")
-    console.log('✅ Component initialized - Connecting to LiveKit room')
+    setStatus("Ready - Click buttons to enable camera/mic")
+    console.log('✅ Component initialized - Ready for user interaction')
     
-    // Get available devices on mount
+    // Get available devices on mount (this doesn't trigger AudioContext)
     getAvailableDevices()
     
     const connectToRoom = async () => {
@@ -407,8 +407,22 @@ export default function EnhancedVideo({ roomId, name }: EnhancedVideoProps) {
      console.log('🎤 Microphone disabled - Device turned off')
   }
 
+  // Handle user interaction for audio context
+  const handleUserInteraction = async () => {
+    // Resume audio context if suspended (required for user gesture)
+    if (typeof window !== 'undefined' && window.AudioContext) {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+      if (audioContext.state === 'suspended') {
+        await audioContext.resume()
+        console.log('🔊 AudioContext resumed after user interaction')
+      }
+    }
+  }
+
   // Toggle camera
-  const toggleCamera = () => {
+  const toggleCamera = async () => {
+    await handleUserInteraction() // Ensure audio context is ready
+    
     if (cameraOn) {
       stopCamera()
     } else {
@@ -417,7 +431,9 @@ export default function EnhancedVideo({ roomId, name }: EnhancedVideoProps) {
   }
 
   // Toggle microphone
-  const toggleMic = () => {
+  const toggleMic = async () => {
+    await handleUserInteraction() // Ensure audio context is ready
+    
     if (micOn) {
       stopMic()
     } else {

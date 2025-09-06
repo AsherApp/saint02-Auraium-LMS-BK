@@ -1,4 +1,4 @@
-import { http } from "../http"
+import { httpClient } from "../http"
 import { useAuthStore } from "@/store/auth-store"
 
 export type Poll = {
@@ -29,7 +29,7 @@ const getHeadersWithUserEmail = () => {
 
 export const PollsService = {
   async getByCourse(courseId: string): Promise<Poll[]> {
-    const response = await http.get(`/polls/course/${courseId}`, {
+    const response = await httpClient.get(`/polls/course/${courseId}`, {
       headers: getHeadersWithUserEmail()
     })
     return response.data.items
@@ -43,21 +43,21 @@ export const PollsService = {
     liveSessionId?: string
     allowMultipleVotes?: boolean
   }): Promise<Poll> {
-    const response = await http.post('/polls', data, {
+    const response = await httpClient.post('/polls', data, {
       headers: getHeadersWithUserEmail()
     })
     return response.data
   },
 
   async getById(pollId: string): Promise<Poll> {
-    const response = await http.get(`/polls/${pollId}`, {
+    const response = await httpClient.get(`/polls/${pollId}`, {
       headers: getHeadersWithUserEmail()
     })
     return response.data
   },
 
   async respond(pollId: string, selectedOptions: number[]): Promise<PollResponse> {
-    const response = await http.post(`/polls/${pollId}/respond`, { selected_options: selectedOptions }, {
+    const response = await httpClient.post(`/polls/${pollId}/respond`, { selected_options: selectedOptions }, {
       headers: getHeadersWithUserEmail()
     })
     return response.data
@@ -74,14 +74,14 @@ export const PollsService = {
     }>
     responses: PollResponse[]
   }> {
-    const response = await http.get(`/polls/${pollId}/results`, {
+    const response = await httpClient.get(`/polls/${pollId}/results`, {
       headers: getHeadersWithUserEmail()
     })
     return response.data
   },
 
   async close(pollId: string): Promise<Poll> {
-    const response = await http.post(`/polls/${pollId}/close`, {}, {
+    const response = await httpClient.post(`/polls/${pollId}/close`, {}, {
       headers: getHeadersWithUserEmail()
     })
     return response.data
