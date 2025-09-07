@@ -4,7 +4,136 @@ import { requireAuth } from '../middlewares/auth.js';
 
 const router = Router();
 
-// Get all transactions for a teacher
+// Get all transactions for a teacher (query parameter version for frontend compatibility)
+router.get('/', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { email } = req.query;
+    
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({ error: 'Email parameter is required' });
+    }
+    
+    // Verify the authenticated user is requesting their own transactions
+    if ((req as any).user?.email !== email) {
+      return res.status(403).json({ error: 'Unauthorized access to transactions' });
+    }
+
+    const { data: transactions, error } = await supabaseAdmin
+      .from('teacher_transactions')
+      .select(`
+        id,
+        transaction_id,
+        transaction_type,
+        amount_cents,
+        currency,
+        status,
+        access_plan,
+        student_slots_included,
+        slots_purchased,
+        slots_added,
+        stripe_payment_intent_id,
+        description,
+        metadata,
+        created_at,
+        updated_at,
+        completed_at
+      `)
+      .eq('teacher_email', email)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Failed to fetch transactions' 
+      });
+    }
+    
+    res.json({
+      success: true,
+      transactions: transactions || []
+    });
+  } catch (error) {
+    console.error('Error fetching transactions:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Internal server error' 
+    });
+  }
+});
+
+// Get transaction summary (query parameter version for frontend compatibility)
+router.get('/summary', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { email } = req.query;
+    
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({ error: 'Email parameter is required' });
+    }
+    
+    // Verify the authenticated user is requesting their own transactions
+    if ((req as any).user?.email !== email) {
+      return res.status(403).json({ error: 'Unauthorized access to transactions' });
+    }
+
+    const { data: transactions, error } = await supabaseAdmin
+      .from('teacher_transactions')
+      .select(`
+        transaction_type,
+        amount_cents,
+        currency,
+        status,
+        access_plan,
+        student_slots_included,
+        slots_purchased,
+        slots_added,
+        created_at
+      `)
+      .eq('teacher_email', email);
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Failed to fetch transaction summary' 
+      });
+    }
+
+    // Calculate summary statistics
+    const totalTransactions = transactions?.length || 0;
+    const successfulTransactions = transactions?.filter(t => t.status === 'completed').length || 0;
+    const totalAmount = transactions?.reduce((sum, t) => sum + (t.amount_cents || 0), 0) || 0;
+    const totalSlotsPurchased = transactions?.reduce((sum, t) => sum + (t.slots_purchased || 0), 0) || 0;
+    const totalSlotsAdded = transactions?.reduce((sum, t) => sum + (t.slots_added || 0), 0) || 0;
+    
+    // Get current plan info from the most recent transaction
+    const currentPlan = transactions?.find(t => t.status === 'completed')?.access_plan || 'free';
+    const currentSlots = transactions?.find(t => t.status === 'completed')?.student_slots_included || 5;
+
+    res.json({
+      success: true,
+      summary: {
+        total_transactions: totalTransactions,
+        successful_transactions: successfulTransactions,
+        total_amount_cents: totalAmount,
+        total_amount_dollars: Math.round(totalAmount / 100 * 100) / 100,
+        total_slots_purchased: totalSlotsPurchased,
+        total_slots_added: totalSlotsAdded,
+        current_plan: currentPlan,
+        current_slots: currentSlots,
+        success_rate: totalTransactions > 0 ? Math.round((successfulTransactions / totalTransactions) * 100) : 0
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching transaction summary:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Internal server error' 
+    });
+  }
+});
+
+// Get all transactions for a teacher (path parameter version)
 router.get('/teacher/:email', requireAuth, async (req: Request, res: Response) => {
   try {
     const { email } = req.params;
