@@ -30,7 +30,8 @@ import {
   Megaphone,
   User,
   Key,
-  GraduationCap
+  GraduationCap,
+  Eye
 } from "lucide-react"
 import { motion } from "framer-motion"
 

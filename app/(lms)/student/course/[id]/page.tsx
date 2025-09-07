@@ -349,7 +349,7 @@ export default function StudentCourseDetailPage() {
               <div className="space-y-3">
                 {assignments.map((a: any) => {
                   // For now, we'll assume no submission since we don't have submission tracking yet
-                  const status = "not_started"
+                  const status = a.status || "not_started"
                   const overdue = !!a.due_at && new Date(a.due_at) < new Date()
                   const dueSoon =
                     !!a.due_at &&
