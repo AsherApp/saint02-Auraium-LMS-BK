@@ -467,9 +467,26 @@ router.post('/student/register', asyncHandler(async (req, res) => {
     // Don't fail the registration if notification fails
   }
 
+  // Generate JWT token for immediate login
+  const token = await generateToken({
+    id: student.id,
+    email: student.email,
+    role: 'student',
+    name: student.name,
+    student_code: student.student_code
+  })
+
   res.json({ 
     message: 'Student registered successfully',
     student_code: studentCode,
+    token,
+    user: {
+      id: student.id,
+      email: student.email,
+      role: 'student',
+      name: student.name,
+      student_code: student.student_code
+    },
     student: {
       email: student.email,
       name: student.name,
