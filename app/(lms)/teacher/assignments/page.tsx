@@ -91,14 +91,24 @@ export default function TeacherAssignmentsPage() {
   // Fetch courses and assignments
   useEffect(() => {
     const fetchData = async () => {
-      if (!user?.email) return
+      console.log('fetchData called with user:', user)
+      console.log('User email:', user?.email)
+      console.log('User object:', JSON.stringify(user, null, 2))
+      
+      if (!user?.email) {
+        console.log('No user email, returning early')
+        return
+      }
       
       setLoading(true)
       setError(null)
       try {
         // First fetch real courses from backend
+        console.log('Making API call to /api/courses...')
         const coursesResponse = await http<{ items: any[] }>('/api/courses')
+        console.log('Courses API response:', coursesResponse)
         const teacherCourses = coursesResponse?.items || []
+        console.log('Teacher courses:', teacherCourses)
         setCourses(teacherCourses)
         
         const allAssignments: AssignmentWithStats[] = []
@@ -151,6 +161,8 @@ export default function TeacherAssignmentsPage() {
         console.error("Failed to fetch assignments:", error)
         console.error("Error type:", typeof error)
         console.error("Error details:", error)
+        console.error("Error message:", error instanceof Error ? error.message : 'Unknown error')
+        console.error("Error stack:", error instanceof Error ? error.stack : 'No stack trace')
         setError("Failed to load assignments. Please try again.")
         setCourses([])
         setAssignments([])
