@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { supabaseAdmin } from '../lib/supabase.js'
-import { requireAuth } from '../middlewares/auth'
-import { asyncHandler } from '../utils/asyncHandler'
+import { requireAuth } from '../middlewares/auth.js'
+import { asyncHandler } from '../utils/asyncHandler.js'
 
 const router = Router()
 

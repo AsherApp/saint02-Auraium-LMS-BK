@@ -10,7 +10,9 @@
     "skipLibCheck": true,
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
-    "noImplicitAny": false
+    "noImplicitAny": false,
+    "allowImportingTsExtensions": false,
+    "noEmit": false
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules"]

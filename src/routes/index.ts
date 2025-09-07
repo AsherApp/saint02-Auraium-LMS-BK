@@ -18,7 +18,6 @@ import studentProgressRoutes from './student-progress.routes.js'
 import { router as teacherRoutes } from './teacher.routes.js'
 import eventsRoutes from './events.routes.js'
 import liveAttendanceRoutes from './live-attendance.routes.js'
-import recordingsRoutes from './recordings.routes.js'
 import submissionsRoutes from './submissions.routes.js'
 import quizzesRoutes from './quizzes.routes.js'
 import pollsRoutes from './polls.routes.js'
@@ -52,7 +51,6 @@ router.use('/student-progress', studentProgressRoutes)
 router.use('/teacher', teacherRoutes)
 router.use('/events', eventsRoutes)
 router.use('/live-attendance', liveAttendanceRoutes)
-router.use('/recordings', recordingsRoutes)
 router.use('/submissions', submissionsRoutes)
 router.use('/quizzes', quizzesRoutes)
 router.use('/polls', pollsRoutes)
