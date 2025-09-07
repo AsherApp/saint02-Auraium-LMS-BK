@@ -102,15 +102,21 @@ const allowedOrigins = process.env.NODE_ENV === 'production'
 
 const corsOptions = {
   origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
+    console.log(`CORS check - Origin: ${origin}, NODE_ENV: ${process.env.NODE_ENV}`)
+    
     // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true)
+    if (!origin) {
+      console.log('CORS allowing request with no origin')
+      return callback(null, true)
+    }
     
     // Check if origin is in allowed origins
     if (allowedOrigins.indexOf(origin) !== -1) {
+      console.log(`CORS allowing origin from allowedOrigins: ${origin}`)
       callback(null, true)
     } 
-    // Allow Vercel domains (production only)
-    else if (process.env.NODE_ENV === 'production' && origin && origin.endsWith('.vercel.app')) {
+    // Allow Vercel domains (always, not just in production)
+    else if (origin && origin.endsWith('.vercel.app')) {
       console.log(`CORS allowing Vercel domain: ${origin}`)
       callback(null, true)
     }
