@@ -3,6 +3,7 @@ import { supabaseAdmin } from '../lib/supabase.js'
 import { requireAuth } from '../middlewares/auth.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { generateStudentCode } from '../utils/student-code.js'
+import { NotificationService } from '../services/notification.service.js'
 
 const router = express.Router()
 
@@ -140,6 +141,50 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
     .single()
 
   if (error) return res.status(500).json({ error: error.message })
+  
+  // Send invitation email notification
+  try {
+    // Get course details for the notification
+    const { data: course } = await supabaseAdmin
+      .from('courses')
+      .select('title, description')
+      .eq('id', course_id)
+      .single()
+    
+    // Get teacher details
+    const { data: teacher } = await supabaseAdmin
+      .from('teachers')
+      .select('first_name, last_name')
+      .eq('email', teacher_email)
+      .single()
+    
+    const teacherName = teacher ? `${teacher.first_name} ${teacher.last_name}` : 'Teacher'
+    const courseTitle = course?.title || 'Course'
+    const courseDescription = course?.description || ''
+    const inviteUrl = `${process.env.FRONTEND_URL || 'https://auraiumlms.vercel.app'}/invite/${data.code}`
+    
+    await NotificationService.sendNotification({
+      user_email: finalStudentEmail.toLowerCase(),
+      user_type: 'student',
+      type: 'course_invitation',
+      title: 'You\'ve been invited to join a course!',
+      message: `${teacherName} has invited you to join their course "${courseTitle}" on AuraiumLMS.`,
+      data: {
+        student_name: finalStudentName,
+        student_email: finalStudentEmail,
+        teacher_name: teacherName,
+        teacher_email: teacher_email,
+        course_title: courseTitle,
+        course_description: courseDescription,
+        invite_url: inviteUrl,
+        invite_code: data.code,
+        expires_at: data.expires_at
+      }
+    })
+  } catch (notificationError) {
+    console.error('Error sending invitation notification:', notificationError)
+    // Don't fail the invite creation if notification fails
+  }
   
   // Return the data with invite URL and code for frontend compatibility
   res.json({

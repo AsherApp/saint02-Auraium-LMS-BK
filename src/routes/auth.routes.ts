@@ -468,6 +468,26 @@ router.post('/teacher/register', asyncHandler(async (req, res) => {
     return res.status(500).json({ error: teacherError.message })
   }
 
+  // Send signup notification
+  try {
+    await NotificationService.sendNotification({
+      user_email: email.toLowerCase(),
+      user_type: 'teacher',
+      type: 'teacher_signup',
+      title: 'Welcome to AuraiumLMS!',
+      message: 'Your teacher account has been successfully created. You can now start creating courses, managing students, and tracking their progress.',
+      data: {
+        first_name,
+        last_name,
+        registration_date: new Date().toISOString(),
+        subscription_status: teacher.subscription_status
+      }
+    })
+  } catch (notificationError) {
+    console.error('Error sending teacher signup notification:', notificationError)
+    // Don't fail the registration if notification fails
+  }
+
   res.json({ 
     message: 'Teacher registered successfully',
     teacher: {
@@ -516,6 +536,24 @@ router.post('/student/change-password', requireAuth, asyncHandler(async (req, re
 
   if (updateError) {
     return res.status(500).json({ error: updateError.message })
+  }
+
+  // Send password change notification
+  try {
+    await NotificationService.sendNotification({
+      user_email: email.toLowerCase(),
+      user_type: 'student',
+      type: 'password_changed',
+      title: 'Password Successfully Changed',
+      message: 'Your password has been successfully changed for your AuraiumLMS account.',
+      data: {
+        change_date: new Date().toISOString(),
+        user_name: `${student.first_name} ${student.last_name}`
+      }
+    })
+  } catch (notificationError) {
+    console.error('Error sending password change notification:', notificationError)
+    // Don't fail the password change if notification fails
   }
 
   res.json({ message: 'Password changed successfully' })

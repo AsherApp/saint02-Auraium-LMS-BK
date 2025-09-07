@@ -259,6 +259,34 @@ router.post('/test', requireAuth, asyncHandler(async (req, res) => {
   }
 }))
 
+// Send test email (admin only)
+router.post('/test-email', requireAuth, asyncHandler(async (req, res) => {
+  const userRole = (req as any).user?.role
+  const { testEmail } = req.body
+
+  if (userRole !== 'teacher') {
+    return res.status(403).json({ error: 'Access denied' })
+  }
+
+  if (!testEmail) {
+    return res.status(400).json({ error: 'testEmail is required' })
+  }
+
+  try {
+    const { EmailService } = await import('../services/email.service.js')
+    const result = await EmailService.sendTestEmail(testEmail)
+
+    if (result.success) {
+      res.json({ success: true, messageId: result.messageId })
+    } else {
+      res.status(500).json({ error: result.error || 'Failed to send test email' })
+    }
+  } catch (error) {
+    console.error('Error sending test email:', error)
+    res.status(500).json({ error: 'Failed to send test email' })
+  }
+}))
+
 // Get email logs (admin only)
 router.get('/email-logs', requireAuth, asyncHandler(async (req, res) => {
   const userRole = (req as any).user?.role
