@@ -210,15 +210,15 @@ router.post('/bulk-create', requireAuth, asyncHandler(async (req, res) => {
             continue
           }
 
-          // Create lesson content based on type
+          // Update lesson with content (content is stored in lessons.content JSONB field)
           let contentResult = null
           if (lessonData.content) {
-            const { data: content, error: contentError } = await supabaseAdmin
-              .from('lesson_content')
-              .insert({
-                lesson_id: lesson.id,
+            const { data: updatedLesson, error: contentError } = await supabaseAdmin
+              .from('lessons')
+              .update({
                 content: lessonData.content
               })
+              .eq('id', lesson.id)
               .select()
               .single()
 
@@ -228,10 +228,10 @@ router.post('/bulk-create', requireAuth, asyncHandler(async (req, res) => {
                 course: courseData.title,
                 module: moduleData.title,
                 lesson: lessonData.title,
-                error: `Failed to create lesson content: ${contentError.message}`
+                error: `Failed to update lesson content: ${contentError.message}`
               })
             } else {
-              contentResult = content
+              contentResult = updatedLesson
             }
           }
 
