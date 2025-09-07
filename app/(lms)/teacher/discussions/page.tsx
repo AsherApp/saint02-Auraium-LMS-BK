@@ -85,6 +85,7 @@ function TeacherDiscussionsPage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([])
   const [coursesList, setCoursesList] = useState<Course[]>([])
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [selectedCourse, setSelectedCourse] = useState<string>("all")
   const [sortBy, setSortBy] = useState<string>("latest")
   const [searchQuery, setSearchQuery] = useState("")
@@ -125,6 +126,7 @@ function TeacherDiscussionsPage() {
 
   const fetchDiscussions = async () => {
     setLoading(true)
+    setError(null)
     try {
       let discussionsData: Discussion[] = []
       
@@ -161,6 +163,8 @@ function TeacherDiscussionsPage() {
       setDiscussions(discussionsData)
     } catch (error: any) {
       console.error('Failed to fetch discussions:', error)
+      setError("Failed to load discussions. Please try again.")
+      setDiscussions([])
     } finally {
       setLoading(false)
     }
@@ -257,6 +261,27 @@ function TeacherDiscussionsPage() {
     } catch (error) {
       return "Unknown"
     }
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold text-white">Discussions</h1>
+        </div>
+        <GlassCard className="p-8">
+          <div className="text-center">
+            <div className="text-red-400 mb-4">{error}</div>
+            <Button 
+              onClick={() => window.location.reload()}
+              className="bg-blue-600/80 hover:bg-blue-600 text-white"
+            >
+              Retry
+            </Button>
+          </div>
+        </GlassCard>
+      </div>
+    )
   }
 
   return (

@@ -61,6 +61,7 @@ export default function TeacherAssignmentsPage() {
   const [courses, setCourses] = useState<any[]>([])
   const [assignments, setAssignments] = useState<AssignmentWithStats[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [filterType, setFilterType] = useState<"all" | "pending" | "graded" | "overdue">("all")
   const [showCreateDialog, setShowCreateDialog] = useState(false)
@@ -93,10 +94,11 @@ export default function TeacherAssignmentsPage() {
       if (!user?.email) return
       
       setLoading(true)
+      setError(null)
       try {
         // First fetch real courses from backend
         const coursesResponse = await http<{ items: any[] }>('/api/courses')
-        const teacherCourses = coursesResponse.items || []
+        const teacherCourses = coursesResponse?.items || []
         setCourses(teacherCourses)
         
         const allAssignments: AssignmentWithStats[] = []
@@ -137,6 +139,9 @@ export default function TeacherAssignmentsPage() {
         setAssignments(allAssignments)
       } catch (error) {
         console.error("Failed to fetch assignments:", error)
+        setError("Failed to load assignments. Please try again.")
+        setCourses([])
+        setAssignments([])
       } finally {
         setLoading(false)
       }
@@ -312,6 +317,27 @@ export default function TeacherAssignmentsPage() {
         </div>
         <GlassCard className="p-8">
           <div className="text-center text-slate-300">Loading assignments...</div>
+        </GlassCard>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold text-white">Assignments</h1>
+        </div>
+        <GlassCard className="p-8">
+          <div className="text-center">
+            <div className="text-red-400 mb-4">{error}</div>
+            <Button 
+              onClick={() => window.location.reload()}
+              className="bg-blue-600/80 hover:bg-blue-600 text-white"
+            >
+              Retry
+            </Button>
+          </div>
         </GlassCard>
       </div>
     )
