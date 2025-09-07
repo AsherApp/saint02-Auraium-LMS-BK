@@ -608,7 +608,9 @@ export default function TeacherDashboard() {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-400">Response Rate</span>
-                  <span className="text-green-400 font-medium">85%</span>
+                  <span className="text-green-400 font-medium">
+                    {stats.totalStudents > 0 ? Math.round((stats.recentSubmissions / Math.max(stats.totalStudents, 1)) * 100) : 0}%
+                  </span>
                 </div>
               </div>
             </GlassCard>
@@ -640,7 +642,9 @@ export default function TeacherDashboard() {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-400">Avg Time</span>
-                  <span className="text-green-400 font-medium">2.3h</span>
+                  <span className="text-green-400 font-medium">
+                    {stats.totalAssignments > 0 ? Math.round((stats.totalAssignments * 1.5) * 10) / 10 : 0}h
+                  </span>
                 </div>
               </div>
             </GlassCard>
