@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { GlassCard } from "@/components/shared/glass-card"
 import { Button } from "@/components/ui/button"
@@ -60,9 +60,6 @@ export default function TeacherAssignmentsPage() {
   const { user } = useAuthStore()
   const [courses, setCourses] = useState<any[]>([])
   const [assignments, setAssignments] = useState<AssignmentWithStats[]>([])
-  
-  // Ensure assignments is always an array
-  const safeAssignments = Array.isArray(assignments) ? assignments : []
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
@@ -82,61 +79,95 @@ export default function TeacherAssignmentsPage() {
     const tabParam = urlParams.get('tab')
     if (tabParam === 'submissions') {
       setActiveTab('submissions')
+      mainTabs.setActiveTab('submissions')
     }
   }, [])
+
   const [submissions, setSubmissions] = useState<SubmissionWithAssignment[]>([])
-  
-  // Ensure submissions is always an array
-  const safeSubmissions = Array.isArray(submissions) ? submissions : []
   const [submissionsLoading, setSubmissionsLoading] = useState(false)
   
   // Document and presentation viewer states
   const [viewingDocument, setViewingDocument] = useState<any>(null)
   const [viewingPresentation, setViewingPresentation] = useState<any>(null)
 
+  // Helper function to safely extract array from API response
+  const extractArrayFromResponse = (response: any, context: string = "API"): any[] => {
+    if (!response) {
+      console.warn(`${context}: Response is null/undefined`)
+      return []
+    }
+
+    if (Array.isArray(response)) {
+      console.log(`${context}: Response is direct array with ${response.length} items`)
+      return response
+    }
+
+    if (response.items && Array.isArray(response.items)) {
+      console.log(`${context}: Response has items property with ${response.items.length} items`)
+      return response.items
+    }
+
+    if (response.data && Array.isArray(response.data)) {
+      console.log(`${context}: Response has data property with ${response.data.length} items`)
+      return response.data
+    }
+
+    console.warn(`${context}: Unexpected response format:`, response)
+    console.warn(`${context}: Response type:`, typeof response)
+    if (typeof response === 'object') {
+      console.warn(`${context}: Response keys:`, Object.keys(response))
+    }
+    
+    return []
+  }
+
   // Fetch courses and assignments
   useEffect(() => {
     const fetchData = async () => {
-      console.log('fetchData called with user:', user)
-      console.log('User email:', user?.email)
-      console.log('User object:', JSON.stringify(user, null, 2))
-      
       if (!user?.email) {
-        console.log('No user email, returning early')
+        console.log('No user email available, skipping data fetch')
         return
       }
       
       setLoading(true)
       setError(null)
+      
       try {
+        console.log('Starting data fetch for user:', user.email)
+        
         // First fetch real courses from backend
-        console.log('Making API call to /api/courses...')
         const coursesResponse = await http<{ items: any[] }>('/api/courses')
         console.log('Courses API response:', coursesResponse)
-        const teacherCourses = coursesResponse?.items || []
-        console.log('Teacher courses:', teacherCourses)
+        
+        const teacherCourses = extractArrayFromResponse(coursesResponse, 'Courses API')
         setCourses(teacherCourses)
+        console.log(`Found ${teacherCourses.length} courses for teacher`)
         
         const allAssignments: AssignmentWithStats[] = []
         
         // Fetch assignments for each course the teacher has
         for (const course of teacherCourses) {
           try {
-            console.log(`Fetching assignments for course: ${course.id}`)
-            const courseAssignments = await AssignmentProAPI.listCourseAssignments(course.id)
-            console.log(`Course assignments response:`, courseAssignments)
-            console.log(`Course assignments type:`, typeof courseAssignments)
-            console.log(`Course assignments is array:`, Array.isArray(courseAssignments))
+            console.log(`Fetching assignments for course: ${course.id} (${course.title})`)
             
-            // Ensure courseAssignments is an array
-            const assignmentsArray = Array.isArray(courseAssignments) ? courseAssignments : []
-            console.log(`Using assignments array with ${assignmentsArray.length} items`)
+            const courseAssignmentsResponse = await AssignmentProAPI.listCourseAssignments(course.id)
+            console.log(`Course ${course.id} assignments response:`, courseAssignmentsResponse)
+            
+            const courseAssignments = extractArrayFromResponse(
+              courseAssignmentsResponse, 
+              `Course ${course.id} assignments`
+            )
+            
+            console.log(`Processing ${courseAssignments.length} assignments for course ${course.id}`)
             
             // Fetch stats for each assignment
             const assignmentsWithStats = await Promise.all(
-              assignmentsArray.map(async (assignment) => {
+              courseAssignments.map(async (assignment) => {
                 try {
+                  console.log(`Fetching stats for assignment: ${assignment.id}`)
                   const stats = await AssignmentProAPI.getGradingStats(assignment.id)
+                  console.log(`Stats for assignment ${assignment.id}:`, stats)
+                  
                   return {
                     ...assignment,
                     stats,
@@ -153,23 +184,33 @@ export default function TeacherAssignmentsPage() {
               })
             )
             
-            console.log(`Adding ${assignmentsWithStats.length} assignments to allAssignments`)
+            console.log(`Adding ${assignmentsWithStats.length} assignments from course ${course.id}`)
             allAssignments.push(...assignmentsWithStats)
+            
           } catch (error) {
             // If course assignments fail, just skip this course
             console.warn(`Failed to fetch assignments for course ${course.id}:`, error)
+            console.error(`Course ${course.id} error details:`, {
+              message: error?.message,
+              status: error?.status,
+              response: error?.response
+            })
           }
         }
         
-        console.log('Fetched assignments with stats:', allAssignments)
+        console.log(`Total assignments fetched: ${allAssignments.length}`)
+        console.log('All assignments with stats:', allAssignments)
         setAssignments(allAssignments)
+        
       } catch (error) {
         console.error("Failed to fetch assignments:", error)
-        console.error("Error type:", typeof error)
-        console.error("Error details:", error)
-        console.error("Error message:", error instanceof Error ? error.message : 'Unknown error')
-        console.error("Error stack:", error instanceof Error ? error.stack : 'No stack trace')
-        setError("Failed to load assignments. Please try again.")
+        console.error("Error details:", {
+          message: error?.message,
+          stack: error?.stack,
+          name: error?.name
+        })
+        
+        setError(`Failed to load assignments: ${error?.message || 'Unknown error occurred'}`)
         setCourses([])
         setAssignments([])
       } finally {
@@ -180,18 +221,16 @@ export default function TeacherAssignmentsPage() {
     fetchData()
   }, [user?.email])
 
-  // Filter assignments with useMemo to prevent unnecessary recalculations
-  const filteredAssignments = useMemo(() => {
+  // Filter assignments with improved safety
+  const filteredAssignments = (() => {
     console.log('Filtering assignments:', assignments)
-    console.log('Assignments type:', typeof assignments)
     console.log('Assignments is array:', Array.isArray(assignments))
     
-    const assignmentsForFilter = Array.isArray(assignments) ? assignments : []
-    console.log('Assignments for filter:', assignmentsForFilter)
+    const assignmentsArray = Array.isArray(assignments) ? assignments : []
     
-    return assignmentsForFilter.filter((assignment) => {
+    return assignmentsArray.filter((assignment) => {
       const matchesSearch = searchTerm === "" || 
-        assignment.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        assignment.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         assignment.course_title?.toLowerCase().includes(searchTerm.toLowerCase())
       
       let matchesFilter = true
@@ -208,28 +247,30 @@ export default function TeacherAssignmentsPage() {
         case "graded":
           matchesFilter = totalSubmissions > 0 && pendingCount === 0
           break
-      case "overdue":
-        matchesFilter = Boolean(isOverdue)
-        break
+        case "overdue":
+          matchesFilter = isOverdue
+          break
         case "all":
         default:
           matchesFilter = true
       }
       
-      console.log(`Assignment: ${assignment.title}, Filter: ${filterType}, Pending: ${pendingCount}, Total: ${totalSubmissions}, Overdue: ${isOverdue}, Matches: ${matchesSearch && matchesFilter}`)
+      const matches = matchesSearch && matchesFilter
+      console.log(`Assignment: ${assignment.title}, Filter: ${filterType}, Pending: ${pendingCount}, Total: ${totalSubmissions}, Overdue: ${isOverdue}, Matches: ${matches}`)
       
-      return matchesSearch && matchesFilter
+      return matches
     })
-  }, [assignments, searchTerm, filterType])
+  })()
 
   const handleDuplicateAssignment = async (assignment: Assignment) => {
     try {
       const newTitle = `${assignment.title} (Copy)`
       await AssignmentProAPI.duplicateAssignment(assignment.id, newTitle)
-      // Refresh the assignments list
-      window.location.reload()
+      // Refresh the assignments list without full reload
+      await refreshAssignments()
     } catch (error) {
       console.error("Failed to duplicate assignment:", error)
+      setError(`Failed to duplicate assignment: ${error?.message || 'Unknown error'}`)
     }
   }
 
@@ -243,59 +284,111 @@ export default function TeacherAssignmentsPage() {
       setAssignments(prev => prev.filter(a => a.id !== assignmentId))
     } catch (error) {
       console.error("Failed to delete assignment:", error)
+      setError(`Failed to delete assignment: ${error?.message || 'Unknown error'}`)
+    }
+  }
+
+  // Refresh assignments without full page reload
+  const refreshAssignments = async () => {
+    if (!user?.email) return
+    
+    try {
+      const coursesResponse = await http<{ items: any[] }>('/api/courses')
+      const teacherCourses = extractArrayFromResponse(coursesResponse, 'Refresh courses')
+      setCourses(teacherCourses)
+      
+      const allAssignments: AssignmentWithStats[] = []
+      
+      for (const course of teacherCourses) {
+        try {
+          const courseAssignmentsResponse = await AssignmentProAPI.listCourseAssignments(course.id)
+          const courseAssignments = extractArrayFromResponse(courseAssignmentsResponse, `Refresh course ${course.id}`)
+          
+          const assignmentsWithStats = await Promise.all(
+            courseAssignments.map(async (assignment) => {
+              try {
+                const stats = await AssignmentProAPI.getGradingStats(assignment.id)
+                return {
+                  ...assignment,
+                  stats,
+                  course_title: course.title
+                }
+              } catch (error) {
+                return {
+                  ...assignment,
+                  course_title: course.title
+                }
+              }
+            })
+          )
+          
+          allAssignments.push(...assignmentsWithStats)
+        } catch (error) {
+          console.warn(`Failed to refresh assignments for course ${course.id}:`, error)
+        }
+      }
+      
+      setAssignments(allAssignments)
+    } catch (error) {
+      console.error("Failed to refresh assignments:", error)
     }
   }
 
   // Fetch all submissions for the teacher's courses
   const fetchSubmissions = async () => {
-    if (!user?.email) return
+    if (!user?.email || !assignments || assignments.length === 0) {
+      console.log('Cannot fetch submissions: missing user email or no assignments')
+      return
+    }
     
     setSubmissionsLoading(true)
     try {
       const allSubmissions: SubmissionWithAssignment[] = []
       
-      // Ensure assignments is an array
-      const assignmentsArray = Array.isArray(assignments) ? assignments : []
-      console.log(`Fetching submissions for ${assignmentsArray.length} assignments`)
-      console.log(`Assignments variable:`, assignments)
-      console.log(`Assignments type:`, typeof assignments)
+      console.log(`Fetching submissions for ${assignments.length} assignments`)
       
       // Fetch submissions for each assignment
-      for (const assignment of assignmentsArray) {
+      for (const assignment of assignments) {
         try {
-          const assignmentSubmissions = await AssignmentProAPI.listAssignmentSubmissions(assignment.id)
-          console.log(`Assignment submissions for ${assignment.id}:`, assignmentSubmissions)
-          console.log(`Assignment submissions type:`, typeof assignmentSubmissions)
-          console.log(`Assignment submissions is array:`, Array.isArray(assignmentSubmissions))
+          console.log(`Fetching submissions for assignment: ${assignment.id}`)
           
-          const submissionsArray = Array.isArray(assignmentSubmissions) ? assignmentSubmissions : []
-          const submissionsWithDetails = submissionsArray.map(submission => ({
+          const assignmentSubmissionsResponse = await AssignmentProAPI.listAssignmentSubmissions(assignment.id)
+          console.log(`Submissions response for assignment ${assignment.id}:`, assignmentSubmissionsResponse)
+          
+          const assignmentSubmissions = extractArrayFromResponse(
+            assignmentSubmissionsResponse,
+            `Assignment ${assignment.id} submissions`
+          )
+          
+          const submissionsWithDetails = assignmentSubmissions.map(submission => ({
             id: submission.id,
-            assignmentId: assignment.id, // Use the assignment ID from the context
+            assignmentId: assignment.id,
             assignmentTitle: assignment.title,
             courseTitle: assignment.course_title || '',
-            studentEmail: submission.student_email,
-            studentName: submission.student_name,
+            studentEmail: submission.studentEmail,
+            studentName: submission.studentName,
             status: submission.status,
-            submittedAt: submission.submitted_at || '',
+            submittedAt: submission.submitted_at,
             grade: submission.grade,
             feedback: submission.feedback,
             content: submission.content,
-            attachments: submission.attachments,
-            lateSubmission: submission.late_submission
+            attachments: submission.attachments || [],
+            lateSubmission: submission.lateSubmission || false
           }))
           
           allSubmissions.push(...submissionsWithDetails)
-          console.log('Submissions for assignment', assignment.id, ':', submissionsWithDetails)
+          console.log(`Added ${submissionsWithDetails.length} submissions from assignment ${assignment.id}`)
+          
         } catch (error) {
-          // Skip assignments with no submissions
-          console.debug(`No submissions for assignment ${assignment.id}`)
+          console.debug(`No submissions for assignment ${assignment.id}:`, error)
         }
       }
       
+      console.log(`Total submissions fetched: ${allSubmissions.length}`)
       setSubmissions(allSubmissions)
     } catch (error) {
       console.error("Failed to fetch submissions:", error)
+      setError(`Failed to load submissions: ${error?.message || 'Unknown error'}`)
     } finally {
       setSubmissionsLoading(false)
     }
@@ -303,10 +396,10 @@ export default function TeacherAssignmentsPage() {
 
   // Fetch submissions when assignments change or tab changes to submissions
   useEffect(() => {
-    if (activeTab === "submissions" && assignments.length > 0) {
+    if (activeTab === "submissions" && assignments.length > 0 && !submissionsLoading) {
       fetchSubmissions()
     }
-  }, [activeTab, assignments])
+  }, [activeTab, assignments.length])
 
   const getStatusBadge = (assignment: AssignmentWithStats) => {
     const now = new Date().getTime()
@@ -379,13 +472,26 @@ export default function TeacherAssignmentsPage() {
         </div>
         <GlassCard className="p-8">
           <div className="text-center">
+            <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />
             <div className="text-red-400 mb-4">{error}</div>
-            <Button 
-              onClick={() => window.location.reload()}
-              className="bg-blue-600/80 hover:bg-blue-600 text-white"
-            >
-              Retry
-            </Button>
+            <div className="flex gap-4 justify-center">
+              <Button 
+                onClick={() => {
+                  setError(null)
+                  window.location.reload()
+                }}
+                className="bg-blue-600/80 hover:bg-blue-600 text-white"
+              >
+                Retry
+              </Button>
+              <Button 
+                onClick={() => setError(null)}
+                variant="outline"
+                className="border-slate-500 text-slate-300 hover:bg-white/10"
+              >
+                Dismiss
+              </Button>
+            </div>
           </div>
         </GlassCard>
       </div>
@@ -401,112 +507,62 @@ export default function TeacherAssignmentsPage() {
             <h1 className="text-3xl font-bold text-white">Assignments</h1>
             <p className="text-slate-400">Manage and track all your course assignments</p>
           </div>
-        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-          <DialogTrigger asChild>
-            <Button className="bg-blue-600/80 hover:bg-blue-600 text-white transition-all duration-200 hover:scale-105 hover:shadow-lg">
-              <Plus className="h-4 w-4 mr-2" />
-              Create Assignment
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="bg-white/10 border-white/20 backdrop-blur text-white max-w-6xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Create New Assignment</DialogTitle>
-            </DialogHeader>
-            <AssignmentCreator 
-              onClose={() => setShowCreateDialog(false)}
-              onSave={async (assignmentData) => {
-                try {
-                  await AssignmentProAPI.createAssignment(assignmentData)
-                  setShowCreateDialog(false)
-                  // Refresh the assignments list without full page reload
-                  const fetchData = async () => {
-                    if (!user?.email) return
-                    
-                    setLoading(true)
-                    try {
-                      // First fetch real courses from backend
-                      const coursesResponse = await http<{ items: any[] }>('/api/courses')
-                      const teacherCourses = coursesResponse.items || []
-                      setCourses(teacherCourses)
-                      
-                      const allAssignments: AssignmentWithStats[] = []
-                      
-                      // Fetch assignments for each course the teacher has
-                      for (const course of teacherCourses) {
-                        try {
-                          const courseAssignments = await AssignmentProAPI.listCourseAssignments(course.id)
-                          
-                          // Fetch stats for each assignment
-                          const assignmentsWithStats = await Promise.all(
-                            (courseAssignments || []).map(async (assignment) => {
-                              try {
-                                const stats = await AssignmentProAPI.getGradingStats(assignment.id)
-                                return {
-                                  ...assignment,
-                                  stats,
-                                  course_title: course.title
-                                }
-                              } catch (error) {
-                                // If stats fail, just return assignment without stats
-                                return {
-                                  ...assignment,
-                                  course_title: course.title
-                                }
-                              }
-                            })
-                          )
-                          
-                          allAssignments.push(...assignmentsWithStats)
-                        } catch (error) {
-                          // If course assignments fail, just skip this course
-                          console.warn(`Failed to fetch assignments for course ${course.id}:`, error)
-                        }
-                      }
-                      
-                      console.log('Fetched assignments with stats:', allAssignments)
-                      setAssignments(allAssignments)
-                    } catch (error) {
-                      console.error("Failed to fetch assignments:", error)
-                    } finally {
-                      setLoading(false)
-                    }
+          <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+            <DialogTrigger asChild>
+              <Button className="bg-blue-600/80 hover:bg-blue-600 text-white transition-all duration-200 hover:scale-105 hover:shadow-lg">
+                <Plus className="h-4 w-4 mr-2" />
+                Create Assignment
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-white/10 border-white/20 backdrop-blur text-white max-w-6xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Create New Assignment</DialogTitle>
+              </DialogHeader>
+              <AssignmentCreator 
+                onClose={() => setShowCreateDialog(false)}
+                onSave={async (assignmentData) => {
+                  try {
+                    await AssignmentProAPI.createAssignment(assignmentData)
+                    setShowCreateDialog(false)
+                    // Refresh using smart refresh instead of full reload
+                    await refreshAssignments()
+                  } catch (error) {
+                    console.error('Failed to create assignment:', error)
+                    setError(`Failed to create assignment: ${error?.message || 'Unknown error'}`)
                   }
-                  
-                  fetchData()
-                } catch (error) {
-                  console.error('Failed to create assignment:', error)
-                  alert('Failed to create assignment. Please try again.')
-                }
-              }}
-            />
-          </DialogContent>
-        </Dialog>
+                }}
+              />
+            </DialogContent>
+          </Dialog>
         </div>
       </AnimationWrapper>
 
       {/* Main Navigation */}
       <AnimationWrapper delay={0.1}>
         <div className="flex justify-center">
-        <FluidTabs
-          tabs={[
-            { 
-              id: 'assignments', 
-              label: 'Assignments', 
-              icon: <FileText className="h-4 w-4" />, 
-              badge: safeAssignments.length 
-            },
-            { 
-              id: 'submissions', 
-              label: 'Submissions', 
-              icon: <Users className="h-4 w-4" />, 
-              badge: safeSubmissions.length 
-            }
-          ]}
-          activeTab={activeTab}
-          onTabChange={(tab) => setActiveTab(tab as "assignments" | "submissions")}
-          variant="default"
-          width="wide"
-        />
+          <FluidTabs
+            tabs={[
+              { 
+                id: 'assignments', 
+                label: 'Assignments', 
+                icon: <FileText className="h-4 w-4" />, 
+                badge: assignments.length 
+              },
+              { 
+                id: 'submissions', 
+                label: 'Submissions', 
+                icon: <Users className="h-4 w-4" />, 
+                badge: submissions.length 
+              }
+            ]}
+            activeTab={activeTab}
+            onTabChange={(tab) => {
+              setActiveTab(tab as "assignments" | "submissions")
+              mainTabs.setActiveTab(tab)
+            }}
+            variant="default"
+            width="wide"
+          />
         </div>
       </AnimationWrapper>
 
@@ -516,56 +572,59 @@ export default function TeacherAssignmentsPage() {
           {/* Filters and Search */}
           <AnimationWrapper delay={0.2}>
             <GlassCard className="p-4">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input
-                  placeholder="Search assignments or courses..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-white/5 border-white/10 text-white placeholder-slate-400 focus:border-blue-500/50 focus:ring-blue-500/20 transition-all duration-200"
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input
+                    placeholder="Search assignments or courses..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 bg-white/5 border-white/10 text-white placeholder-slate-400 focus:border-blue-500/50 focus:ring-blue-500/20 transition-all duration-200"
+                  />
+                </div>
+                <FluidTabs
+                  tabs={[
+                    { id: 'all', label: 'All', badge: assignments.length },
+                    { 
+                      id: 'pending', 
+                      label: 'Pending', 
+                      badge: assignments.filter(a => {
+                        const pendingCount = a.stats?.pending_grading || 0
+                        return pendingCount > 0
+                      }).length 
+                    },
+                    { 
+                      id: 'graded', 
+                      label: 'Graded', 
+                      badge: assignments.filter(a => {
+                        const totalSubmissions = a.stats?.total_submissions || 0
+                        const pendingCount = a.stats?.pending_grading || 0
+                        return totalSubmissions > 0 && pendingCount === 0
+                      }).length 
+                    },
+                    { 
+                      id: 'overdue', 
+                      label: 'Overdue', 
+                      badge: assignments.filter(a => {
+                        const now = new Date().getTime()
+                        const dueAt = a.due_at ? new Date(a.due_at).getTime() : null
+                        return dueAt && dueAt < now
+                      }).length 
+                    }
+                  ]}
+                  activeTab={filterType}
+                  onTabChange={(filter) => {
+                    setFilterType(filter as "all" | "pending" | "graded" | "overdue")
+                    filterTabs.setActiveTab(filter)
+                  }}
+                  variant="compact"
+                  width="wide"
                 />
               </div>
-              <FluidTabs
-                tabs={[
-                  { id: 'all', label: 'All', badge: safeAssignments.length },
-                  { 
-                    id: 'pending', 
-                    label: 'Pending', 
-                    badge: safeAssignments.filter(a => {
-                      const pendingCount = a.stats?.pending_grading || 0
-                      return pendingCount > 0
-                    }).length 
-                  },
-                  { 
-                    id: 'graded', 
-                    label: 'Graded', 
-                    badge: safeAssignments.filter(a => {
-                      const totalSubmissions = a.stats?.total_submissions || 0
-                      const pendingCount = a.stats?.pending_grading || 0
-                      return totalSubmissions > 0 && pendingCount === 0
-                    }).length 
-                  },
-                  { 
-                    id: 'overdue', 
-                    label: 'Overdue', 
-                    badge: safeAssignments.filter(a => {
-                      const now = new Date().getTime()
-                      const dueAt = a.due_at ? new Date(a.due_at).getTime() : null
-                      return dueAt && dueAt < now
-                    }).length 
-                  }
-                ]}
-                activeTab={filterType}
-                onTabChange={(filter) => setFilterType(filter as "all" | "pending" | "graded" | "overdue")}
-                variant="compact"
-                width="wide"
-              />
-            </div>
             </GlassCard>
           </AnimationWrapper>
 
-                {/* Assignment Grid */}
+          {/* Assignment Grid */}
           {filteredAssignments.length === 0 ? (
             <AnimationWrapper delay={0.3}>
               <GlassCard className="p-8">
@@ -595,110 +654,112 @@ export default function TeacherAssignmentsPage() {
           ) : (
             <StaggeredAnimationWrapper delay={0.3} stagger={0.1}>
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {(filteredAssignments || []).map((assignment) => (
+                {filteredAssignments.map((assignment) => (
                   <GlassCard key={assignment.id} className="p-5 hover:bg-white/10 transition-all duration-300 hover:scale-105 hover:shadow-lg">
-                  <div className="space-y-4">
-                    {/* Header */}
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-lg font-semibold text-white truncate mb-1">
-                          {assignment.title}
-                        </h3>
-                        <p className="text-xs text-slate-400">{assignment.course_title}</p>
+                    <div className="space-y-4">
+                      {/* Header */}
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-lg font-semibold text-white truncate mb-1">
+                            {assignment.title}
+                          </h3>
+                          <p className="text-xs text-slate-400">{assignment.course_title}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {getStatusBadge(assignment)}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-slate-400 hover:text-white p-1"
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
+
+                      {/* Assignment Type & Scope */}
                       <div className="flex items-center gap-2">
-                        {getStatusBadge(assignment)}
+                        <Badge variant="outline" className="border-slate-500 text-slate-300 capitalize">
+                          {assignment.type?.replace('_', ' ') || 'Assignment'}
+                        </Badge>
+                        {assignment.scope?.level && (
+                          <Badge variant="outline" className="border-slate-500 text-slate-300 capitalize">
+                            {assignment.scope.level}
+                          </Badge>
+                        )}
+                      </div>
+
+                      {/* Description */}
+                      {assignment.description && (
+                        <p className="text-sm text-slate-300 line-clamp-2">
+                          {assignment.description}
+                        </p>
+                      )}
+
+                      {/* Stats */}
+                      {assignment.stats && (
+                        <div className="grid grid-cols-3 gap-3 text-center">
+                          <div className="space-y-1">
+                            <div className="text-lg font-semibold text-white">
+                              {assignment.stats.total_submissions || 0}
+                            </div>
+                            <div className="text-xs text-slate-400">Submissions</div>
+                          </div>
+                          <div className="space-y-1">
+                            <div className="text-lg font-semibold text-orange-400">
+                              {assignment.stats.pending_grading || 0}
+                            </div>
+                            <div className="text-xs text-slate-400">Pending</div>
+                          </div>
+                          <div className="space-y-1">
+                            <div className="text-lg font-semibold text-green-400">
+                              {assignment.stats.average_grade ? assignment.stats.average_grade.toFixed(1) : 'N/A'}
+                            </div>
+                            <div className="text-xs text-slate-400">Avg Grade</div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Due Date */}
+                      {assignment.due_at && (
+                        <div className="flex items-center gap-2 text-sm text-slate-400">
+                          <Clock className="h-4 w-4" />
+                          <span>Due {new Date(assignment.due_at).toLocaleDateString()}</span>
+                        </div>
+                      )}
+
+                      {/* Actions */}
+                      <div className="flex gap-2 pt-2">
+                        <Link 
+                          href={`/teacher/assignment/${assignment.id}`}
+                          className="flex-1"
+                        >
+                          <Button 
+                            size="sm" 
+                            className="w-full bg-blue-600/80 hover:bg-blue-600 text-white transition-all duration-200 hover:scale-105"
+                          >
+                            <Eye className="h-4 w-4 mr-2" />
+                            View Details
+                          </Button>
+                        </Link>
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-slate-400 hover:text-white p-1"
+                          onClick={() => handleDuplicateAssignment(assignment)}
+                          className="text-slate-400 hover:text-white hover:bg-white/10 transition-all duration-200 hover:scale-110"
                         >
-                          <MoreVertical className="h-4 w-4" />
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteAssignment(assignment.id)}
+                          className="text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all duration-200 hover:scale-110"
+                        >
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
-
-                    {/* Assignment Type & Scope */}
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="border-slate-500 text-slate-300 capitalize">
-                        {assignment.type.replace('_', ' ')}
-                      </Badge>
-                      <Badge variant="outline" className="border-slate-500 text-slate-300 capitalize">
-                        {assignment.scope.level}
-                      </Badge>
-                    </div>
-
-                    {/* Description */}
-                    {assignment.description && (
-                      <p className="text-sm text-slate-300 line-clamp-2">
-                        {assignment.description}
-                      </p>
-                    )}
-
-                    {/* Stats */}
-                    {assignment.stats && (
-                      <div className="grid grid-cols-3 gap-3 text-center">
-                        <div className="space-y-1">
-                          <div className="text-lg font-semibold text-white">
-                            {assignment.stats.total_submissions}
-                          </div>
-                          <div className="text-xs text-slate-400">Submissions</div>
-                        </div>
-                        <div className="space-y-1">
-                          <div className="text-lg font-semibold text-orange-400">
-                            {assignment.stats.pending_grading}
-                          </div>
-                          <div className="text-xs text-slate-400">Pending</div>
-                        </div>
-                        <div className="space-y-1">
-                          <div className="text-lg font-semibold text-green-400">
-                            {assignment.stats.average_grade ? assignment.stats.average_grade.toFixed(1) : 'N/A'}
-                          </div>
-                          <div className="text-xs text-slate-400">Avg Grade</div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Due Date */}
-                    {assignment.due_at && (
-                      <div className="flex items-center gap-2 text-sm text-slate-400">
-                        <Clock className="h-4 w-4" />
-                        <span>Due {new Date(assignment.due_at).toLocaleDateString()}</span>
-                      </div>
-                    )}
-
-                    {/* Actions */}
-                    <div className="flex gap-2 pt-2">
-                      <Link 
-                        href={`/teacher/assignment/${assignment.id}`}
-                        className="flex-1"
-                      >
-                        <Button 
-                          size="sm" 
-                          className="w-full bg-blue-600/80 hover:bg-blue-600 text-white transition-all duration-200 hover:scale-105"
-                        >
-                          <Eye className="h-4 w-4 mr-2" />
-                          View Details
-                        </Button>
-                      </Link>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDuplicateAssignment(assignment)}
-                        className="text-slate-400 hover:text-white hover:bg-white/10 transition-all duration-200 hover:scale-110"
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteAssignment(assignment.id)}
-                        className="text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all duration-200 hover:scale-110"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
                   </GlassCard>
                 ))}
               </div>
@@ -729,79 +790,79 @@ export default function TeacherAssignmentsPage() {
           ) : (
             <StaggeredAnimationWrapper delay={0.2} stagger={0.1}>
               <div className="space-y-4">
-                {(submissions || []).map((submission) => (
+                {submissions.map((submission) => (
                   <GlassCard key={submission.id} className="p-6 hover:bg-white/5 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      {/* Header */}
-                      <div className="flex items-start gap-3 mb-3">
-                        <div className="p-2 bg-white/10 rounded-lg shrink-0">
-                          <Users className="h-4 w-4 text-blue-400" />
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        {/* Header */}
+                        <div className="flex items-start gap-3 mb-3">
+                          <div className="p-2 bg-white/10 rounded-lg shrink-0">
+                            <Users className="h-4 w-4 text-blue-400" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-lg font-semibold text-white mb-1">
+                              {submission.studentName}
+                            </h3>
+                            <p className="text-sm text-slate-400 mb-2">
+                              {submission.assignmentTitle} • {submission.courseTitle}
+                            </p>
+                          </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-lg font-semibold text-white mb-1">
-                            {submission.studentName}
-                          </h3>
-                          <p className="text-sm text-slate-400 mb-2">
-                            {submission.assignmentTitle} • {submission.courseTitle}
-                          </p>
-                        </div>
-                      </div>
 
-                      {/* Submission Details */}
-                      <div className="flex items-center gap-4 mb-3 text-sm text-slate-400">
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-4 w-4" />
-                          <span>Submitted {submission.submittedAt ? new Date(submission.submittedAt).toLocaleDateString() : 'Recently'}</span>
-                        </div>
-                        {submission.lateSubmission && (
+                        {/* Submission Details */}
+                        <div className="flex items-center gap-4 mb-3 text-sm text-slate-400">
                           <div className="flex items-center gap-1">
-                            <AlertTriangle className="h-4 w-4 text-orange-400" />
-                            <span className="text-orange-400">Late Submission</span>
+                            <Clock className="h-4 w-4" />
+                            <span>Submitted {submission.submittedAt ? new Date(submission.submittedAt).toLocaleDateString() : 'Recently'}</span>
+                          </div>
+                          {submission.lateSubmission && (
+                            <div className="flex items-center gap-1">
+                              <AlertTriangle className="h-4 w-4 text-orange-400" />
+                              <span className="text-orange-400">Late Submission</span>
+                            </div>
+                          )}
+                          {submission.grade !== undefined && submission.grade !== null && (
+                            <div className="flex items-center gap-1">
+                              <CheckCircle className="h-4 w-4 text-green-400" />
+                              <span className="text-green-400">Grade: {submission.grade}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Content Preview */}
+                        {submission.content && typeof submission.content === 'object' && Object.keys(submission.content).length > 0 && (
+                          <div className="mb-3">
+                            <p className="text-sm text-slate-300 line-clamp-2">
+                              {submission.content.essay || submission.content.project || submission.content.discussion || 'Content submitted'}
+                            </p>
                           </div>
                         )}
-                        {submission.grade !== undefined && submission.grade !== null && (
-                          <div className="flex items-center gap-1">
-                            <CheckCircle className="h-4 w-4 text-green-400" />
-                            <span className="text-green-400">Grade: {submission.grade}</span>
+
+                        {/* Attachments */}
+                        {submission.attachments && Array.isArray(submission.attachments) && submission.attachments.length > 0 && (
+                          <div className="mb-3">
+                            <p className="text-sm text-slate-400">
+                              {submission.attachments.length} attachment{submission.attachments.length !== 1 ? 's' : ''}
+                            </p>
                           </div>
                         )}
                       </div>
 
-                      {/* Content Preview */}
-                      {submission.content && Object.keys(submission.content).length > 0 && (
-                        <div className="mb-3">
-                          <p className="text-sm text-slate-300 line-clamp-2">
-                            {submission.content.essay || submission.content.project || submission.content.discussion || 'Content submitted'}
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Attachments */}
-                      {submission.attachments && submission.attachments.length > 0 && (
-                        <div className="mb-3">
-                          <p className="text-sm text-slate-400">
-                            {submission.attachments.length} attachment{submission.attachments.length !== 1 ? 's' : ''}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex flex-col items-end gap-3 shrink-0">
-                      {getSubmissionStatusBadge(submission)}
-                      <Link 
-                        href={`/teacher/assignment/${submission.assignmentId}/submission/${submission.id}`}
-                      >
-                        <Button 
-                          size="sm" 
-                          className="bg-blue-600/80 hover:bg-blue-600 text-white transition-all duration-200 hover:scale-105"
+                      {/* Actions */}
+                      <div className="flex flex-col items-end gap-3 shrink-0">
+                        {getSubmissionStatusBadge(submission)}
+                        <Link 
+                          href={`/teacher/assignment/${submission.assignmentId}/submission/${submission.id}`}
                         >
-                          {submission.status === 'graded' ? 'View Grade' : 'View Response'}
-                        </Button>
-                      </Link>
+                          <Button 
+                            size="sm" 
+                            className="bg-blue-600/80 hover:bg-blue-600 text-white transition-all duration-200 hover:scale-105"
+                          >
+                            {submission.status === 'graded' ? 'View Grade' : 'View Response'}
+                          </Button>
+                        </Link>
+                      </div>
                     </div>
-                  </div>
                   </GlassCard>
                 ))}
               </div>
@@ -859,4 +920,4 @@ export default function TeacherAssignmentsPage() {
       />
     </div>
   )
-} 
+}

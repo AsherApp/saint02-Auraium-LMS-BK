@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useAuthStore } from "@/store/auth-store"
 import { http } from "@/services/http"
 import { 
@@ -37,6 +38,7 @@ import { motion } from "framer-motion"
 
 export default function StudentDashboardPage() {
   const { user } = useAuthStore()
+  const router = useRouter()
   const [enrolledCourses, setEnrolledCourses] = useState<any[]>([])
   const [assignments, setAssignments] = useState<any[]>([])
   const [liveSessions, setLiveSessions] = useState<any[]>([])
@@ -49,7 +51,9 @@ export default function StudentDashboardPage() {
   // Debug logging
   useEffect(() => {
     console.log('Student Dashboard - User:', user)
-    console.log('Student Dashboard - Auth Token:', localStorage.getItem('auth-token'))
+    if (typeof window !== 'undefined') {
+      console.log('Student Dashboard - Auth Token:', localStorage.getItem('auth-token'))
+    }
   }, [user])
   
   // Fetch student data
@@ -293,7 +297,7 @@ export default function StudentDashboardPage() {
             </div>
             <div className="flex gap-3">
               <Button 
-                onClick={() => window.location.href = '/student/courses'}
+                onClick={() => router.push('/student/courses')}
                 variant="primary"
                 className="text-sm sm:text-base"
               >
@@ -301,7 +305,7 @@ export default function StudentDashboardPage() {
               </Button>
               {!isPublicMode && (
                 <Button 
-                  onClick={() => window.location.href = '/student/assignments'}
+                  onClick={() => router.push('/student/assignments')}
                   variant="outline"
                   className="text-sm sm:text-base border-white/20 text-white hover:bg-white/10"
                 >
@@ -329,7 +333,7 @@ export default function StudentDashboardPage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button 
-                onClick={() => window.location.href = '/student/courses'}
+                onClick={() => router.push('/student/courses')}
                 variant="primary"
                 className="text-sm sm:text-base"
               >
@@ -338,7 +342,7 @@ export default function StudentDashboardPage() {
               </Button>
               {!isPublicMode && (
                 <Button 
-                  onClick={() => window.location.href = '/student/assignments'}
+                  onClick={() => router.push('/student/assignments')}
                   variant="outline"
                   className="text-sm sm:text-base border-white/20 text-white hover:bg-white/10"
                 >
@@ -410,7 +414,7 @@ export default function StudentDashboardPage() {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => window.location.href = '/student/discussions'}
+                  onClick={() => router.push('/student/discussions')}
                   className="text-blue-300 border-blue-500/30 hover:bg-blue-500/10"
                 >
                   View All Announcements
@@ -584,7 +588,7 @@ export default function StudentDashboardPage() {
             <Button 
               variant="outline" 
               size="sm"
-              onClick={() => window.location.href = '/student/assignments'}
+              onClick={() => router.push('/student/assignments')}
               className="text-orange-300 border-orange-500/30 hover:bg-orange-500/10"
             >
               View All
