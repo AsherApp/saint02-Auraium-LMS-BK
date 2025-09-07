@@ -382,8 +382,9 @@ router.get('/consolidated', requireAuth, asyncHandler(async (req, res) => {
     return res.status(401).json({ error: 'Teacher email not found in request' })
   }
   
-  // SECURITY FIX: Only return students who are enrolled in courses owned by this teacher
-  const { data, error } = await supabaseAdmin
+  // Get both enrolled students and invited students
+  // First, get enrolled students
+  const { data: enrolledStudents, error: enrolledError } = await supabaseAdmin
     .from('students')
     .select(`
       *,
@@ -405,17 +406,73 @@ router.get('/consolidated', requireAuth, asyncHandler(async (req, res) => {
       )
     `)
     .eq('enrollments.courses.teacher_email', teacherEmail)
-    .order('name', { ascending: true })
   
-  if (error) {
-    console.error('Error fetching students:', error)
-    return res.status(500).json({ error: error.message })
+  if (enrolledError) {
+    console.error('Error fetching enrolled students:', enrolledError)
+    return res.status(500).json({ error: 'Failed to fetch enrolled students' })
   }
   
-  console.log('Raw student data for teacher:', teacherEmail, JSON.stringify(data, null, 2))
+  // Get invited students (from invites table)
+  const { data: invites, error: invitesError } = await supabaseAdmin
+    .from('invites')
+    .select(`
+      *,
+      courses!inner(
+        id,
+        title,
+        description,
+        status,
+        teacher_email
+      )
+    `)
+    .eq('courses.teacher_email', teacherEmail)
+    .eq('used', false) // Only show unused invites
   
-  // Remove duplicate students (same student enrolled in multiple courses)
-  const uniqueStudents = (data || []).filter((student: any, index: number, self: any[]) => 
+  if (invitesError) {
+    console.error('Error fetching invites:', invitesError)
+    return res.status(500).json({ error: 'Failed to fetch invites' })
+  }
+  
+  // Combine enrolled students and invited students
+  const allStudents = []
+  
+  // Add enrolled students
+  if (enrolledStudents) {
+    allStudents.push(...enrolledStudents.map(student => ({
+      ...student,
+      status: 'active',
+      enrollment_status: 'enrolled'
+    })))
+  }
+  
+  // Add invited students (create student-like objects from invites)
+  if (invites) {
+    const invitedStudents = invites.map(invite => ({
+      id: `invite-${invite.id}`,
+      email: invite.email,
+      name: invite.name,
+      student_code: null,
+      status: 'invited',
+      enrollment_status: 'invited',
+      created_at: invite.created_at,
+      enrollments: [{
+        id: `invite-enrollment-${invite.id}`,
+        course_id: invite.course_id,
+        enrolled_at: null,
+        progress_percentage: 0,
+        grade_percentage: 0,
+        last_activity: null,
+        status: 'invited',
+        courses: invite.courses
+      }]
+    }))
+    allStudents.push(...invitedStudents)
+  }
+  
+  console.log('Raw student data for teacher:', teacherEmail, JSON.stringify(allStudents, null, 2))
+  
+  // Remove duplicate students (same student enrolled in multiple courses or invited multiple times)
+  const uniqueStudents = allStudents.filter((student: any, index: number, self: any[]) => 
     index === self.findIndex((s: any) => s.email === student.email)
   )
   

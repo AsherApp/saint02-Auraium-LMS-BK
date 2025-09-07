@@ -313,10 +313,39 @@ router.post('/student/login-code', asyncHandler(async (req, res) => {
 
 // Student registration with invite
 router.post('/student/register', asyncHandler(async (req, res) => {
-  const { invite_code, first_name, last_name, email, password } = req.body
+  const { 
+    invite_code, 
+    first_name, 
+    last_name, 
+    email, 
+    password,
+    // Comprehensive profile data
+    date_of_birth,
+    phone_number,
+    address,
+    city,
+    state,
+    country,
+    postal_code,
+    emergency_contact_name,
+    emergency_contact_phone,
+    emergency_contact_relationship,
+    academic_level,
+    major,
+    minor,
+    graduation_year,
+    gpa,
+    academic_interests,
+    career_goals,
+    bio,
+    timezone,
+    preferred_language,
+    accessibility_needs,
+    dietary_restrictions
+  } = req.body
   
   if (!invite_code || !first_name || !last_name || !email || !password) {
-    return res.status(400).json({ error: 'All fields are required' })
+    return res.status(400).json({ error: 'All required fields are required' })
   }
 
   // Validate invite
@@ -356,7 +385,7 @@ router.post('/student/register', asyncHandler(async (req, res) => {
   const bcrypt = await import('bcrypt')
   const passwordHash = await bcrypt.hash(password, 10)
 
-  // Create student
+  // Create student with comprehensive profile data
   const { data: student, error: studentError } = await supabaseAdmin
     .from('students')
     .insert({
@@ -367,6 +396,29 @@ router.post('/student/register', asyncHandler(async (req, res) => {
       student_code: studentCode,
       password_hash: passwordHash,
       status: 'active',
+      // Comprehensive profile data
+      date_of_birth: date_of_birth || null,
+      phone_number: phone_number || null,
+      address: address || null,
+      city: city || null,
+      state: state || null,
+      country: country || null,
+      postal_code: postal_code || null,
+      emergency_contact_name: emergency_contact_name || null,
+      emergency_contact_phone: emergency_contact_phone || null,
+      emergency_contact_relationship: emergency_contact_relationship || null,
+      academic_level: academic_level || null,
+      major: major || null,
+      minor: minor || null,
+      graduation_year: graduation_year || null,
+      gpa: gpa || null,
+      academic_interests: academic_interests || null,
+      career_goals: career_goals || null,
+      bio: bio || null,
+      timezone: timezone || null,
+      preferred_language: preferred_language || null,
+      accessibility_needs: accessibility_needs || null,
+      dietary_restrictions: dietary_restrictions || null,
       created_at: new Date().toISOString()
     })
     .select()
