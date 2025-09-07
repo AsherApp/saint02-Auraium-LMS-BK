@@ -154,7 +154,7 @@ export default function TeacherCourseDetailPage() {
     
     try {
       await Promise.all(
-        modules.map(async (module) => {
+        (modules || []).map(async (module) => {
           try {
             console.log('Loading lessons for module:', module.id, module.title)
             // Use the HTTP utility instead of direct fetch

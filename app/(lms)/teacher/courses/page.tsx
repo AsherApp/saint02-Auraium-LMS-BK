@@ -32,7 +32,7 @@ export default function TeacherCoursesPage() {
     
     const fetchCourseStats = async () => {
       try {
-        const statsPromises = myCourses.map(async (course) => {
+        const statsPromises = (myCourses || []).map(async (course) => {
           try {
             // Get modules count
             const modulesResponse = await http<any>(`/api/modules/course/${course.id}`)
@@ -197,7 +197,7 @@ export default function TeacherCoursesPage() {
         </GlassCard>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {myCourses.map((c) => {
+          {(myCourses || []).map((c) => {
             const stats = courseStats[c.id] || { modules: 0, students: 0 }
             return (
               <CourseCard
