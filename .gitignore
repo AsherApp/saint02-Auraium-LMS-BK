@@ -213,3 +213,12 @@ __tests__/
 *.ult
 *.uni
 *.xm.next/
+
+# Exclude backend folder
+Endubackend/
+
+# Exclude markdown files
+*.md
+
+# Exclude old SQL migrations
+Endubackend/migrations/old sql/
