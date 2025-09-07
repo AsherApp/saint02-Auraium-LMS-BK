@@ -29,6 +29,29 @@ router.get('/', requireAuth, asyncHandler(async (req, res) => {
   }
 }))
 
+// Get user notifications (alias for /me)
+router.get('/me', requireAuth, asyncHandler(async (req, res) => {
+  const userEmail = (req as any).user?.email
+  const { limit = 50, offset = 0 } = req.query
+
+  if (!userEmail) {
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
+
+  try {
+    const notifications = await NotificationService.getUserNotifications(
+      userEmail,
+      Number(limit),
+      Number(offset)
+    )
+
+    res.json({ items: notifications })
+  } catch (error: any) {
+    console.error('Error fetching notifications:', error)
+    res.status(500).json({ error: 'Failed to fetch notifications' })
+  }
+}))
+
 // Get unread notification count
 router.get('/unread-count', requireAuth, asyncHandler(async (req, res) => {
   const userEmail = (req as any).user?.email
