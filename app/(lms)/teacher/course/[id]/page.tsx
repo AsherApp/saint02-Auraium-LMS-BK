@@ -1033,29 +1033,29 @@ export default function TeacherCourseDetailPage() {
 
       {/* Enhanced Course Settings Dialog */}
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent className="bg-slate-900/95 border-white/20 backdrop-blur-xl text-white max-w-2xl shadow-2xl">
+        <DialogContent className="bg-white/5 border-white/20 backdrop-blur-2xl text-white max-w-4xl w-full mx-4 shadow-2xl before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/10 before:to-transparent before:rounded-lg before:pointer-events-none">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold text-white">Course General Settings</DialogTitle>
             <DialogDescription className="text-slate-300">Manage all aspects of your course including visibility, enrollment, and content settings.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-6">
+          <div className="space-y-6 p-2">
             {/* Basic Information */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-white border-b border-white/20 pb-2">Basic Information</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="space-y-3">
                   <Label className="text-white font-medium">Course Title</Label>
                   <Input
                     value={editTitle}
                     onChange={(e) => setEditTitle(e.target.value)}
-                    className="bg-white/5 border-white/20 text-white placeholder:text-slate-400 focus:border-blue-500/50 focus:ring-blue-500/20 focus:ring-1 transition-all duration-200"
+                    className="bg-white/5 border-white/20 text-white placeholder:text-slate-400 focus:border-blue-500/50 focus:ring-blue-500/20 focus:ring-1 transition-all duration-200 w-full"
                     placeholder="Enter course title"
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <Label className="text-white font-medium">Course Status</Label>
                   <Select value={editStatus} onValueChange={(v) => setEditStatus(v as any)}>
-                    <SelectTrigger className="bg-white/5 border-white/20 text-white focus:border-blue-500/50 focus:ring-blue-500/20 focus:ring-1 transition-all duration-200">
+                    <SelectTrigger className="bg-white/5 border-white/20 text-white focus:border-blue-500/50 focus:ring-blue-500/20 focus:ring-1 transition-all duration-200 w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-slate-800/95 text-white border-white/20">
@@ -1066,21 +1066,21 @@ export default function TeacherCourseDetailPage() {
                   </Select>
                 </div>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <Label className="text-white font-medium">Description</Label>
                 <Textarea
                   value={editDesc}
                   onChange={(e) => setEditDesc(e.target.value)}
-                  className="bg-white/5 border-white/20 text-white placeholder:text-slate-400 min-h-[80px] focus:border-blue-500/50 focus:ring-blue-500/20 focus:ring-1 transition-all duration-200 resize-none"
+                  className="bg-white/5 border-white/20 text-white placeholder:text-slate-400 min-h-[80px] focus:border-blue-500/50 focus:ring-blue-500/20 focus:ring-1 transition-all duration-200 resize-none w-full"
                   placeholder="Describe your course content and objectives"
                 />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <Label className="text-white font-medium">Thumbnail URL</Label>
                 <Input
                   value={editThumbnail}
                   onChange={(e) => setEditThumbnail(e.target.value)}
-                  className="bg-white/5 border-white/20 text-white placeholder:text-slate-400 focus:border-blue-500/50 focus:ring-blue-500/20 focus:ring-1 transition-all duration-200"
+                  className="bg-white/5 border-white/20 text-white placeholder:text-slate-400 focus:border-blue-500/50 focus:ring-blue-500/20 focus:ring-1 transition-all duration-200 w-full"
                   placeholder="https://example.com/image.jpg"
                 />
                 {editThumbnail && (
@@ -1101,11 +1101,11 @@ export default function TeacherCourseDetailPage() {
             {/* Visibility & Access */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-white border-b border-white/20 pb-2">Visibility & Access</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="space-y-3">
                   <Label className="text-white font-medium">Visibility</Label>
                   <Select value={editVisibility} onValueChange={(v) => setEditVisibility(v as any)}>
-                    <SelectTrigger className="bg-white/5 border-white/20 text-white focus:border-blue-500/50 focus:ring-blue-500/20 focus:ring-1 transition-all duration-200">
+                    <SelectTrigger className="bg-white/5 border-white/20 text-white focus:border-blue-500/50 focus:ring-blue-500/20 focus:ring-1 transition-all duration-200 w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-slate-800/95 text-white border-white/20">
@@ -1115,10 +1115,10 @@ export default function TeacherCourseDetailPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <Label className="text-white font-medium">Enrollment Policy</Label>
                   <Select value={editPolicy} onValueChange={(v) => setEditPolicy(v as any)}>
-                    <SelectTrigger className="bg-white/5 border-white/20 text-white focus:border-blue-500/50 focus:ring-blue-500/20 focus:ring-1 transition-all duration-200">
+                    <SelectTrigger className="bg-white/5 border-white/20 text-white focus:border-blue-500/50 focus:ring-blue-500/20 focus:ring-1 transition-all duration-200 w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-slate-800/95 text-white border-white/20">
@@ -1134,21 +1134,21 @@ export default function TeacherCourseDetailPage() {
             {/* Course Management */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-white border-b border-white/20 pb-2">Course Management</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="space-y-3">
                   <Label className="text-white font-medium">Course ID</Label>
                   <Input
                     value={course?.id || ''}
-                    className="bg-white/5 border-white/20 text-slate-400 cursor-not-allowed"
+                    className="bg-white/5 border-white/20 text-slate-400 cursor-not-allowed w-full"
                     disabled
                     title="Course ID cannot be changed"
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <Label className="text-white font-medium">Created Date</Label>
                   <Input
                     value={course?.created_at ? new Date(course.created_at).toLocaleDateString() : ''}
-                    className="bg-white/5 border-white/20 text-slate-400 cursor-not-allowed"
+                    className="bg-white/5 border-white/20 text-slate-400 cursor-not-allowed w-full"
                     disabled
                     title="Creation date cannot be changed"
                   />
