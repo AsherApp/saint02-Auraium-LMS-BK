@@ -42,7 +42,7 @@ export function NewTopicModal({ open, onOpenChange, onTopicCreated }: NewTopicMo
     title: "",
     content: "",
     category_id: "",
-    course_id: "",
+    course_id: "none",
     tags: [] as string[]
   })
   const [tagInput, setTagInput] = useState("")
@@ -107,7 +107,7 @@ export function NewTopicModal({ open, onOpenChange, onTopicCreated }: NewTopicMo
           title: formData.title.trim(),
           content: formData.content.trim(),
           category_id: formData.category_id,
-          course_id: formData.course_id || null,
+          course_id: formData.course_id === "none" ? null : formData.course_id || null,
           tags: formData.tags
         }
       })
@@ -123,7 +123,7 @@ export function NewTopicModal({ open, onOpenChange, onTopicCreated }: NewTopicMo
         title: "",
         content: "",
         category_id: categories.length > 0 ? categories[0].id : "",
-        course_id: "",
+        course_id: "none",
         tags: []
       })
       setTagInput("")
@@ -236,7 +236,7 @@ export function NewTopicModal({ open, onOpenChange, onTopicCreated }: NewTopicMo
                   <SelectValue placeholder="Select a course (optional)" />
                 </SelectTrigger>
                 <SelectContent className="bg-slate-800 text-white border-white/10">
-                  <SelectItem value="">No specific course</SelectItem>
+                  <SelectItem value="none">No specific course</SelectItem>
                   {courses.map((course) => (
                     <SelectItem key={course.id} value={course.id}>
                       <div className="flex items-center gap-2">

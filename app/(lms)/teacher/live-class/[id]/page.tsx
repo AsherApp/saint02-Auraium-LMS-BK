@@ -67,12 +67,12 @@ const AttendanceAnalysis = ({ sessionId }: { sessionId: string }) => {
         setLoading(true)
         
         // Fetch attendance report
-        const reportResponse = await httpClient.get(`/api/live-attendance/session/${sessionId}`)
-        setAttendanceData(reportResponse.data)
+        const reportResponse = await http(`/api/live-attendance/session/${sessionId}`)
+        setAttendanceData(reportResponse)
         
         // Fetch individual attendance records
-        const recordsResponse = await httpClient.get(`/api/live-attendance/session/${sessionId}/records`)
-        setAttendanceRecords(recordsResponse.data?.items || [])
+        const recordsResponse = await http<{ items: any[] }>(`/api/live-attendance/session/${sessionId}/records`)
+        setAttendanceRecords(recordsResponse.items || [])
         
       } catch (error) {
         console.error('Failed to fetch attendance data:', error)

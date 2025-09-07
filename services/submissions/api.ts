@@ -1,4 +1,4 @@
-import { httpClient } from "../http"
+import { http } from "../http"
 import { useAuthStore } from "@/store/auth-store"
 
 export type SubmissionStatus = 'draft' | 'submitted' | 'graded' | 'returned' | 'late'
@@ -34,10 +34,10 @@ const getHeadersWithUserEmail = () => {
 
 export const SubmissionsService = {
   async getByAssignment(assignmentId: string): Promise<Submission[]> {
-    const response = await httpClient.get(`/submissions/assignment/${assignmentId}`, {
+    const response = await http<Submission[]>(`/api/submissions/assignment/${assignmentId}`, {
       headers: getHeadersWithUserEmail()
     })
-    return response.data
+    return response
   },
 
   async create(assignmentId: string, data: {
@@ -46,10 +46,12 @@ export const SubmissionsService = {
     attachments?: any[]
     timeSpentMinutes?: number
   }): Promise<Submission> {
-    const response = await httpClient.post(`/submissions/assignment/${assignmentId}`, data, {
-      headers: getHeadersWithUserEmail()
+    const response = await http<Submission>(`/api/submissions/assignment/${assignmentId}`, {
+      method: 'POST',
+      headers: getHeadersWithUserEmail(),
+      body: data
     })
-    return response.data
+    return response
   },
 
   async update(submissionId: string, data: {
@@ -58,16 +60,18 @@ export const SubmissionsService = {
     attachments?: any[]
     timeSpentMinutes?: number
   }): Promise<Submission> {
-    const response = await httpClient.put(`/submissions/${submissionId}`, data, {
-      headers: getHeadersWithUserEmail()
+    const response = await http<Submission>(`/api/submissions/${submissionId}`, {
+      method: 'PUT',
+      headers: getHeadersWithUserEmail(),
+      body: data
     })
-    return response.data
+    return response
   },
 
   async getById(submissionId: string): Promise<Submission> {
-    const response = await httpClient.get(`/submissions/${submissionId}`, {
+    const response = await http<Submission>(`/api/submissions/${submissionId}`, {
       headers: getHeadersWithUserEmail()
     })
-    return response.data
+    return response
   }
 }

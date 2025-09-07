@@ -10,6 +10,7 @@ import { FluidTabs, useFluidTabs } from "@/components/ui/fluid-tabs"
 import { useAuthStore } from "@/store/auth-store"
 import { http } from "@/services/http"
 import { useToast } from "@/hooks/use-toast"
+import Link from "next/link"
 import { 
   MessageCircle, 
   Search, 
@@ -37,6 +38,8 @@ interface Discussion {
   course_id: string
   lesson_id?: string
   created_by: string
+  creator_name?: string
+  creator_email?: string
   is_pinned: boolean
   is_locked: boolean
   allow_student_posts: boolean
@@ -382,9 +385,11 @@ export default function StudentDiscussionsPage() {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-white font-medium hover:text-blue-400 transition-colors cursor-pointer">
-                          {discussion.title}
-                        </h3>
+                        <Link href={`/student/discussions/${discussion.id}`}>
+                          <h3 className="text-white font-medium hover:text-blue-400 transition-colors cursor-pointer">
+                            {discussion.title}
+                          </h3>
+                        </Link>
                         <div className="flex items-center gap-2">
                           {discussion.is_pinned && (
                             <Badge className="bg-yellow-600/20 text-yellow-400 border-yellow-600/30">
@@ -422,7 +427,7 @@ export default function StudentDiscussionsPage() {
                       
                       <div className="flex items-center justify-between text-xs text-slate-500">
                         <div className="flex items-center gap-2">
-                          <span>By {discussion.created_by}</span>
+                          <span>By {discussion.creator_name || discussion.created_by}</span>
                           <span>•</span>
                           <span>{formatDate(discussion.created_at)}</span>
                         </div>

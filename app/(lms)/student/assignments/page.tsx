@@ -65,7 +65,7 @@ export default function StudentAssignmentsPage() {
         // First fetch enrolled courses for the student
         const enrollmentsResponse = await http<{ items: any[] }>(`/api/students/me/enrollments`)
         const enrollments = enrollmentsResponse.items || []
-        const enrolledCourses = enrollments.map((enrollment: any) => enrollment.course).filter(Boolean)
+        const enrolledCourses = (enrollments || []).map((enrollment: any) => enrollment.course).filter(Boolean)
         setCourses(enrolledCourses)
         
         const allAssignments: AssignmentWithSubmission[] = []
@@ -81,7 +81,7 @@ export default function StudentAssignmentsPage() {
             // If we get here, student is enrolled in this course
             // Fetch submission status for each assignment
             const assignmentsWithSubmissions = await Promise.all(
-              courseAssignments.map(async (assignment) => {
+              (courseAssignments || []).map(async (assignment) => {
                 try {
                   // Get all submissions for this assignment by the current student
                   const submissions = await AssignmentProAPI.getMyAssignmentSubmissions(assignment.id)
@@ -196,7 +196,7 @@ export default function StudentAssignmentsPage() {
     pending: pendingAssignments,
     submitted: submittedAssignments,
     overdue: overdueAssignments,
-    assignments: assignments.map(a => ({ title: a.title, status: a.submission_status }))
+    assignments: (assignments || []).map(a => ({ title: a.title, status: a.submission_status }))
   })
 
   const getAssignmentIcon = (type: string) => {
@@ -272,11 +272,11 @@ export default function StudentAssignmentsPage() {
   }
 
   if (loading) {
-  return (
-    <AnimationWrapper className="space-y-6" duration="smooth">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-white">My Assignments</h1>
-      </div>
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold text-white">My Assignments</h1>
+        </div>
         <GlassCard className="p-8">
           <div className="text-center text-slate-300">Loading assignments...</div>
         </GlassCard>
@@ -446,7 +446,7 @@ export default function StudentAssignmentsPage() {
               staggerDelay={150}
               duration="normal"
             >
-              {filteredAssignments.map((assignment) => (
+              {(filteredAssignments || []).map((assignment) => (
                 <GlassCard key={assignment.id} className="p-6" variant="default" hover={true}>
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
@@ -570,7 +570,7 @@ export default function StudentAssignmentsPage() {
                   <div>
                     <h4 className="text-white font-medium mb-3">Course Progress</h4>
                     <div className="space-y-3">
-                      {progressData.course_progress.map((course: any, index: number) => (
+                      {(progressData.course_progress || []).map((course: any, index: number) => (
                         <div key={index} className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
                           <div>
                             <h5 className="text-white font-medium">{course.course_title}</h5>
@@ -603,7 +603,7 @@ export default function StudentAssignmentsPage() {
                   <div>
                     <h4 className="text-white font-medium mb-3">Recent Activities</h4>
                     <div className="space-y-2">
-                      {progressData.recent_activities.slice(0, 5).map((activity: any, index: number) => (
+                      {(progressData.recent_activities || []).slice(0, 5).map((activity: any, index: number) => (
                         <div key={index} className="flex items-center gap-3 p-3 bg-white/5 rounded-lg">
                           <div className="w-8 h-8 rounded-full bg-blue-600/20 flex items-center justify-center">
                             <BarChart3 className="h-4 w-4 text-blue-400" />

@@ -52,7 +52,30 @@ router.get('/', requireAuth, asyncHandler(async (req, res) => {
     return res.status(500).json({ error: error.message })
   }
 
-  res.json({ items: data || [] })
+  // Get user profile information for senders and recipients
+  const messagesWithNames = await Promise.all((data || []).map(async (message) => {
+    // Get sender profile
+    const { data: senderProfile } = await supabaseAdmin
+      .from('user_profiles')
+      .select('first_name, last_name, email')
+      .eq('email', message.from_email)
+      .single()
+
+    // Get recipient profile
+    const { data: recipientProfile } = await supabaseAdmin
+      .from('user_profiles')
+      .select('first_name, last_name, email')
+      .eq('email', message.to_email)
+      .single()
+
+    return {
+      ...message,
+      from_name: senderProfile ? `${senderProfile.first_name} ${senderProfile.last_name}` : message.from_email,
+      to_name: recipientProfile ? `${recipientProfile.first_name} ${recipientProfile.last_name}` : message.to_email
+    }
+  }))
+
+  res.json({ items: messagesWithNames || [] })
 }))
 
 // Get unread message count
@@ -214,7 +237,30 @@ router.get('/conversation/:otherEmail', requireAuth, asyncHandler(async (req, re
     return res.status(500).json({ error: error.message })
   }
 
-  res.json({ items: data || [] })
+  // Get user profile information for senders and recipients
+  const messagesWithNames = await Promise.all((data || []).map(async (message) => {
+    // Get sender profile
+    const { data: senderProfile } = await supabaseAdmin
+      .from('user_profiles')
+      .select('first_name, last_name, email')
+      .eq('email', message.from_email)
+      .single()
+
+    // Get recipient profile
+    const { data: recipientProfile } = await supabaseAdmin
+      .from('user_profiles')
+      .select('first_name, last_name, email')
+      .eq('email', message.to_email)
+      .single()
+
+    return {
+      ...message,
+      from_name: senderProfile ? `${senderProfile.first_name} ${senderProfile.last_name}` : message.from_email,
+      to_name: recipientProfile ? `${recipientProfile.first_name} ${recipientProfile.last_name}` : message.to_email
+    }
+  }))
+
+  res.json({ items: messagesWithNames || [] })
 }))
 
 // Toggle message star

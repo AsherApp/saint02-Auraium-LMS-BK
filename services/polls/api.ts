@@ -1,4 +1,4 @@
-import { httpClient } from "../http"
+import { http } from "../http"
 import { useAuthStore } from "@/store/auth-store"
 
 export type Poll = {
@@ -29,10 +29,10 @@ const getHeadersWithUserEmail = () => {
 
 export const PollsService = {
   async getByCourse(courseId: string): Promise<Poll[]> {
-    const response = await httpClient.get(`/polls/course/${courseId}`, {
+    const response = await http<{ items: Poll[] }>(`/api/polls/course/${courseId}`, {
       headers: getHeadersWithUserEmail()
     })
-    return response.data.items
+    return response.items
   },
 
   async create(data: {
@@ -43,24 +43,28 @@ export const PollsService = {
     liveSessionId?: string
     allowMultipleVotes?: boolean
   }): Promise<Poll> {
-    const response = await httpClient.post('/polls', data, {
-      headers: getHeadersWithUserEmail()
+    const response = await http<Poll>('/api/polls', {
+      method: 'POST',
+      headers: getHeadersWithUserEmail(),
+      body: data
     })
-    return response.data
+    return response
   },
 
   async getById(pollId: string): Promise<Poll> {
-    const response = await httpClient.get(`/polls/${pollId}`, {
+    const response = await http<Poll>(`/api/polls/${pollId}`, {
       headers: getHeadersWithUserEmail()
     })
-    return response.data
+    return response
   },
 
   async respond(pollId: string, selectedOptions: number[]): Promise<PollResponse> {
-    const response = await httpClient.post(`/polls/${pollId}/respond`, { selected_options: selectedOptions }, {
-      headers: getHeadersWithUserEmail()
+    const response = await http<PollResponse>(`/api/polls/${pollId}/respond`, {
+      method: 'POST',
+      headers: getHeadersWithUserEmail(),
+      body: { selected_options: selectedOptions }
     })
-    return response.data
+    return response
   },
 
   async getResults(pollId: string): Promise<{
@@ -74,16 +78,27 @@ export const PollsService = {
     }>
     responses: PollResponse[]
   }> {
-    const response = await httpClient.get(`/polls/${pollId}/results`, {
+    const response = await http<{
+      poll: Poll
+      totalResponses: number
+      results: Array<{
+        option: string
+        index: number
+        count: number
+        percentage: number
+      }>
+      responses: PollResponse[]
+    }>(`/api/polls/${pollId}/results`, {
       headers: getHeadersWithUserEmail()
     })
-    return response.data
+    return response
   },
 
   async close(pollId: string): Promise<Poll> {
-    const response = await httpClient.post(`/polls/${pollId}/close`, {}, {
+    const response = await http<Poll>(`/api/polls/${pollId}/close`, {
+      method: 'POST',
       headers: getHeadersWithUserEmail()
     })
-    return response.data
+    return response
   }
 }

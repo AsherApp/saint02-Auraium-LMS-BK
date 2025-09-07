@@ -1,4 +1,4 @@
-import { httpClient } from "../http"
+import { http } from "../http"
 import { useAuthStore } from "@/store/auth-store"
 
 export type QuizQuestion = {
@@ -42,10 +42,10 @@ const getHeadersWithUserEmail = () => {
 
 export const QuizzesService = {
   async getByCourse(courseId: string): Promise<Quiz[]> {
-    const response = await httpClient.get(`/quizzes/course/${courseId}`, {
+    const response = await http<{ items: Quiz[] }>(`/api/quizzes/course/${courseId}`, {
       headers: getHeadersWithUserEmail()
     })
-    return response.data.items
+    return response.items
   },
 
   async create(data: {
@@ -56,24 +56,28 @@ export const QuizzesService = {
     timeLimitMinutes?: number
     maxAttempts?: number
   }): Promise<Quiz> {
-    const response = await httpClient.post('/quizzes', data, {
-      headers: getHeadersWithUserEmail()
+    const response = await http<Quiz>('/api/quizzes', {
+      method: 'POST',
+      headers: getHeadersWithUserEmail(),
+      body: data
     })
-    return response.data
+    return response
   },
 
   async getById(quizId: string): Promise<Quiz> {
-    const response = await httpClient.get(`/quizzes/${quizId}`, {
+    const response = await http<Quiz>(`/api/quizzes/${quizId}`, {
       headers: getHeadersWithUserEmail()
     })
-    return response.data
+    return response
   },
 
   async respond(quizId: string, answers: Record<string, any>): Promise<QuizResponse> {
-    const response = await httpClient.post(`/quizzes/${quizId}/respond`, { answers }, {
-      headers: getHeadersWithUserEmail()
+    const response = await http<QuizResponse>(`/api/quizzes/${quizId}/respond`, {
+      method: 'POST',
+      headers: getHeadersWithUserEmail(),
+      body: { answers }
     })
-    return response.data
+    return response
   },
 
   async getResults(quizId: string): Promise<{
@@ -81,16 +85,21 @@ export const QuizzesService = {
     responses: QuizResponse[]
     stats: any
   }> {
-    const response = await httpClient.get(`/quizzes/${quizId}/results`, {
+    const response = await http<{
+      quiz: Quiz
+      responses: QuizResponse[]
+      stats: any
+    }>(`/api/quizzes/${quizId}/results`, {
       headers: getHeadersWithUserEmail()
     })
-    return response.data
+    return response
   },
 
   async close(quizId: string): Promise<Quiz> {
-    const response = await httpClient.post(`/quizzes/${quizId}/close`, {}, {
+    const response = await http<Quiz>(`/api/quizzes/${quizId}/close`, {
+      method: 'POST',
       headers: getHeadersWithUserEmail()
     })
-    return response.data
+    return response
   }
 }

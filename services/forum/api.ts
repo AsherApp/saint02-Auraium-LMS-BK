@@ -1,4 +1,4 @@
-import { httpClient } from "../http"
+import { http } from "../http"
 import { useAuthStore } from "@/store/auth-store"
 
 export type ForumCategory = {
@@ -46,8 +46,10 @@ const getHeadersWithUserEmail = () => {
 
 export const ForumService = {
   async getCategories(): Promise<ForumCategory[]> {
-    const response = await httpClient.get('/forum/categories', getHeadersWithUserEmail())
-    return response.data.items
+    const response = await http<{ items: ForumCategory[] }>('/api/forum/categories', {
+      headers: getHeadersWithUserEmail()
+    })
+    return response.items
   },
 
   async getPosts(categoryId?: string, page = 1, limit = 20): Promise<{
@@ -61,8 +63,14 @@ export const ForumService = {
     })
     if (categoryId) params.append('categoryId', categoryId)
     
-    const response = await httpClient.get(`/forum/posts?${params}`, getHeadersWithUserEmail())
-    return response.data
+    const response = await http<{
+      posts: ForumPost[]
+      totalCount: number
+      totalPages: number
+    }>(`/api/forum/posts?${params}`, {
+      headers: getHeadersWithUserEmail()
+    })
+    return response
   },
 
   async createPost(data: {
@@ -70,13 +78,19 @@ export const ForumService = {
     title: string
     content: string
   }): Promise<ForumPost> {
-    const response = await httpClient.post('/forum/posts', data, getHeadersWithUserEmail())
-    return response.data
+    const response = await http<ForumPost>('/api/forum/posts', {
+      method: 'POST',
+      headers: getHeadersWithUserEmail(),
+      body: data
+    })
+    return response
   },
 
   async getPost(postId: string): Promise<ForumPost> {
-    const response = await httpClient.get(`/forum/posts/${postId}`, getHeadersWithUserEmail())
-    return response.data
+    const response = await http<ForumPost>(`/api/forum/posts/${postId}`, {
+      headers: getHeadersWithUserEmail()
+    })
+    return response
   },
 
   async getReplies(postId: string, page = 1, limit = 20): Promise<{
@@ -89,22 +103,38 @@ export const ForumService = {
       limit: limit.toString()
     })
     
-    const response = await httpClient.get(`/forum/posts/${postId}/replies?${params}`, getHeadersWithUserEmail())
-    return response.data
+    const response = await http<{
+      replies: ForumReply[]
+      totalCount: number
+      totalPages: number
+    }>(`/api/forum/posts/${postId}/replies?${params}`, {
+      headers: getHeadersWithUserEmail()
+    })
+    return response
   },
 
   async createReply(postId: string, content: string): Promise<ForumReply> {
-    const response = await httpClient.post(`/forum/posts/${postId}/replies`, { content }, getHeadersWithUserEmail())
-    return response.data
+    const response = await http<ForumReply>(`/api/forum/posts/${postId}/replies`, {
+      method: 'POST',
+      headers: getHeadersWithUserEmail(),
+      body: { content }
+    })
+    return response
   },
 
   async togglePin(postId: string): Promise<ForumPost> {
-    const response = await httpClient.patch(`/forum/posts/${postId}/pin`, {}, getHeadersWithUserEmail())
-    return response.data
+    const response = await http<ForumPost>(`/api/forum/posts/${postId}/pin`, {
+      method: 'PATCH',
+      headers: getHeadersWithUserEmail()
+    })
+    return response
   },
 
   async toggleLock(postId: string): Promise<ForumPost> {
-    const response = await httpClient.patch(`/forum/posts/${postId}/lock`, {}, getHeadersWithUserEmail())
-    return response.data
+    const response = await http<ForumPost>(`/api/forum/posts/${postId}/lock`, {
+      method: 'PATCH',
+      headers: getHeadersWithUserEmail()
+    })
+    return response
   }
 }

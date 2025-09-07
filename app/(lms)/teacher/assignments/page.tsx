@@ -11,6 +11,7 @@ import { AssignmentProAPI, type Assignment, type GradingStats } from "@/services
 import { useAuthStore } from "@/store/auth-store"
 import { AssignmentCreator } from "@/components/teacher/assignment-creator"
 import { http } from "@/services/http"
+import { AnimationWrapper, StaggeredAnimationWrapper } from "@/components/shared/animation-wrapper"
 import { 
   Plus, 
   Search, 
@@ -107,7 +108,7 @@ export default function TeacherAssignmentsPage() {
             
             // Fetch stats for each assignment
             const assignmentsWithStats = await Promise.all(
-              courseAssignments.map(async (assignment) => {
+              (courseAssignments || []).map(async (assignment) => {
                 try {
                   const stats = await AssignmentProAPI.getGradingStats(assignment.id)
                   return {
@@ -214,7 +215,7 @@ export default function TeacherAssignmentsPage() {
         try {
           const assignmentSubmissions = await AssignmentProAPI.listAssignmentSubmissions(assignment.id)
           
-          const submissionsWithDetails = assignmentSubmissions.map(submission => ({
+          const submissionsWithDetails = (assignmentSubmissions || []).map(submission => ({
             id: submission.id,
             assignmentId: assignment.id, // Use the assignment ID from the context
             assignmentTitle: assignment.title,
@@ -319,14 +320,15 @@ export default function TeacherAssignmentsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-white">Assignments</h1>
-          <p className="text-slate-400">Manage and track all your course assignments</p>
-        </div>
+      <AnimationWrapper>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-white">Assignments</h1>
+            <p className="text-slate-400">Manage and track all your course assignments</p>
+          </div>
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
           <DialogTrigger asChild>
-            <Button className="bg-blue-600/80 hover:bg-blue-600 text-white">
+            <Button className="bg-blue-600/80 hover:bg-blue-600 text-white transition-all duration-200 hover:scale-105 hover:shadow-lg">
               <Plus className="h-4 w-4 mr-2" />
               Create Assignment
             </Button>
@@ -361,7 +363,7 @@ export default function TeacherAssignmentsPage() {
                           
                           // Fetch stats for each assignment
                           const assignmentsWithStats = await Promise.all(
-                            courseAssignments.map(async (assignment) => {
+                            (courseAssignments || []).map(async (assignment) => {
                               try {
                                 const stats = await AssignmentProAPI.getGradingStats(assignment.id)
                                 return {
@@ -404,10 +406,12 @@ export default function TeacherAssignmentsPage() {
             />
           </DialogContent>
         </Dialog>
-      </div>
+        </div>
+      </AnimationWrapper>
 
       {/* Main Navigation */}
-      <div className="flex justify-center">
+      <AnimationWrapper delay={0.1}>
+        <div className="flex justify-center">
         <FluidTabs
           tabs={[
             { 
@@ -428,13 +432,15 @@ export default function TeacherAssignmentsPage() {
           variant="default"
           width="wide"
         />
-      </div>
+        </div>
+      </AnimationWrapper>
 
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "assignments" | "submissions")}>
 
         <TabsContent value="assignments" className="space-y-6">
           {/* Filters and Search */}
-          <GlassCard className="p-4">
+          <AnimationWrapper delay={0.2}>
+            <GlassCard className="p-4">
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -442,7 +448,7 @@ export default function TeacherAssignmentsPage() {
                   placeholder="Search assignments or courses..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-white/5 border-white/10 text-white placeholder-slate-400"
+                  className="pl-10 bg-white/5 border-white/10 text-white placeholder-slate-400 focus:border-blue-500/50 focus:ring-blue-500/20 transition-all duration-200"
                 />
               </div>
               <FluidTabs
@@ -481,37 +487,41 @@ export default function TeacherAssignmentsPage() {
                 width="wide"
               />
             </div>
-          </GlassCard>
+            </GlassCard>
+          </AnimationWrapper>
 
                 {/* Assignment Grid */}
           {filteredAssignments.length === 0 ? (
-            <GlassCard className="p-8">
-              <div className="text-center">
-                <FileText className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-white mb-2">
-                  {assignments.length === 0 ? "No assignments yet" : "No assignments found"}
-                </h3>
-                <p className="text-slate-400 mb-4">
-                  {assignments.length === 0 
-                    ? "Create your first assignment to get started" 
-                    : "Try adjusting your search or filter criteria"
-                  }
-                </p>
-                {assignments.length === 0 && (
-                  <Button 
-                    onClick={() => setShowCreateDialog(true)}
-                    className="bg-blue-600/80 hover:bg-blue-600 text-white"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Assignment
-                  </Button>
-                )}
-              </div>
-            </GlassCard>
+            <AnimationWrapper delay={0.3}>
+              <GlassCard className="p-8">
+                <div className="text-center">
+                  <FileText className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-white mb-2">
+                    {assignments.length === 0 ? "No assignments yet" : "No assignments found"}
+                  </h3>
+                  <p className="text-slate-400 mb-4">
+                    {assignments.length === 0 
+                      ? "Create your first assignment to get started" 
+                      : "Try adjusting your search or filter criteria"
+                    }
+                  </p>
+                  {assignments.length === 0 && (
+                    <Button 
+                      onClick={() => setShowCreateDialog(true)}
+                      className="bg-blue-600/80 hover:bg-blue-600 text-white transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Assignment
+                    </Button>
+                  )}
+                </div>
+              </GlassCard>
+            </AnimationWrapper>
           ) : (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {filteredAssignments.map((assignment) => (
-                <GlassCard key={assignment.id} className="p-5 hover:bg-white/10 transition-colors">
+            <StaggeredAnimationWrapper delay={0.3} stagger={0.1}>
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {(filteredAssignments || []).map((assignment) => (
+                  <GlassCard key={assignment.id} className="p-5 hover:bg-white/10 transition-all duration-300 hover:scale-105 hover:shadow-lg">
                   <div className="space-y-4">
                     {/* Header */}
                     <div className="flex items-start justify-between">
@@ -590,7 +600,7 @@ export default function TeacherAssignmentsPage() {
                       >
                         <Button 
                           size="sm" 
-                          className="w-full bg-blue-600/80 hover:bg-blue-600 text-white"
+                          className="w-full bg-blue-600/80 hover:bg-blue-600 text-white transition-all duration-200 hover:scale-105"
                         >
                           <Eye className="h-4 w-4 mr-2" />
                           View Details
@@ -600,7 +610,7 @@ export default function TeacherAssignmentsPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleDuplicateAssignment(assignment)}
-                        className="text-slate-400 hover:text-white hover:bg-white/10"
+                        className="text-slate-400 hover:text-white hover:bg-white/10 transition-all duration-200 hover:scale-110"
                       >
                         <Copy className="h-4 w-4" />
                       </Button>
@@ -608,38 +618,44 @@ export default function TeacherAssignmentsPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleDeleteAssignment(assignment.id)}
-                        className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                        className="text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all duration-200 hover:scale-110"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
-                </GlassCard>
-              ))}
-            </div>
+                  </GlassCard>
+                ))}
+              </div>
+            </StaggeredAnimationWrapper>
           )}
         </TabsContent>
 
         <TabsContent value="submissions" className="space-y-6">
           {/* Submissions List */}
           {submissionsLoading ? (
-            <GlassCard className="p-8">
-              <div className="text-center text-slate-300">Loading submissions...</div>
-            </GlassCard>
+            <AnimationWrapper delay={0.2}>
+              <GlassCard className="p-8">
+                <div className="text-center text-slate-300">Loading submissions...</div>
+              </GlassCard>
+            </AnimationWrapper>
           ) : submissions.length === 0 ? (
-            <GlassCard className="p-8">
-              <div className="text-center">
-                <Users className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-white mb-2">No submissions yet</h3>
-                <p className="text-slate-400">
-                  Student submissions will appear here once they submit their assignments
-                </p>
-              </div>
-            </GlassCard>
+            <AnimationWrapper delay={0.2}>
+              <GlassCard className="p-8">
+                <div className="text-center">
+                  <Users className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-white mb-2">No submissions yet</h3>
+                  <p className="text-slate-400">
+                    Student submissions will appear here once they submit their assignments
+                  </p>
+                </div>
+              </GlassCard>
+            </AnimationWrapper>
           ) : (
-            <div className="space-y-4">
-              {submissions.map((submission) => (
-                <GlassCard key={submission.id} className="p-6 hover:bg-white/5 transition-colors">
+            <StaggeredAnimationWrapper delay={0.2} stagger={0.1}>
+              <div className="space-y-4">
+                {(submissions || []).map((submission) => (
+                  <GlassCard key={submission.id} className="p-6 hover:bg-white/5 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       {/* Header */}
@@ -704,49 +720,52 @@ export default function TeacherAssignmentsPage() {
                       >
                         <Button 
                           size="sm" 
-                          className="bg-blue-600/80 hover:bg-blue-600 text-white"
+                          className="bg-blue-600/80 hover:bg-blue-600 text-white transition-all duration-200 hover:scale-105"
                         >
                           {submission.status === 'graded' ? 'View Grade' : 'View Response'}
                         </Button>
                       </Link>
                     </div>
                   </div>
-                </GlassCard>
-              ))}
-            </div>
+                  </GlassCard>
+                ))}
+              </div>
+            </StaggeredAnimationWrapper>
           )}
         </TabsContent>
       </Tabs>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <GlassCard className="p-4 text-center">
-          <div className="text-2xl font-bold text-white">{assignments.length}</div>
-          <div className="text-sm text-slate-400">Total Assignments</div>
-        </GlassCard>
-        <GlassCard className="p-4 text-center">
-          <div className="text-2xl font-bold text-orange-400">
-            {assignments.reduce((sum, a) => sum + (a.stats?.pending_grading || 0), 0)}
-          </div>
-          <div className="text-sm text-slate-400">Pending Grading</div>
-        </GlassCard>
-        <GlassCard className="p-4 text-center">
-          <div className="text-2xl font-bold text-green-400">
-            {assignments.reduce((sum, a) => sum + (a.stats?.total_submissions || 0), 0)}
-          </div>
-          <div className="text-sm text-slate-400">Total Submissions</div>
-        </GlassCard>
-        <GlassCard className="p-4 text-center">
-          <div className="text-2xl font-bold text-blue-400">
-            {assignments.filter(a => {
-              const now = new Date().getTime()
-              const dueAt = a.due_at ? new Date(a.due_at).getTime() : null
-              return dueAt && dueAt < now
-            }).length}
-          </div>
-          <div className="text-sm text-slate-400">Overdue</div>
-        </GlassCard>
-      </div>
+      <StaggeredAnimationWrapper delay={0.4} stagger={0.1}>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <GlassCard className="p-4 text-center hover:bg-white/5 transition-all duration-300 hover:scale-105">
+            <div className="text-2xl font-bold text-white">{assignments.length}</div>
+            <div className="text-sm text-slate-400">Total Assignments</div>
+          </GlassCard>
+          <GlassCard className="p-4 text-center hover:bg-white/5 transition-all duration-300 hover:scale-105">
+            <div className="text-2xl font-bold text-orange-400">
+              {assignments.reduce((sum, a) => sum + (a.stats?.pending_grading || 0), 0)}
+            </div>
+            <div className="text-sm text-slate-400">Pending Grading</div>
+          </GlassCard>
+          <GlassCard className="p-4 text-center hover:bg-white/5 transition-all duration-300 hover:scale-105">
+            <div className="text-2xl font-bold text-green-400">
+              {assignments.reduce((sum, a) => sum + (a.stats?.total_submissions || 0), 0)}
+            </div>
+            <div className="text-sm text-slate-400">Total Submissions</div>
+          </GlassCard>
+          <GlassCard className="p-4 text-center hover:bg-white/5 transition-all duration-300 hover:scale-105">
+            <div className="text-2xl font-bold text-blue-400">
+              {assignments.filter(a => {
+                const now = new Date().getTime()
+                const dueAt = a.due_at ? new Date(a.due_at).getTime() : null
+                return dueAt && dueAt < now
+              }).length}
+            </div>
+            <div className="text-sm text-slate-400">Overdue</div>
+          </GlassCard>
+        </div>
+      </StaggeredAnimationWrapper>
 
       {/* Document Viewer Modal */}
       <DocumentViewer

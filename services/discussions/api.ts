@@ -1,4 +1,4 @@
-import { httpClient } from "../http"
+import { http } from "../http"
 import { useAuthStore } from "@/store/auth-store"
 
 export type Discussion = {
@@ -31,10 +31,10 @@ const getHeadersWithUserEmail = () => {
 
 export const DiscussionsService = {
   async getByCourse(courseId: string): Promise<Discussion[]> {
-    const response = await httpClient.get(`/discussions/course/${courseId}`, {
+    const response = await http<{ items: Discussion[] }>(`/api/discussions/course/${courseId}`, {
       headers: getHeadersWithUserEmail()
     })
-    return response.data.items
+    return response.items
   },
 
   async create(data: {
@@ -42,38 +42,44 @@ export const DiscussionsService = {
     title: string
     description?: string
   }): Promise<Discussion> {
-    const response = await httpClient.post('/discussions', data, {
-      headers: getHeadersWithUserEmail()
+    const response = await http<Discussion>('/api/discussions', {
+      method: 'POST',
+      headers: getHeadersWithUserEmail(),
+      body: data
     })
-    return response.data
+    return response
   },
 
   async getById(discussionId: string): Promise<Discussion> {
-    const response = await httpClient.get(`/discussions/${discussionId}`, {
+    const response = await http<Discussion>(`/api/discussions/${discussionId}`, {
       headers: getHeadersWithUserEmail()
     })
-    return response.data
+    return response
   },
 
   async createPost(discussionId: string, data: {
     content: string
     parentPostId?: string
   }): Promise<DiscussionPost> {
-    const response = await httpClient.post(`/discussions/${discussionId}/posts`, data, {
-      headers: getHeadersWithUserEmail()
+    const response = await http<DiscussionPost>(`/api/discussions/${discussionId}/posts`, {
+      method: 'POST',
+      headers: getHeadersWithUserEmail(),
+      body: data
     })
-    return response.data
+    return response
   },
 
   async approvePost(postId: string): Promise<DiscussionPost> {
-    const response = await httpClient.post(`/discussions/posts/${postId}/approve`, {}, {
+    const response = await http<DiscussionPost>(`/api/discussions/posts/${postId}/approve`, {
+      method: 'POST',
       headers: getHeadersWithUserEmail()
     })
-    return response.data
+    return response
   },
 
   async deletePost(postId: string): Promise<void> {
-    await httpClient.delete(`/discussions/posts/${postId}`, {
+    await http(`/api/discussions/posts/${postId}`, {
+      method: 'DELETE',
       headers: getHeadersWithUserEmail()
     })
   },
@@ -83,9 +89,13 @@ export const DiscussionsService = {
     totalParticipants: number
     recentActivity: any[]
   }> {
-    const response = await httpClient.get(`/discussions/${discussionId}/stats`, {
+    const response = await http<{
+      totalPosts: number
+      totalParticipants: number
+      recentActivity: any[]
+    }>(`/api/discussions/${discussionId}/stats`, {
       headers: getHeadersWithUserEmail()
     })
-    return response.data
+    return response
   }
 }

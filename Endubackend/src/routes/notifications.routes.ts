@@ -1,91 +1,273 @@
-import express from 'express';
-import { supabaseAdmin } from '../lib/supabase.js';
-import { requireAuth } from '../middlewares/auth.js';
+import { Router } from 'express'
+import { requireAuth } from '../middlewares/auth.js'
+import { asyncHandler } from '../utils/asyncHandler.js'
+import { NotificationService } from '../services/notification.service.js'
+import { supabaseAdmin } from '../lib/supabase.js'
 
-const router = express.Router();
+export const router = Router()
 
-// Get current user's notifications (secure - no email in URL)
-router.get('/me', requireAuth, async (req, res) => {
-  try {
-    const { user } = req;
-    const { limit = 50 } = req.query;
+// Get user notifications
+router.get('/', requireAuth, asyncHandler(async (req, res) => {
+  const userEmail = (req as any).user?.email
+  const { limit = 50, offset = 0 } = req.query
 
-    if (!user?.email) {
-      return res.status(401).json({ error: 'User not authenticated' });
-    }
-
-    const { data: notifications, error } = await supabaseAdmin
-      .from('notifications')
-      .select('*')
-      .eq('user_email', user.email)
-      .order('created_at', { ascending: false })
-      .limit(parseInt(limit as string));
-
-    if (error) throw error;
-
-    res.json(notifications);
-  } catch (error) {
-    console.error('Error fetching notifications:', error);
-    res.status(500).json({ error: 'Failed to fetch notifications' });
+  if (!userEmail) {
+    return res.status(401).json({ error: 'Unauthorized' })
   }
-});
+
+  try {
+    const notifications = await NotificationService.getUserNotifications(
+      userEmail,
+      Number(limit),
+      Number(offset)
+    )
+
+    res.json({ items: notifications })
+  } catch (error: any) {
+    console.error('Error fetching notifications:', error)
+    res.status(500).json({ error: 'Failed to fetch notifications' })
+  }
+}))
+
+// Get unread notification count
+router.get('/unread-count', requireAuth, asyncHandler(async (req, res) => {
+  const userEmail = (req as any).user?.email
+
+  if (!userEmail) {
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
+
+  try {
+    const count = await NotificationService.getUnreadNotificationCount(userEmail)
+    res.json({ count })
+  } catch (error: any) {
+    console.error('Error fetching unread count:', error)
+    res.status(500).json({ error: 'Failed to fetch unread count' })
+  }
+}))
 
 // Mark notification as read
-router.post('/:notificationId/read', requireAuth, async (req, res) => {
-  try {
-    const { user } = req;
-    const { notificationId } = req.params;
+router.put('/:id/read', requireAuth, asyncHandler(async (req, res) => {
+  const userEmail = (req as any).user?.email
+  const notificationId = req.params.id
 
-    const { data: notification, error: fetchError } = await supabaseAdmin
+  if (!userEmail) {
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
+
+  try {
+    const success = await NotificationService.markNotificationRead(notificationId, userEmail)
+    
+    if (success) {
+      res.json({ success: true })
+    } else {
+      res.status(404).json({ error: 'Notification not found' })
+    }
+  } catch (error: any) {
+    console.error('Error marking notification as read:', error)
+    res.status(500).json({ error: 'Failed to mark notification as read' })
+  }
+}))
+
+// Mark all notifications as read
+router.put('/mark-all-read', requireAuth, asyncHandler(async (req, res) => {
+  const userEmail = (req as any).user?.email
+
+  if (!userEmail) {
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
+
+  try {
+    const { error } = await supabaseAdmin
       .from('notifications')
-      .select('user_email')
+      .update({ is_read: true, updated_at: new Date().toISOString() })
+      .eq('user_email', userEmail)
+      .eq('is_read', false)
+
+    if (error) {
+      console.error('Error marking all notifications as read:', error)
+      return res.status(500).json({ error: 'Failed to mark all notifications as read' })
+    }
+
+    res.json({ success: true })
+  } catch (error: any) {
+    console.error('Error marking all notifications as read:', error)
+    res.status(500).json({ error: 'Failed to mark all notifications as read' })
+  }
+}))
+
+// Get notification preferences
+router.get('/preferences', requireAuth, asyncHandler(async (req, res) => {
+  const userEmail = (req as any).user?.email
+  const userRole = (req as any).user?.role
+
+  if (!userEmail) {
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
+
+  try {
+    const preferences = await NotificationService.getUserNotificationPreferences(userEmail, userRole)
+    res.json(preferences || {})
+  } catch (error: any) {
+    console.error('Error fetching notification preferences:', error)
+    res.status(500).json({ error: 'Failed to fetch notification preferences' })
+  }
+}))
+
+// Update notification preferences
+router.put('/preferences', requireAuth, asyncHandler(async (req, res) => {
+  const userEmail = (req as any).user?.email
+  const userRole = (req as any).user?.role
+  const preferences = req.body
+
+  if (!userEmail) {
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
+
+  try {
+    const success = await NotificationService.updateNotificationPreferences(
+      userEmail,
+      userRole,
+      preferences
+    )
+
+    if (success) {
+      res.json({ success: true })
+    } else {
+      res.status(500).json({ error: 'Failed to update notification preferences' })
+    }
+  } catch (error: any) {
+    console.error('Error updating notification preferences:', error)
+    res.status(500).json({ error: 'Failed to update notification preferences' })
+  }
+}))
+
+// Delete notification
+router.delete('/:id', requireAuth, asyncHandler(async (req, res) => {
+  const userEmail = (req as any).user?.email
+  const notificationId = req.params.id
+
+  if (!userEmail) {
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
+
+  try {
+    const { error } = await supabaseAdmin
+      .from('notifications')
+      .delete()
       .eq('id', notificationId)
-      .single();
+      .eq('user_email', userEmail)
 
-    if (fetchError || !notification) {
-      return res.status(404).json({ error: 'Notification not found' });
+    if (error) {
+      console.error('Error deleting notification:', error)
+      return res.status(500).json({ error: 'Failed to delete notification' })
     }
 
-    if (notification.user_email !== user?.email) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
-
-    const { error } = await supabaseAdmin
-      .from('notifications')
-      .update({ read: true })
-      .eq('id', notificationId);
-
-    if (error) throw error;
-
-    res.json({ message: 'Notification marked as read' });
-  } catch (error) {
-    console.error('Error marking notification as read:', error);
-    res.status(500).json({ error: 'Failed to mark notification as read' });
+    res.json({ success: true })
+  } catch (error: any) {
+    console.error('Error deleting notification:', error)
+    res.status(500).json({ error: 'Failed to delete notification' })
   }
-});
+}))
 
-// Mark all notifications as read (secure - no email in URL)
-router.post('/me/read-all', requireAuth, async (req, res) => {
+// Get notification templates (admin only)
+router.get('/templates', requireAuth, asyncHandler(async (req, res) => {
+  const userRole = (req as any).user?.role
+
+  if (userRole !== 'teacher') {
+    return res.status(403).json({ error: 'Access denied' })
+  }
+
   try {
-    const { user } = req;
+    const { data, error } = await supabaseAdmin
+      .from('notification_templates')
+      .select('*')
+      .eq('is_active', true)
+      .order('name', { ascending: true })
 
-    if (!user?.email) {
-      return res.status(401).json({ error: 'User not authenticated' });
+    if (error) {
+      console.error('Error fetching notification templates:', error)
+      return res.status(500).json({ error: 'Failed to fetch notification templates' })
     }
 
-    const { error } = await supabaseAdmin
-      .from('notifications')
-      .update({ read: true })
-      .eq('user_email', user.email)
-      .eq('read', false);
-
-    if (error) throw error;
-
-    res.json({ message: 'All notifications marked as read' });
-  } catch (error) {
-    console.error('Error marking all notifications as read:', error);
-    res.status(500).json({ error: 'Failed to mark notifications as read' });
+    res.json({ items: data || [] })
+  } catch (error: any) {
+    console.error('Error fetching notification templates:', error)
+    res.status(500).json({ error: 'Failed to fetch notification templates' })
   }
-});
+}))
 
-export default router;
+// Send test notification (admin only)
+router.post('/test', requireAuth, asyncHandler(async (req, res) => {
+  const userEmail = (req as any).user?.email
+  const userRole = (req as any).user?.role
+  const { testEmail } = req.body
+
+  if (userRole !== 'teacher') {
+    return res.status(403).json({ error: 'Access denied' })
+  }
+
+  if (!testEmail) {
+    return res.status(400).json({ error: 'testEmail is required' })
+  }
+
+  try {
+    const notificationId = await NotificationService.sendNotification({
+      user_email: testEmail,
+      user_type: 'student',
+      type: 'test',
+      title: 'Test Notification',
+      message: 'This is a test notification from AuraiumLMS.',
+      data: {
+        test: true,
+        sent_by: userEmail,
+        sent_at: new Date().toISOString()
+      }
+    })
+
+    if (notificationId) {
+      res.json({ success: true, notificationId })
+    } else {
+      res.status(500).json({ error: 'Failed to send test notification' })
+    }
+  } catch (error: any) {
+    console.error('Error sending test notification:', error)
+    res.status(500).json({ error: 'Failed to send test notification' })
+  }
+}))
+
+// Get email logs (admin only)
+router.get('/email-logs', requireAuth, asyncHandler(async (req, res) => {
+  const userRole = (req as any).user?.role
+  const { limit = 50, offset = 0, status } = req.query
+
+  if (userRole !== 'teacher') {
+    return res.status(403).json({ error: 'Access denied' })
+  }
+
+  try {
+    let query = supabaseAdmin
+      .from('email_logs')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .range(Number(offset), Number(offset) + Number(limit) - 1)
+
+    if (status) {
+      query = query.eq('status', status)
+    }
+
+    const { data, error } = await query
+
+    if (error) {
+      console.error('Error fetching email logs:', error)
+      return res.status(500).json({ error: 'Failed to fetch email logs' })
+    }
+
+    res.json({ items: data || [] })
+  } catch (error: any) {
+    console.error('Error fetching email logs:', error)
+    res.status(500).json({ error: 'Failed to fetch email logs' })
+  }
+}))
+
+export default router

@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation"
 import { GlassCard } from "@/components/shared/glass-card"
 import { useCourseStore } from "@/store/course-store"
 import { AssignmentProAPI, type Assignment, type Submission, type GradingStats } from "@/services/assignment-pro/api"
-import { httpClient } from "@/services/http"
+import { http } from "@/services/http"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -65,8 +65,8 @@ export default function TeacherAssignmentSubmissionsPage() {
         // Fetch analytics data
         try {
           const [analyticsData, timelineData] = await Promise.all([
-            httpClient.get(`/api/assignments/${params.aid}/analytics`),
-            httpClient.get(`/api/assignments/${params.aid}/submission-timeline`)
+            http(`/api/assignments/${params.aid}/analytics`),
+            http(`/api/assignments/${params.aid}/submission-timeline`)
           ])
           setAnalytics(analyticsData)
           setTimeline(timelineData)

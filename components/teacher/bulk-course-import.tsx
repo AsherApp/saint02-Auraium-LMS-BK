@@ -265,72 +265,96 @@ export function BulkCourseImport({ onCoursesCreated }: BulkCourseImportProps) {
       
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white/10 backdrop-blur-md border-white/20 shadow-glass">
         <DialogHeader>
-          <DialogTitle>Bulk Course Import</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-white text-xl font-bold">Bulk Course Import</DialogTitle>
+          <DialogDescription className="text-slate-300">
             Import multiple courses with modules, lessons, and content at once
           </DialogDescription>
         </DialogHeader>
 
-        <div className="w-full flex justify-center py-4">
-          <FluidTabs
-            tabs={[
-              { id: 'upload', label: 'Upload File', icon: <Upload className="h-4 w-4" /> },
-              { id: 'manual', label: 'Manual Entry', icon: <FileText className="h-4 w-4" /> }
-            ]}
-            activeTab={activeTab}
-            onTabChange={(tabId) => setActiveTab(tabId as 'upload' | 'manual')}
-            variant="default"
-          />
+        {/* Consistent Tab Navigation */}
+        <div className="w-full flex justify-center py-6">
+          <div className="flex bg-white/5 backdrop-blur-sm rounded-lg p-1 border border-white/10">
+            <button
+              onClick={() => setActiveTab('upload')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all duration-200 ${
+                activeTab === 'upload'
+                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
+                  : 'text-slate-300 hover:text-white hover:bg-white/10'
+              }`}
+            >
+              <Upload className="h-4 w-4" />
+              Upload File
+            </button>
+            <button
+              onClick={() => setActiveTab('manual')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all duration-200 ${
+                activeTab === 'manual'
+                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
+                  : 'text-slate-300 hover:text-white hover:bg-white/10'
+              }`}
+            >
+              <FileText className="h-4 w-4" />
+              Manual Entry
+            </button>
+          </div>
         </div>
 
         {activeTab === 'upload' && (
-          <div className="space-y-4">
-            <Card className="bg-white/5 backdrop-blur-sm border-white/10">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-white">
-                  <Upload className="h-5 w-5" />
+          <div className="space-y-6">
+            <Card className="bg-white/5 backdrop-blur-sm border-white/10 shadow-glass">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2 text-white text-lg font-semibold">
+                  <Upload className="h-5 w-5 text-blue-400" />
                   Upload Course Data
                 </CardTitle>
                 <CardDescription className="text-slate-300">
                   Upload a JSON, CSV, or Excel file containing your course data
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center gap-4">
+              <CardContent className="space-y-6">
+                {/* Main Upload Section */}
+                <div className="space-y-4">
                   <Button
                     variant="outline"
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex-1"
+                    className="w-full h-12 bg-white/5 border-white/20 text-white hover:bg-white/10 hover:border-white/30 transition-all duration-200"
                   >
-                    <FileText className="h-4 w-4 mr-2" />
+                    <FileText className="h-5 w-5 mr-3" />
                     Choose File (JSON/CSV/Excel)
                   </Button>
                   
-                  <div className="grid grid-cols-1 gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={downloadTemplate}
-                      size="sm"
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      JSON Template
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={downloadCSVTemplate}
-                      size="sm"
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      CSV Template
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={downloadExcelTemplate}
-                      size="sm"
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      Excel Template
-                    </Button>
+                  {/* Template Downloads */}
+                  <div className="space-y-3">
+                    <h4 className="text-white font-medium text-sm">Download Templates:</h4>
+                    <div className="grid grid-cols-3 gap-3">
+                      <Button
+                        variant="outline"
+                        onClick={downloadTemplate}
+                        size="sm"
+                        className="bg-white/5 border-white/20 text-white hover:bg-white/10 hover:border-white/30 transition-all duration-200"
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        JSON Template
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={downloadCSVTemplate}
+                        size="sm"
+                        className="bg-white/5 border-white/20 text-white hover:bg-white/10 hover:border-white/30 transition-all duration-200"
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        CSV Template
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={downloadExcelTemplate}
+                        size="sm"
+                        className="bg-white/5 border-white/20 text-white hover:bg-white/10 hover:border-white/30 transition-all duration-200"
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Excel Template
+                      </Button>
+                    </div>
                   </div>
                 </div>
                 
@@ -343,20 +367,23 @@ export function BulkCourseImport({ onCoursesCreated }: BulkCourseImportProps) {
                 />
 
                 {courses.length > 0 && (
-                  <div className="p-4 bg-slate-50 rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-medium">Loaded Courses:</span>
-                      <Badge variant="secondary">{courses.length}</Badge>
+                  <div className="p-4 bg-white/5 border border-white/10 rounded-lg backdrop-blur-sm">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="font-medium text-white">Loaded Courses:</span>
+                      <Badge variant="secondary" className="bg-blue-500/20 text-blue-300 border-blue-500/30">
+                        {courses.length}
+                      </Badge>
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-2">
                       {courses.slice(0, 3).map((course, index) => (
-                        <div key={index} className="text-sm text-slate-600">
-                          • {course.title} ({course.modules.length} modules)
+                        <div key={index} className="text-sm text-slate-300 flex items-center gap-2">
+                          <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                          {course.title} ({course.modules.length} modules)
                         </div>
                       ))}
                       {courses.length > 3 && (
-                        <div className="text-sm text-slate-500">
-                          ... and {courses.length - 3} more
+                        <div className="text-sm text-slate-400 italic">
+                          ... and {courses.length - 3} more courses
                         </div>
                       )}
                     </div>
@@ -368,33 +395,33 @@ export function BulkCourseImport({ onCoursesCreated }: BulkCourseImportProps) {
         )}
 
         {activeTab === 'manual' && (
-          <div className="space-y-4">
-            <Card className="bg-white/5 backdrop-blur-sm border-white/10">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-white">
-                  <FileText className="h-5 w-5" />
+          <div className="space-y-6">
+            <Card className="bg-white/5 backdrop-blur-sm border-white/10 shadow-glass">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2 text-white text-lg font-semibold">
+                  <FileText className="h-5 w-5 text-blue-400" />
                   Manual JSON Entry
                 </CardTitle>
                 <CardDescription className="text-slate-300">
                   Paste your course data in JSON format
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="json-input">Course Data (JSON)</Label>
+              <CardContent className="space-y-6">
+                <div className="space-y-3">
+                  <Label htmlFor="json-input" className="text-white font-medium">Course Data (JSON)</Label>
                   <Textarea
                     id="json-input"
                     value={manualJson}
                     onChange={(e) => handleManualJsonChange(e.target.value)}
                     placeholder="Paste your JSON course data here..."
-                    className="min-h-[300px] font-mono text-sm"
+                    className="min-h-[300px] font-mono text-sm bg-white/5 border-white/20 text-white placeholder:text-slate-400 focus:border-blue-500/50 focus:ring-blue-500/20"
                   />
                 </div>
                 
                 <Button
                   variant="outline"
                   onClick={downloadTemplate}
-                  className="w-full"
+                  className="w-full bg-white/5 border-white/20 text-white hover:bg-white/10 hover:border-white/30 transition-all duration-200"
                 >
                   <Download className="h-4 w-4 mr-2" />
                   Download Template for Reference
@@ -406,40 +433,40 @@ export function BulkCourseImport({ onCoursesCreated }: BulkCourseImportProps) {
 
         {/* Validation Results */}
         {validation && (
-          <Card className="bg-white/5 backdrop-blur-sm border-white/10">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
+          <Card className="bg-white/5 backdrop-blur-sm border-white/10 shadow-glass">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-white text-lg font-semibold">
                 {validation.valid ? (
-                  <CheckCircle className="h-5 w-5 text-green-500" />
+                  <CheckCircle className="h-5 w-5 text-green-400" />
                 ) : (
-                  <XCircle className="h-5 w-5 text-red-500" />
+                  <XCircle className="h-5 w-5 text-red-400" />
                 )}
                 Validation Results
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-4 mb-4">
-                <Badge variant={validation.valid ? "default" : "destructive"}>
+              <div className="flex items-center gap-3 mb-6">
+                <Badge className={`${validation.valid ? 'bg-green-500/20 text-green-300 border-green-500/30' : 'bg-red-500/20 text-red-300 border-red-500/30'}`}>
                   {validation.summary.valid} Valid
                 </Badge>
-                <Badge variant="secondary">
+                <Badge className="bg-slate-500/20 text-slate-300 border-slate-500/30">
                   {validation.summary.invalid} Invalid
                 </Badge>
-                <Badge variant="outline">
+                <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30">
                   {validation.summary.total} Total
                 </Badge>
               </div>
 
               {!validation.valid && (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {validation.results
                     .filter(result => !result.valid)
                     .map((result, index) => (
-                      <Alert key={index} variant="destructive">
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertDescription>
+                      <Alert key={index} variant="destructive" className="bg-red-500/10 border-red-500/20">
+                        <AlertTriangle className="h-4 w-4 text-red-400" />
+                        <AlertDescription className="text-red-300">
                           <div className="font-medium">{result.title}</div>
-                          <ul className="mt-1 list-disc list-inside">
+                          <ul className="mt-2 list-disc list-inside space-y-1">
                             {result.errors.map((error, errorIndex) => (
                               <li key={errorIndex} className="text-sm">{error}</li>
                             ))}
@@ -455,33 +482,33 @@ export function BulkCourseImport({ onCoursesCreated }: BulkCourseImportProps) {
 
         {/* Creation Results */}
         {results && (
-          <Card className="bg-white/5 backdrop-blur-sm border-white/10">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
-                <CheckCircle className="h-5 w-5 text-green-500" />
+          <Card className="bg-white/5 backdrop-blur-sm border-white/10 shadow-glass">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-white text-lg font-semibold">
+                <CheckCircle className="h-5 w-5 text-green-400" />
                 Creation Results
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-4 mb-4">
-                <Badge variant="default">
+              <div className="flex items-center gap-3 mb-6">
+                <Badge className="bg-green-500/20 text-green-300 border-green-500/30">
                   {results.summary.created} Created
                 </Badge>
-                <Badge variant={results.summary.errors > 0 ? "destructive" : "secondary"}>
+                <Badge className={`${results.summary.errors > 0 ? 'bg-red-500/20 text-red-300 border-red-500/30' : 'bg-slate-500/20 text-slate-300 border-slate-500/30'}`}>
                   {results.summary.errors} Errors
                 </Badge>
-                <Badge variant="outline">
+                <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30">
                   {results.summary.total} Total
                 </Badge>
               </div>
 
               {results.errors.length > 0 && (
-                <div className="space-y-2">
-                  <h4 className="font-medium text-red-600">Errors:</h4>
+                <div className="space-y-3">
+                  <h4 className="font-medium text-red-400">Errors:</h4>
                   {results.errors.map((error, index) => (
-                    <Alert key={index} variant="destructive">
-                      <XCircle className="h-4 w-4" />
-                      <AlertDescription>
+                    <Alert key={index} variant="destructive" className="bg-red-500/10 border-red-500/20">
+                      <XCircle className="h-4 w-4 text-red-400" />
+                      <AlertDescription className="text-red-300">
                         <div className="font-medium">{error.course}</div>
                         {error.module && <div>Module: {error.module}</div>}
                         {error.lesson && <div>Lesson: {error.lesson}</div>}
@@ -493,12 +520,12 @@ export function BulkCourseImport({ onCoursesCreated }: BulkCourseImportProps) {
               )}
 
               {results.results.length > 0 && (
-                <div className="space-y-2">
-                  <h4 className="font-medium text-green-600">Successfully Created:</h4>
+                <div className="space-y-3">
+                  <h4 className="font-medium text-green-400">Successfully Created:</h4>
                   {results.results.map((result, index) => (
-                    <div key={index} className="p-3 bg-green-50 rounded-lg">
-                      <div className="font-medium">{result.title}</div>
-                      <div className="text-sm text-slate-600">
+                    <div key={index} className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                      <div className="font-medium text-green-300">{result.title}</div>
+                      <div className="text-sm text-green-400">
                         {result.modules.length} modules, {result.modules.reduce((acc, m) => acc + m.lessons.length, 0)} lessons
                       </div>
                     </div>
@@ -510,21 +537,23 @@ export function BulkCourseImport({ onCoursesCreated }: BulkCourseImportProps) {
         )}
 
         {/* Action Buttons */}
-        <div className="flex items-center justify-between pt-4 border-t">
+        <div className="flex items-center justify-between pt-6 border-t border-white/10">
           <Button
             variant="outline"
             onClick={resetForm}
             disabled={isCreating}
+            className="bg-white/5 border-white/20 text-white hover:bg-white/10 hover:border-white/30 transition-all duration-200"
           >
             <Trash2 className="h-4 w-4 mr-2" />
             Reset
           </Button>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <Button
               variant="outline"
               onClick={validateCourses}
               disabled={courses.length === 0 || isValidating}
+              className="bg-white/5 border-white/20 text-white hover:bg-white/10 hover:border-white/30 transition-all duration-200"
             >
               {isValidating ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -537,7 +566,7 @@ export function BulkCourseImport({ onCoursesCreated }: BulkCourseImportProps) {
             <Button
               onClick={createCourses}
               disabled={!canCreate}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isCreating ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />

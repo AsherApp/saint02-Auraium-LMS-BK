@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { supabaseAdmin } from '../lib/supabase.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { requireAuth } from '../middlewares/auth.js'
+import { NotificationService } from '../services/notification.service.js'
 
 export const router = Router()
 
@@ -49,6 +50,49 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
     console.error('Error creating announcement:', error)
     return res.status(500).json({ error: error.message })
   }
+
+  // Send announcement notifications to students
+  try {
+    if (course_id) {
+      // Get enrolled students for the course
+      const { data: enrollments } = await supabaseAdmin
+        .from('enrollments')
+        .select('student_email')
+        .eq('course_id', course_id);
+
+      if (enrollments && enrollments.length > 0) {
+        // Get course details
+        const { data: courseData } = await supabaseAdmin
+          .from('courses')
+          .select('title')
+          .eq('id', course_id)
+          .single();
+
+        // Send notifications to all enrolled students
+        const notifications = enrollments.map(enrollment => ({
+          user_email: enrollment.student_email,
+          user_type: 'student' as const,
+          type: 'announcement',
+          title: 'New Announcement',
+          message: `Your teacher has posted a new announcement for the course "${courseData?.title}".`,
+          data: {
+            announcement_id: data.id,
+            announcement_title: title || 'Announcement',
+            announcement_message: message,
+            course_title: courseData?.title,
+            course_id: course_id,
+            priority: priority || 'normal',
+            created_at: new Date().toISOString()
+          }
+        }));
+
+        await NotificationService.sendBulkNotifications(notifications);
+      }
+    }
+  } catch (notificationError) {
+    console.error('Error sending announcement notifications:', notificationError);
+    // Don't fail the announcement creation if notifications fail
+  }
   
   res.status(201).json(data)
 }))
@@ -77,8 +121,19 @@ router.get('/', requireAuth, asyncHandler(async (req, res) => {
     console.error('Error fetching announcements:', error)
     return res.status(500).json({ error: error.message })
   }
+
+  // Transform announcements to include teacher name
+  const announcementsWithNames = (data || []).map(announcement => ({
+    ...announcement,
+    teachers: {
+      ...announcement.teachers,
+      name: announcement.teachers ? 
+        `${announcement.teachers.first_name} ${announcement.teachers.last_name}` : 
+        announcement.teacher_email
+    }
+  }))
   
-  res.json({ items: data || [] })
+  res.json({ items: announcementsWithNames || [] })
 }))
 
 router.get('/student', requireAuth, asyncHandler(async (req, res) => {
@@ -143,7 +198,18 @@ router.get('/student', requireAuth, asyncHandler(async (req, res) => {
     })
   }
 
-  res.json({ items: announcements || [] })
+  // Transform announcements to include teacher name
+  const announcementsWithNames = (announcements || []).map(announcement => ({
+    ...announcement,
+    teachers: {
+      ...announcement.teachers,
+      name: announcement.teachers ? 
+        `${announcement.teachers.first_name} ${announcement.teachers.last_name}` : 
+        announcement.teacher_email
+    }
+  }))
+
+  res.json({ items: announcementsWithNames || [] })
 }))
 
 // Mark announcement as read

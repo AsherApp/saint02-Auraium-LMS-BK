@@ -2,6 +2,7 @@ import express from 'express';
 import { supabaseAdmin } from '../lib/supabase.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { requireAuth } from '../middlewares/auth.js';
+import { NotificationService } from '../services/notification.service.js';
 
 const router = express.Router();
 
@@ -366,6 +367,47 @@ router.post('/', requireAuth, async (req, res) => {
       return res.status(500).json({ error: 'Failed to create assignment' });
     }
 
+    // Send assignment creation notifications to enrolled students
+    try {
+      // Get course details
+      const { data: courseData } = await supabaseAdmin
+        .from('courses')
+        .select('title')
+        .eq('id', course_id)
+        .single();
+
+      // Get enrolled students
+      const { data: enrollments } = await supabaseAdmin
+        .from('enrollments')
+        .select('student_email')
+        .eq('course_id', course_id);
+
+      if (enrollments && enrollments.length > 0) {
+        // Send notifications to all enrolled students
+        const notifications = enrollments.map(enrollment => ({
+          user_email: enrollment.student_email,
+          user_type: 'student' as const,
+          type: 'assignment_created',
+          title: 'New Assignment Available',
+          message: `A new assignment "${title}" has been created for the course "${courseData?.title}".`,
+          data: {
+            assignment_id: assignment.id,
+            assignment_title: title,
+            course_title: courseData?.title,
+            course_id: course_id,
+            due_date: due_at,
+            points: points || 100,
+            created_at: new Date().toISOString()
+          }
+        }));
+
+        await NotificationService.sendBulkNotifications(notifications);
+      }
+    } catch (notificationError) {
+      console.error('Error sending assignment creation notifications:', notificationError);
+      // Don't fail the assignment creation if notifications fail
+    }
+
     res.status(201).json(assignment);
   } catch (error) {
     console.error('Error in POST /assignments:', error);
@@ -617,6 +659,48 @@ router.post('/:id/grade', requireAuth, async (req, res) => {
       return res.status(500).json({ error: 'Failed to grade submission' });
     }
 
+    // Send assignment graded notification to student
+    try {
+      // Get assignment details
+      const { data: assignmentData } = await supabaseAdmin
+        .from('assignments')
+        .select('title, points')
+        .eq('id', id)
+        .single();
+
+      // Get course details
+      const { data: courseData } = await supabaseAdmin
+        .from('courses')
+        .select('title')
+        .eq('id', assignment.course_id)
+        .single();
+
+      // Calculate grade percentage
+      const gradePercentage = assignmentData?.points ? Math.round((grade / assignmentData.points) * 100) : 0;
+
+      await NotificationService.sendNotification({
+        user_email: updatedSubmission.student_email,
+        user_type: 'student',
+        type: 'assignment_graded',
+        title: 'Assignment Graded',
+        message: `Your assignment "${assignmentData?.title}" has been graded. Grade: ${grade}/${assignmentData?.points || 100} (${gradePercentage}%)`,
+        data: {
+          assignment_id: id,
+          assignment_title: assignmentData?.title,
+          course_title: courseData?.title,
+          course_id: assignment.course_id,
+          grade: grade,
+          total_points: assignmentData?.points || 100,
+          grade_percentage: gradePercentage,
+          feedback: feedback,
+          graded_at: new Date().toISOString()
+        }
+      });
+    } catch (notificationError) {
+      console.error('Error sending assignment graded notification:', notificationError);
+      // Don't fail the grading if notification fails
+    }
+
     res.json(updatedSubmission);
   } catch (error) {
     console.error('Error in POST /assignments/:id/grade:', error);
@@ -713,15 +797,13 @@ router.get('/:id/submissions/detailed', requireAuth, async (req, res) => {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    // Get submissions with student info
+    // Get submissions with student info from user_profiles
     const { data: submissions, error: submissionsError } = await supabaseAdmin
       .from('submissions')
       .select(`
         *,
         students!inner(
-          email,
-          name,
-          avatar_url
+          email
         )
       `)
       .eq('assignment_id', id)
@@ -732,28 +814,38 @@ router.get('/:id/submissions/detailed', requireAuth, async (req, res) => {
       return res.status(500).json({ error: 'Failed to fetch submissions' });
     }
 
-    // Transform to match expected format
-    const transformedSubmissions = submissions?.map(submission => ({
-      id: submission.id,
-      assignmentId: submission.assignment_id,
-      studentEmail: submission.student_email,
-      studentName: submission.students?.name || submission.student_name,
-      studentAvatar: submission.students?.avatar_url,
-      attemptNumber: submission.attempt_number,
-      status: submission.status,
-      content: submission.content,
-      attachments: submission.attachments,
-      submittedAt: submission.submitted_at,
-      gradedAt: submission.graded_at,
-      gradedBy: submission.graded_by,
-      grade: submission.grade,
-      feedback: submission.feedback,
-      rubricScores: submission.rubric_scores,
-      timeSpentMinutes: submission.time_spent_minutes,
-      lateSubmission: submission.late_submission,
-      createdAt: submission.created_at,
-      updatedAt: submission.updated_at
-    })) || [];
+    // Get student names from user_profiles and transform to match expected format
+    const transformedSubmissions = await Promise.all((submissions || []).map(async (submission) => {
+      // Get student name from user_profiles
+      const { data: studentProfile } = await supabaseAdmin
+        .from('user_profiles')
+        .select('first_name, last_name')
+        .eq('email', submission.student_email)
+        .eq('user_type', 'student')
+        .single()
+
+      return {
+        id: submission.id,
+        assignmentId: submission.assignment_id,
+        studentEmail: submission.student_email,
+        studentName: studentProfile ? `${studentProfile.first_name} ${studentProfile.last_name}` : submission.student_name,
+        studentAvatar: null, // Will be added later if needed
+        attemptNumber: submission.attempt_number,
+        status: submission.status,
+        content: submission.content,
+        attachments: submission.attachments,
+        submittedAt: submission.submitted_at,
+        gradedAt: submission.graded_at,
+        gradedBy: submission.graded_by,
+        grade: submission.grade,
+        feedback: submission.feedback,
+        rubricScores: submission.rubric_scores,
+        timeSpentMinutes: submission.time_spent_minutes,
+        lateSubmission: submission.late_submission,
+        createdAt: submission.created_at,
+        updatedAt: submission.updated_at
+      }
+    }))
 
     res.json(transformedSubmissions);
   } catch (error) {

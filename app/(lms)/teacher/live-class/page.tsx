@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { FluidTabs, useFluidTabs } from "@/components/ui/fluid-tabs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
-import { Video, Plus, Calendar, Clock, Users, Play, Loader2, Square, History, Zap, Clock3 } from "lucide-react"
+import { Video, Plus, Calendar, Clock, Users, Play, Loader2, Square, History, Zap, Clock3, Check } from "lucide-react"
 import Link from "next/link"
 import { useLiveSessionsFn } from "@/services/live/hook"
 import { useCoursesFn } from "@/services/courses/hook"
@@ -215,14 +215,14 @@ export default function TeacherLiveClass() {
       const fetchSessionData = async () => {
         try {
           // Get participants
-          const participantsResponse = await httpClient.get(`/api/live/${session.id}/participants`)
-          const participants = participantsResponse.data?.items || []
+          const participantsResponse = await http(`/api/live/${session.id}/participants`)
+          const participants = participantsResponse?.items || []
           setParticipantCount(participants.length)
 
           // Get attendance data if session is ended
           if (session.status === 'ended') {
-            const attendanceResponse = await httpClient.get(`/api/live-attendance/session/${session.id}`)
-            const attendanceData = attendanceResponse.data
+            const attendanceResponse = await http(`/api/live-attendance/session/${session.id}`)
+            const attendanceData = attendanceResponse
             
             if (attendanceData) {
               setAttendanceStats({
@@ -515,7 +515,7 @@ export default function TeacherLiveClass() {
                     </SelectTrigger>
                     <SelectContent className="bg-slate-900/95 text-white border-white/10">
                       {coursesLoading ? (
-                        <SelectItem value="" disabled>Loading courses...</SelectItem>
+                        <SelectItem value="loading" disabled>Loading courses...</SelectItem>
                       ) : courses && courses.length > 0 ? (
                         courses.map((course) => (
                           <SelectItem key={course.id} value={course.id}>
@@ -523,7 +523,7 @@ export default function TeacherLiveClass() {
                           </SelectItem>
                         ))
                       ) : (
-                        <SelectItem value="" disabled>No courses available</SelectItem>
+                        <SelectItem value="no-courses" disabled>No courses available</SelectItem>
                       )}
                     </SelectContent>
                   </Select>

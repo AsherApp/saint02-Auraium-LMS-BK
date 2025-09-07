@@ -74,6 +74,9 @@ export default function TeacherCourseDetailPage() {
     setMounted(true)
   }, [])
 
+  // Use FluidTabs hook for tab management
+  const { activeTab, setActiveTab, handleTabChange } = useFluidTabs('curriculum')
+
   // Use the new course detail hook
   const { course, loading: courseLoading, error: courseError, updateCourse } = useCourseDetailFn(params.id)
 
@@ -573,20 +576,14 @@ export default function TeacherCourseDetailPage() {
               { id: 'assignments', label: 'Assignments', icon: <ClipboardList className="h-4 w-4" />, badge: assignments?.length || 0 },
               { id: 'settings', label: 'Settings', icon: <SettingsIcon className="h-4 w-4" /> }
             ]}
-            activeTab="curriculum"
-            onTabChange={(tabId) => {
-              // Scroll to the appropriate section
-              const element = document.getElementById(tabId)
-              if (element) {
-                element.scrollIntoView({ behavior: 'smooth' })
-              }
-            }}
+            activeTab={activeTab}
+            onTabChange={handleTabChange}
             variant="default"
             width="content-match"
           />
         </div>
         
-        <Tabs defaultValue="curriculum" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
 
             <TabsContent value="overview" className="mt-4">
               <div id="overview" className="w-full">
@@ -603,8 +600,19 @@ export default function TeacherCourseDetailPage() {
             <TabsContent value="curriculum" className="mt-4">
               <div id="curriculum" className="w-full">
             <GlassCard className="p-0 space-y-4 w-full">
+              {/* Add Module Button */}
+              <div className="p-6 border-b border-white/10">
+                <Button 
+                  onClick={() => setModOpen(true)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Module
+                </Button>
+              </div>
+              
             {modules.length === 0 ? (
-              <div className="text-slate-300">No modules yet. Use Add Module to start structuring your course.</div>
+              <div className="p-6 text-slate-300">No modules yet. Click "Add Module" above to start structuring your course.</div>
             ) : (
               <div className="space-y-3 p-6">
                 {modules.map((m) => (
@@ -1025,10 +1033,10 @@ export default function TeacherCourseDetailPage() {
 
       {/* Enhanced Course Settings Dialog */}
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent className="bg-white/10 border-white/20 backdrop-blur text-white max-w-2xl">
+        <DialogContent className="bg-slate-900/95 border-white/20 backdrop-blur-xl text-white max-w-2xl shadow-2xl">
           <DialogHeader>
-            <DialogTitle>Course General Settings</DialogTitle>
-            <DialogDescription>Manage all aspects of your course including visibility, enrollment, and content settings.</DialogDescription>
+            <DialogTitle className="text-xl font-semibold text-white">Course General Settings</DialogTitle>
+            <DialogDescription className="text-slate-300">Manage all aspects of your course including visibility, enrollment, and content settings.</DialogDescription>
           </DialogHeader>
           <div className="space-y-6">
             {/* Basic Information */}
@@ -1036,21 +1044,21 @@ export default function TeacherCourseDetailPage() {
               <h3 className="text-lg font-semibold text-white border-b border-white/20 pb-2">Basic Information</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Course Title</Label>
+                  <Label className="text-white font-medium">Course Title</Label>
                   <Input
                     value={editTitle}
                     onChange={(e) => setEditTitle(e.target.value)}
-                    className="bg-white/5 border-white/10 text-white"
+                    className="bg-white/5 border-white/20 text-white placeholder:text-slate-400 focus:border-blue-500/50 focus:ring-blue-500/20 focus:ring-1 transition-all duration-200"
                     placeholder="Enter course title"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Course Status</Label>
+                  <Label className="text-white font-medium">Course Status</Label>
                   <Select value={editStatus} onValueChange={(v) => setEditStatus(v as any)}>
-                    <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                    <SelectTrigger className="bg-white/5 border-white/20 text-white focus:border-blue-500/50 focus:ring-blue-500/20 focus:ring-1 transition-all duration-200">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-slate-900/95 text-white border-white/10">
+                    <SelectContent className="bg-slate-800/95 text-white border-white/20">
                       <SelectItem value="draft">Draft</SelectItem>
                       <SelectItem value="published">Published</SelectItem>
                       <SelectItem value="archived">Archived</SelectItem>
@@ -1059,20 +1067,20 @@ export default function TeacherCourseDetailPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Description</Label>
+                <Label className="text-white font-medium">Description</Label>
                 <Textarea
                   value={editDesc}
                   onChange={(e) => setEditDesc(e.target.value)}
-                  className="bg-white/5 border-white/10 text-white min-h-[80px]"
+                  className="bg-white/5 border-white/20 text-white placeholder:text-slate-400 min-h-[80px] focus:border-blue-500/50 focus:ring-blue-500/20 focus:ring-1 transition-all duration-200 resize-none"
                   placeholder="Describe your course content and objectives"
                 />
               </div>
               <div className="space-y-2">
-                <Label>Thumbnail URL</Label>
+                <Label className="text-white font-medium">Thumbnail URL</Label>
                 <Input
                   value={editThumbnail}
                   onChange={(e) => setEditThumbnail(e.target.value)}
-                  className="bg-white/5 border-white/10 text-white"
+                  className="bg-white/5 border-white/20 text-white placeholder:text-slate-400 focus:border-blue-500/50 focus:ring-blue-500/20 focus:ring-1 transition-all duration-200"
                   placeholder="https://example.com/image.jpg"
                 />
                 {editThumbnail && (
@@ -1095,12 +1103,12 @@ export default function TeacherCourseDetailPage() {
               <h3 className="text-lg font-semibold text-white border-b border-white/20 pb-2">Visibility & Access</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Visibility</Label>
+                  <Label className="text-white font-medium">Visibility</Label>
                   <Select value={editVisibility} onValueChange={(v) => setEditVisibility(v as any)}>
-                    <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                    <SelectTrigger className="bg-white/5 border-white/20 text-white focus:border-blue-500/50 focus:ring-blue-500/20 focus:ring-1 transition-all duration-200">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-slate-900/95 text-white border-white/10">
+                    <SelectContent className="bg-slate-800/95 text-white border-white/20">
                       <SelectItem value="private">Private - Only enrolled students</SelectItem>
                       <SelectItem value="unlisted">Unlisted - Hidden from search</SelectItem>
                       <SelectItem value="public">Public - Visible to everyone</SelectItem>
@@ -1108,12 +1116,12 @@ export default function TeacherCourseDetailPage() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Enrollment Policy</Label>
+                  <Label className="text-white font-medium">Enrollment Policy</Label>
                   <Select value={editPolicy} onValueChange={(v) => setEditPolicy(v as any)}>
-                    <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                    <SelectTrigger className="bg-white/5 border-white/20 text-white focus:border-blue-500/50 focus:ring-blue-500/20 focus:ring-1 transition-all duration-200">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-slate-900/95 text-white border-white/10">
+                    <SelectContent className="bg-slate-800/95 text-white border-white/20">
                       <SelectItem value="invite_only">Invite Only - Manual enrollment</SelectItem>
                       <SelectItem value="request">Request - Students can request access</SelectItem>
                       <SelectItem value="open">Open - Anyone can join</SelectItem>
@@ -1128,19 +1136,19 @@ export default function TeacherCourseDetailPage() {
               <h3 className="text-lg font-semibold text-white border-b border-white/20 pb-2">Course Management</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Course ID</Label>
+                  <Label className="text-white font-medium">Course ID</Label>
                   <Input
                     value={course?.id || ''}
-                    className="bg-white/5 border-white/10 text-white cursor-not-allowed"
+                    className="bg-white/5 border-white/20 text-slate-400 cursor-not-allowed"
                     disabled
                     title="Course ID cannot be changed"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Created Date</Label>
+                  <Label className="text-white font-medium">Created Date</Label>
                   <Input
                     value={course?.created_at ? new Date(course.created_at).toLocaleDateString() : ''}
-                    className="bg-white/5 border-white/10 text-white cursor-not-allowed"
+                    className="bg-white/5 border-white/20 text-slate-400 cursor-not-allowed"
                     disabled
                     title="Creation date cannot be changed"
                   />
@@ -1149,14 +1157,17 @@ export default function TeacherCourseDetailPage() {
             </div>
 
             {/* Actions */}
-            <div className="flex gap-3 pt-4">
-              <Button className="bg-blue-600/80 hover:bg-blue-600 text-white flex-1" onClick={onSaveSettings}>
+            <div className="flex gap-3 pt-6 border-t border-white/20">
+              <Button 
+                className="bg-blue-600 hover:bg-blue-700 text-white flex-1 transition-all duration-200 hover:scale-105 hover:shadow-lg" 
+                onClick={onSaveSettings}
+              >
                 Save Changes
               </Button>
               <Button 
                 variant="outline" 
                 onClick={() => setSettingsOpen(false)}
-                className="border-white/20 text-white hover:bg-white/10"
+                className="border-white/20 text-white hover:bg-white/10 hover:border-white/30 transition-all duration-200 hover:scale-105"
               >
                 Cancel
               </Button>

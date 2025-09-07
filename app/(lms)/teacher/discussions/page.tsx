@@ -1,5 +1,6 @@
 "use client"
 
+import dynamic from 'next/dynamic'
 import { useState, useEffect } from "react"
 import { GlassCard } from "@/components/shared/glass-card"
 import { Button } from "@/components/ui/button"
@@ -12,6 +13,7 @@ import { useCoursesFn } from "@/services/courses/hook"
 import { http } from "@/services/http"
 import { useToast } from "@/hooks/use-toast"
 import { notificationService } from "@/services/notification-service"
+import { AnimationWrapper, StaggeredAnimationWrapper } from "@/components/shared/animation-wrapper"
 import { 
   MessageCircle, 
   Plus, 
@@ -34,6 +36,7 @@ import {
 } from "lucide-react"
 import { NewTopicModal } from "@/components/forum/new-topic-modal"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import Link from "next/link"
 
 interface Discussion {
   id: string
@@ -42,6 +45,8 @@ interface Discussion {
   course_id: string
   lesson_id?: string
   created_by: string
+  creator_name?: string
+  creator_email?: string
   is_pinned: boolean
   is_locked: boolean
   allow_student_posts: boolean
@@ -72,7 +77,7 @@ interface Course {
   description: string
 }
 
-export default function TeacherDiscussionsPage() {
+function TeacherDiscussionsPage() {
   const { user } = useAuthStore()
   const { toast } = useToast()
   const { courses } = useCoursesFn()
@@ -125,7 +130,7 @@ export default function TeacherDiscussionsPage() {
       
       if (selectedCourse === "all") {
         // Fetch discussions from all courses
-        const promises = coursesList.map(course => 
+        const promises = (coursesList || []).map(course => 
           http<{ items: Discussion[] }>(`/api/discussions/course/${course.id}`)
             .then(response => response.items || [])
             .catch(() => [])
@@ -190,7 +195,7 @@ export default function TeacherDiscussionsPage() {
       toast({ title: "Announcement created successfully" })
       
       // Trigger notification for new announcement
-      const selectedCourse = coursesList.find(c => c.id === newAnnouncement.course_id)
+      const selectedCourse = (coursesList || []).find(c => c.id === newAnnouncement.course_id)
       notificationService.newAnnouncement(newAnnouncement, selectedCourse?.title)
       
       setCreateAnnouncementOpen(false)
@@ -257,155 +262,172 @@ export default function TeacherDiscussionsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-white text-2xl font-semibold">Discussions & Announcements</h1>
-          <p className="text-slate-400 mt-1">Manage course discussions and announcements</p>
+      <AnimationWrapper>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-white text-2xl font-semibold">Discussions & Announcements</h1>
+            <p className="text-slate-400 mt-1">Manage course discussions and announcements</p>
+          </div>
+          <div className="flex gap-2">
+            <Button 
+              variant="default"
+              onClick={() => setNewTopicModalOpen(true)}
+              className="transition-all duration-200 hover:scale-105 hover:shadow-lg"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              New Discussion
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => setCreateAnnouncementOpen(true)}
+              className="border-white/20 text-white hover:bg-white/10 transition-all duration-200 hover:scale-105"
+            >
+              <Bell className="h-4 w-4 mr-2" />
+              New Announcement
+            </Button>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Button 
-            variant="default"
-            onClick={() => setNewTopicModalOpen(true)}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            New Discussion
-          </Button>
-          <Button 
-            variant="outline"
-            onClick={() => setCreateAnnouncementOpen(true)}
-            className="border-white/20 text-white hover:bg-white/10"
-          >
-            <Bell className="h-4 w-4 mr-2" />
-            New Announcement
-          </Button>
-        </div>
-      </div>
+      </AnimationWrapper>
 
       {/* Course Filter */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <GlassCard 
-          className={`p-4 cursor-pointer transition-all hover:bg-white/10 ${
-            selectedCourse === "all" ? 'ring-2 ring-blue-500' : ''
-          }`}
-          onClick={() => setSelectedCourse("all")}
-        >
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-500/20 rounded-lg">
-              <MessageCircle className="h-4 w-4 text-blue-400" />
-            </div>
-            <div>
-              <h3 className="text-white font-medium">All Courses</h3>
-              <p className="text-slate-400 text-sm">View all content</p>
-            </div>
-          </div>
-        </GlassCard>
-
-        {coursesList.map((course) => (
+      <StaggeredAnimationWrapper delay={0.1} stagger={0.1}>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <GlassCard 
-            key={course.id} 
-            className={`p-4 cursor-pointer transition-all hover:bg-white/10 ${
-              selectedCourse === course.id ? 'ring-2 ring-blue-500' : ''
+            className={`p-4 cursor-pointer transition-all duration-300 hover:bg-white/10 hover:scale-105 ${
+              selectedCourse === "all" ? 'ring-2 ring-blue-500' : ''
             }`}
-            onClick={() => setSelectedCourse(course.id)}
+            onClick={() => setSelectedCourse("all")}
           >
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-500/20 rounded-lg">
-                <BookOpen className="h-4 w-4 text-green-400" />
+              <div className="p-2 bg-blue-500/20 rounded-lg">
+                <MessageCircle className="h-4 w-4 text-blue-400" />
               </div>
               <div>
-                <h3 className="text-white font-medium">{course.title}</h3>
-                <p className="text-slate-400 text-sm">{course.description}</p>
+                <h3 className="text-white font-medium">All Courses</h3>
+                <p className="text-slate-400 text-sm">View all content</p>
               </div>
             </div>
           </GlassCard>
-        ))}
-      </div>
+
+          {(coursesList || []).map((course) => (
+            <GlassCard 
+              key={course.id} 
+              className={`p-4 cursor-pointer transition-all duration-300 hover:bg-white/10 hover:scale-105 ${
+                selectedCourse === course.id ? 'ring-2 ring-blue-500' : ''
+              }`}
+              onClick={() => setSelectedCourse(course.id)}
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-green-500/20 rounded-lg">
+                  <BookOpen className="h-4 w-4 text-green-400" />
+                </div>
+                <div>
+                  <h3 className="text-white font-medium">{course.title}</h3>
+                  <p className="text-slate-400 text-sm">{course.description}</p>
+                </div>
+              </div>
+            </GlassCard>
+          ))}
+        </div>
+      </StaggeredAnimationWrapper>
 
       {/* Filters and Search */}
-      <GlassCard className="p-4">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <Input
-              placeholder="Search discussions and announcements..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-slate-400"
-            />
+      <AnimationWrapper delay={0.2}>
+        <GlassCard className="p-4">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Search discussions and announcements..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-slate-400 focus:border-blue-500/50 focus:ring-blue-500/20 transition-all duration-200"
+              />
+            </div>
+            
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-full md:w-48 bg-white/5 border-white/10 text-white">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="latest">Latest</SelectItem>
+                <SelectItem value="oldest">Oldest</SelectItem>
+                <SelectItem value="most_replies">Most Replies</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-full md:w-48 bg-white/5 border-white/10 text-white">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="latest">Latest</SelectItem>
-              <SelectItem value="oldest">Oldest</SelectItem>
-              <SelectItem value="most_replies">Most Replies</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </GlassCard>
+        </GlassCard>
+      </AnimationWrapper>
 
       {/* Main Navigation Tabs */}
-      <div className="w-full flex justify-center py-4">
-        <FluidTabs
-          tabs={[
-            { 
-              id: 'discussions', 
-              label: 'Discussions', 
-              icon: <MessageCircle className="h-4 w-4" />, 
-              badge: discussions?.length || 0 
-            },
-            { 
-              id: 'announcements', 
-              label: 'Announcements', 
-              icon: <Bell className="h-4 w-4" />, 
-              badge: announcements?.length || 0 
-            }
-          ]}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          variant="default"
-          width="wide"
-        />
-      </div>
+      <AnimationWrapper delay={0.3}>
+        <div className="w-full flex justify-center py-4">
+          <FluidTabs
+            tabs={[
+              { 
+                id: 'discussions', 
+                label: 'Discussions', 
+                icon: <MessageCircle className="h-4 w-4" />, 
+                badge: discussions?.length || 0 
+              },
+              { 
+                id: 'announcements', 
+                label: 'Announcements', 
+                icon: <Bell className="h-4 w-4" />, 
+                badge: announcements?.length || 0 
+              }
+            ]}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            variant="default"
+            width="wide"
+          />
+        </div>
+      </AnimationWrapper>
 
       {/* Discussions Tab Content */}
       {activeTab === 'discussions' && (
         <div className="space-y-4">
           {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-            </div>
+            <AnimationWrapper delay={0.4}>
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+              </div>
+            </AnimationWrapper>
           ) : filteredDiscussions.length === 0 ? (
-            <GlassCard className="p-8 text-center">
-              <MessageCircle className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-              <h3 className="text-white text-lg font-medium mb-2">No discussions found</h3>
-              <p className="text-slate-400 mb-4">
-                {searchQuery 
-                  ? "No discussions match your search criteria."
-                  : "Create your first discussion to get started!"
-                }
-              </p>
-              <Button 
-                variant="default"
-                onClick={() => setNewTopicModalOpen(true)}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Create First Discussion
-              </Button>
-            </GlassCard>
+            <AnimationWrapper delay={0.4}>
+              <GlassCard className="p-8 text-center">
+                <MessageCircle className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                <h3 className="text-white text-lg font-medium mb-2">No discussions found</h3>
+                <p className="text-slate-400 mb-4">
+                  {searchQuery 
+                    ? "No discussions match your search criteria."
+                    : "Create your first discussion to get started!"
+                  }
+                </p>
+                <Button 
+                  variant="default"
+                  onClick={() => setNewTopicModalOpen(true)}
+                  className="transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create First Discussion
+                </Button>
+              </GlassCard>
+            </AnimationWrapper>
           ) : (
-            <div className="space-y-4">
-              {filteredDiscussions.map((discussion) => (
-                <GlassCard key={discussion.id} className="p-6">
+            <StaggeredAnimationWrapper delay={0.4} stagger={0.1}>
+              <div className="space-y-4">
+                {(filteredDiscussions || []).map((discussion) => (
+                  <GlassCard key={discussion.id} className="p-6 hover:bg-white/5 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-white font-medium hover:text-blue-400 transition-colors cursor-pointer">
-                          {discussion.title}
-                        </h3>
+                        <Link href={`/teacher/discussions/${discussion.id}`}>
+                          <h3 className="text-white font-medium hover:text-blue-400 transition-colors cursor-pointer">
+                            {discussion.title}
+                          </h3>
+                        </Link>
                         <div className="flex items-center gap-2">
                           {discussion.is_pinned && (
                             <Badge className="bg-yellow-600/20 text-yellow-400 border-yellow-600/30">
@@ -443,16 +465,17 @@ export default function TeacherDiscussionsPage() {
                       
                       <div className="flex items-center justify-between text-xs text-slate-500">
                         <div className="flex items-center gap-2">
-                          <span>By {discussion.created_by}</span>
+                          <span>By {discussion.creator_name || discussion.created_by}</span>
                           <span>•</span>
                           <span>{formatDate(discussion.created_at)}</span>
                         </div>
                       </div>
                     </div>
                   </div>
-                </GlassCard>
-              ))}
-            </div>
+                  </GlassCard>
+                ))}
+              </div>
+            </StaggeredAnimationWrapper>
           )}
         </div>
       )}
@@ -461,31 +484,37 @@ export default function TeacherDiscussionsPage() {
       {activeTab === 'announcements' && (
         <div className="space-y-4">
           {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-            </div>
+            <AnimationWrapper delay={0.4}>
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+              </div>
+            </AnimationWrapper>
           ) : filteredAnnouncements.length === 0 ? (
-            <GlassCard className="p-8 text-center">
-              <Bell className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-              <h3 className="text-white text-lg font-medium mb-2">No announcements found</h3>
-              <p className="text-slate-400 mb-4">
-                {searchQuery 
-                  ? "No announcements match your search criteria."
-                  : "Create your first announcement to communicate with students!"
-                }
-              </p>
-              <Button 
-                variant="default"
-                onClick={() => setCreateAnnouncementOpen(true)}
-              >
-                <Bell className="h-4 w-4 mr-2" />
-                Create First Announcement
-              </Button>
-            </GlassCard>
+            <AnimationWrapper delay={0.4}>
+              <GlassCard className="p-8 text-center">
+                <Bell className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                <h3 className="text-white text-lg font-medium mb-2">No announcements found</h3>
+                <p className="text-slate-400 mb-4">
+                  {searchQuery 
+                    ? "No announcements match your search criteria."
+                    : "Create your first announcement to communicate with students!"
+                  }
+                </p>
+                <Button 
+                  variant="default"
+                  onClick={() => setCreateAnnouncementOpen(true)}
+                  className="transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                >
+                  <Bell className="h-4 w-4 mr-2" />
+                  Create First Announcement
+                </Button>
+              </GlassCard>
+            </AnimationWrapper>
           ) : (
-            <div className="space-y-4">
-              {filteredAnnouncements.map((announcement) => (
-                <GlassCard key={announcement.id} className="p-6">
+            <StaggeredAnimationWrapper delay={0.4} stagger={0.1}>
+              <div className="space-y-4">
+                {(filteredAnnouncements || []).map((announcement) => (
+                  <GlassCard key={announcement.id} className="p-6 hover:bg-white/5 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
@@ -513,16 +542,17 @@ export default function TeacherDiscussionsPage() {
                       <Button 
                         variant="ghost" 
                         size="sm" 
-                        className="h-8 w-8 p-0 text-slate-400 hover:text-white"
+                        className="h-8 w-8 p-0 text-slate-400 hover:text-white hover:bg-red-500/10 transition-all duration-200 hover:scale-110"
                         onClick={() => handleDeleteAnnouncement(announcement.id)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
-                </GlassCard>
-              ))}
-            </div>
+                  </GlassCard>
+                ))}
+              </div>
+            </StaggeredAnimationWrapper>
           )}
         </div>
       )}
@@ -572,7 +602,7 @@ export default function TeacherDiscussionsPage() {
                   <SelectValue placeholder="Select a course" />
                 </SelectTrigger>
                 <SelectContent className="bg-slate-800 text-white border-white/10">
-                  {coursesList.map((course) => (
+                  {(coursesList || []).map((course) => (
                     <SelectItem key={course.id} value={course.id}>
                       {course.title}
                     </SelectItem>
@@ -639,3 +669,7 @@ export default function TeacherDiscussionsPage() {
     </div>
   )
 }
+
+export default dynamic(() => Promise.resolve(TeacherDiscussionsPage), {
+  ssr: false
+})
