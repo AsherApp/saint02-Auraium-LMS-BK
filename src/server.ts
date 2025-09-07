@@ -15,6 +15,28 @@ import {
 
 const app = express()
 
+// Health check endpoint - MUST be first to avoid middleware interference
+app.get('/health', (req, res) => {
+  console.log('Health check requested from:', req.ip, req.headers['user-agent'])
+  res.json({ 
+    ok: true, 
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    uptime: process.uptime(),
+    port: process.env.PORT || 4000
+  })
+})
+
+// Simple root endpoint for debugging
+app.get('/', (req, res) => {
+  console.log('Root endpoint requested from:', req.ip)
+  res.json({ 
+    message: 'Auraium LMS Backend API',
+    status: 'running',
+    timestamp: new Date().toISOString()
+  })
+})
+
 // Security headers
 app.use(helmet({
   contentSecurityPolicy: {
@@ -154,16 +176,6 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
       stack: err.stack
     })
   }
-})
-
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    environment: process.env.NODE_ENV || 'development'
-  })
 })
 
 // 404 handler
