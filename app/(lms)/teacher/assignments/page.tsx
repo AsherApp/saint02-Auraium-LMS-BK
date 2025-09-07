@@ -106,11 +106,18 @@ export default function TeacherAssignmentsPage() {
         // Fetch assignments for each course the teacher has
         for (const course of teacherCourses) {
           try {
+            console.log(`Fetching assignments for course: ${course.id}`)
             const courseAssignments = await AssignmentProAPI.listCourseAssignments(course.id)
+            console.log(`Course assignments response:`, courseAssignments)
+            console.log(`Course assignments type:`, typeof courseAssignments)
+            console.log(`Course assignments is array:`, Array.isArray(courseAssignments))
+            
+            // Ensure courseAssignments is an array
+            const assignmentsArray = Array.isArray(courseAssignments) ? courseAssignments : []
             
             // Fetch stats for each assignment
             const assignmentsWithStats = await Promise.all(
-              (courseAssignments || []).map(async (assignment) => {
+              assignmentsArray.map(async (assignment) => {
                 try {
                   const stats = await AssignmentProAPI.getGradingStats(assignment.id)
                   return {
@@ -151,7 +158,12 @@ export default function TeacherAssignmentsPage() {
   }, [user?.email])
 
   // Filter assignments
-  const filteredAssignments = assignments.filter((assignment) => {
+  console.log('Filtering assignments:', assignments)
+  console.log('Assignments type:', typeof assignments)
+  console.log('Assignments is array:', Array.isArray(assignments))
+  
+  const assignmentsForFilter = Array.isArray(assignments) ? assignments : []
+  const filteredAssignments = assignmentsForFilter.filter((assignment) => {
     const matchesSearch = searchTerm === "" || 
       assignment.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       assignment.course_title?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -215,10 +227,15 @@ export default function TeacherAssignmentsPage() {
     try {
       const allSubmissions: SubmissionWithAssignment[] = []
       
+      // Ensure assignments is an array
+      const assignmentsArray = Array.isArray(assignments) ? assignments : []
+      console.log(`Fetching submissions for ${assignmentsArray.length} assignments`)
+      
       // Fetch submissions for each assignment
-      for (const assignment of assignments) {
+      for (const assignment of assignmentsArray) {
         try {
           const assignmentSubmissions = await AssignmentProAPI.listAssignmentSubmissions(assignment.id)
+          console.log(`Assignment submissions for ${assignment.id}:`, assignmentSubmissions)
           
           const submissionsWithDetails = (assignmentSubmissions || []).map(submission => ({
             id: submission.id,
