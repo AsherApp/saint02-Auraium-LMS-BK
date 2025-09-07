@@ -10,7 +10,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import { BulkCoursesAPI, type BulkCourseData } from "@/services/bulk-courses/api"
-import { Download, Plus, Trash2, Wand2 } from "lucide-react"
+import { Download, Plus, Trash2, Wand2, Upload } from "lucide-react"
+import { useAuthStore } from "@/store/auth-store"
 
 interface CourseTemplate {
   title: string
@@ -32,7 +33,9 @@ export function BulkCourseGenerator() {
     }
   ])
   const [generatedCourses, setGeneratedCourses] = useState<BulkCourseData[]>([])
+  const [isCreating, setIsCreating] = useState(false)
   const { toast } = useToast()
+  const { user } = useAuthStore()
 
   const addTemplate = () => {
     setTemplates([...templates, {
@@ -87,7 +90,7 @@ export function BulkCourseGenerator() {
             title: `Lesson ${lessonIndex + 1}: ${getLessonTitle(template.title, moduleIndex, lessonIndex)}`,
             description: `Learn about ${getLessonDescription(template.title, moduleIndex, lessonIndex)}`,
             order_index: lessonIndex + 1,
-            content_type: contentType,
+            content_type: contentType === 'quiz' ? 'quiz' : contentType === 'video' ? 'video' : 'text',
             content: generateContent(contentType, template.title, moduleIndex, lessonIndex)
           }
 
@@ -122,6 +125,64 @@ export function BulkCourseGenerator() {
       title: "Courses downloaded!",
       description: "Use this file to import your generated courses"
     })
+  }
+
+  const createCourses = async () => {
+    if (generatedCourses.length === 0) {
+      toast({
+        title: "No courses to create",
+        description: "Generate courses first",
+        variant: "destructive"
+      })
+      return
+    }
+
+    if (!user?.email) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to create courses",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setIsCreating(true)
+    try {
+      // Add teacher email to all courses
+      const coursesWithTeacher = generatedCourses.map(course => ({
+        ...course,
+        teacher_email: user.email
+      }))
+
+      const result = await BulkCoursesAPI.createCourses(coursesWithTeacher)
+      
+      // Calculate totals from results
+      const totalModules = result.results.reduce((acc, course) => acc + course.modules.length, 0)
+      const totalLessons = result.results.reduce((acc, course) => 
+        acc + course.modules.reduce((moduleAcc, module) => moduleAcc + module.lessons.length, 0), 0
+      )
+      
+      toast({
+        title: "Courses created successfully!",
+        description: `Created ${result.summary.created} courses with ${totalModules} modules and ${totalLessons} lessons`
+      })
+
+      // Clear generated courses and close dialog
+      setGeneratedCourses([])
+      setIsOpen(false)
+      
+      // Refresh the page to show new courses
+      window.location.reload()
+    } catch (error: any) {
+      console.error("Failed to create courses:", error)
+      toast({
+        title: "Failed to create courses",
+        description: error.message || "An error occurred while creating courses",
+        variant: "destructive"
+      })
+    } finally {
+      setIsCreating(false)
+    }
   }
 
   const getModuleTitle = (courseTitle: string, moduleIndex: number): string => {
@@ -176,7 +237,7 @@ export function BulkCourseGenerator() {
       case 'text':
         return {
           text: {
-            content: `# ${getLessonTitle(courseTitle, moduleIndex, lessonIndex)}\n\nThis lesson covers the fundamental concepts of ${getLessonTitle(courseTitle, moduleIndex, lessonIndex).toLowerCase()}.\n\n## Key Points\n\n- Important concept 1\n- Important concept 2\n- Important concept 3\n\n## Examples\n\nHere are some practical examples to help you understand the concepts.\n\n## Summary\n\nIn this lesson, you learned about the key aspects of ${getLessonTitle(courseTitle, moduleIndex, lessonIndex).toLowerCase()}.`
+            content: `# ${getLessonTitle(courseTitle, moduleIndex, lessonIndex)}\n\nThis lesson covers the fundamental concepts of ${getLessonTitle(courseTitle, moduleIndex, lessonIndex).toLowerCase()}.\n\n## Learning Objectives\n\nBy the end of this lesson, you will be able to:\n- Understand the core concepts\n- Apply the knowledge in practical scenarios\n- Identify key principles and best practices\n\n## Key Points\n\n- **Concept 1**: Important foundational knowledge\n- **Concept 2**: Practical applications and examples\n- **Concept 3**: Advanced techniques and considerations\n\n## Examples\n\nHere are some practical examples to help you understand the concepts:\n\n1. **Example 1**: Basic application\n2. **Example 2**: Intermediate scenario\n3. **Example 3**: Advanced use case\n\n## Summary\n\nIn this lesson, you learned about the key aspects of ${getLessonTitle(courseTitle, moduleIndex, lessonIndex).toLowerCase()}. These concepts will be essential for your understanding of the course material.\n\n## Next Steps\n\n- Review the key points\n- Practice with the examples provided\n- Prepare for the next lesson`
           }
         }
       case 'quiz':
@@ -184,27 +245,44 @@ export function BulkCourseGenerator() {
           quiz: {
             questions: [
               {
-                question: `What is the main topic of ${getLessonTitle(courseTitle, moduleIndex, lessonIndex)}?`,
+                question: `What is the main focus of ${getLessonTitle(courseTitle, moduleIndex, lessonIndex)}?`,
                 type: 'multiple_choice' as const,
-                options: ['Option A', 'Option B', 'Option C', 'Option D'],
-                correct_answer: 'Option A',
+                options: [
+                  'Understanding fundamental concepts',
+                  'Learning advanced techniques', 
+                  'Practical applications',
+                  'All of the above'
+                ],
+                correct_answer: 'All of the above',
                 points: 10
               },
               {
-                question: `True or False: This concept is important in ${courseTitle}.`,
+                question: `True or False: The concepts covered in this lesson are essential for understanding ${courseTitle}.`,
                 type: 'true_false' as const,
                 correct_answer: 'True',
                 points: 5
+              },
+              {
+                question: `Which of the following best describes the learning approach in this lesson?`,
+                type: 'multiple_choice' as const,
+                options: [
+                  'Theory only',
+                  'Practice only',
+                  'Combination of theory and practice',
+                  'None of the above'
+                ],
+                correct_answer: 'Combination of theory and practice',
+                points: 10
               }
             ],
-            time_limit: 30,
+            time_limit: 15,
             passing_score: 70
           }
         }
       default:
         return {
           text: {
-            content: `Content for ${getLessonTitle(courseTitle, moduleIndex, lessonIndex)}`
+            content: `# ${getLessonTitle(courseTitle, moduleIndex, lessonIndex)}\n\nThis lesson provides comprehensive coverage of ${getLessonTitle(courseTitle, moduleIndex, lessonIndex).toLowerCase()}.\n\n## Overview\n\nThis lesson introduces you to the essential concepts and practical applications.\n\n## Key Learning Points\n\n- Fundamental principles\n- Real-world applications\n- Best practices and tips\n\n## Summary\n\nYou have completed this lesson on ${getLessonTitle(courseTitle, moduleIndex, lessonIndex).toLowerCase()}.`
           }
         }
     }
@@ -329,10 +407,29 @@ export function BulkCourseGenerator() {
               <CardHeader>
                 <CardTitle className="flex items-center justify-between text-white">
                   Generated Courses Preview
-                  <Button onClick={downloadGenerated} variant="outline">
-                    <Download className="h-4 w-4 mr-2" />
-                    Download JSON
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button onClick={downloadGenerated} variant="outline">
+                      <Download className="h-4 w-4 mr-2" />
+                      Download JSON
+                    </Button>
+                    <Button 
+                      onClick={createCourses} 
+                      disabled={isCreating}
+                      className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
+                    >
+                      {isCreating ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Creating...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-4 w-4 mr-2" />
+                          Create Courses
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </CardTitle>
               </CardHeader>
               <CardContent>

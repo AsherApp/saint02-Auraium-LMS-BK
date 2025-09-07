@@ -6,7 +6,15 @@
     "build": "next build",
     "dev": "next dev",
     "lint": "next lint",
-    "start": "next start"
+    "start": "next start",
+    "analyze": "ANALYZE=true npm run build",
+    "optimize": "node scripts/optimize-bundle.js",
+    "optimize:analyze": "node scripts/optimize-bundle.js --analyze",
+    "optimize:size": "node scripts/optimize-bundle.js --size",
+    "optimize:deps": "node scripts/optimize-bundle.js --deps",
+    "optimize:images": "node scripts/optimize-bundle.js --images",
+    "optimize:performance": "node scripts/optimize-bundle.js --performance",
+    "optimize:report": "node scripts/optimize-bundle.js --report"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -71,10 +79,12 @@
     "zustand": "latest"
   },
   "devDependencies": {
+    "@next/bundle-analyzer": "^15.5.2",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "postcss": "^8.5.6",
+    "terser-webpack-plugin": "^5.3.14",
     "typescript": "^5"
   }
 }

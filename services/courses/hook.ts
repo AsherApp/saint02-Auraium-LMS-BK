@@ -84,6 +84,7 @@ export function useCoursesFn() {
     loading,
     error,
     refetch: fetchCourses,
+    refresh: fetchCourses, // Add refresh alias for backward compatibility
     createCourse,
     updateCourse,
     deleteCourse,

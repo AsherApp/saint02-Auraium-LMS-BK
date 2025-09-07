@@ -19,6 +19,7 @@ export default function TeacherCoursesPage() {
   const [courseStats, setCourseStats] = useState<Record<string, { modules: number; students: number }>>({})
   const [statsLoading, setStatsLoading] = useState(false)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
+  const [duplicatingCourse, setDuplicatingCourse] = useState<string | null>(null)
   
   // Filter courses for the current teacher
   const myCourses = courses.filter((c) => c.teacher_email === user?.email)
@@ -104,24 +105,36 @@ export default function TeacherCoursesPage() {
   }
 
   const handleDuplicateCourse = async (courseId: string) => {
+    if (duplicatingCourse) return // Prevent multiple simultaneous duplications
+    
+    setDuplicatingCourse(courseId)
     try {
       const response = await http(`/api/courses/${courseId}/duplicate`, {
         method: 'POST'
       })
       
+      // Show detailed success message
+      const duplicatedInfo = response.duplicated
+      const message = duplicatedInfo 
+        ? `Duplicated ${duplicatedInfo.modules} modules and ${duplicatedInfo.lessons} lessons.`
+        : "The course has been successfully duplicated."
+      
       toast({
         title: "Course duplicated",
-        description: "The course has been successfully duplicated."
+        description: message
       })
       
       // Refresh the courses list
-      refresh()
+      await refresh()
     } catch (error: any) {
+      console.error("Course duplication error:", error)
       toast({
-        title: "Error",
-        description: error.message || "Failed to duplicate course",
+        title: "Duplication failed",
+        description: error.message || "Failed to duplicate course. Please try again.",
         variant: "destructive"
       })
+    } finally {
+      setDuplicatingCourse(null)
     }
   }
 
@@ -198,6 +211,7 @@ export default function TeacherCoursesPage() {
                 thumbnailUrl={c.thumbnail_url}
                 onDelete={handleDeleteCourse}
                 onDuplicate={handleDuplicateCourse}
+                isDuplicating={duplicatingCourse === c.id}
               />
             )
           })}

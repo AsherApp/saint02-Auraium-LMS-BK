@@ -19,6 +19,7 @@ type Props = {
   thumbnailUrl?: string
   onDelete?: (id: string) => void
   onDuplicate?: (id: string) => void
+  isDuplicating?: boolean
 }
 
 export function CourseCard({
@@ -32,6 +33,7 @@ export function CourseCard({
   thumbnailUrl,
   onDelete,
   onDuplicate,
+  isDuplicating = false,
 }: Props) {
   const [isHovered, setIsHovered] = useState(false)
   const href = role === "teacher" ? `/teacher/course/${id}` : `/student/course/${id}`
@@ -75,8 +77,9 @@ export function CourseCard({
                 onDuplicate(id)
               }}
               title="Duplicate course"
+              disabled={isDuplicating}
             >
-              <Copy className="h-4 w-4" />
+              <Copy className={cn("h-4 w-4", isDuplicating && "animate-spin")} />
             </Button>
           )}
           {onDelete && (

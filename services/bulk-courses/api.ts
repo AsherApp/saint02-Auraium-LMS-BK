@@ -129,6 +129,13 @@ export class BulkCoursesAPI {
   }
 
   /**
+   * Create courses (alias for createBulkCourses for backward compatibility)
+   */
+  static async createCourses(courses: BulkCourseData[]): Promise<BulkCourseResponse> {
+    return this.createBulkCourses(courses)
+  }
+
+  /**
    * Validate bulk course data before creation
    */
   static async validateBulkCourses(courses: BulkCourseData[]): Promise<ValidationResponse> {

@@ -615,7 +615,7 @@ export default function TeacherCourseDetailPage() {
               <div className="p-6 text-slate-300">No modules yet. Click "Add Module" above to start structuring your course.</div>
             ) : (
               <div className="space-y-3 p-6">
-                {modules.map((m) => (
+                {(modules || []).map((m) => (
                   <div key={m.id} className="rounded-lg border border-white/10 bg-white/5">
                     <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
                       <div className="flex items-center gap-2">
@@ -697,7 +697,7 @@ export default function TeacherCourseDetailPage() {
 
                     <div className="p-4 space-y-2">
                       {moduleLessons[m.id] && moduleLessons[m.id].length > 0 ? (
-                        moduleLessons[m.id].map((l: any, index) => (
+                        (moduleLessons[m.id] || []).map((l: any, index) => (
                           <div
                             key={l.id || `lesson-${m.id}-${index}`}
                             className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between rounded-md border border-white/10 bg-white/5 p-3"
@@ -868,7 +868,7 @@ export default function TeacherCourseDetailPage() {
               <div className="text-slate-300 text-sm">No enrolled students yet.</div>
             ) : (
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {roster.map((student, index) => (
+                {(roster || []).map((student, index) => (
                   <StudentItem key={student.email || `student-${index}`} email={student.email} name={student.name} state={student.state} />
                 ))}
               </div>
@@ -889,7 +889,7 @@ export default function TeacherCourseDetailPage() {
               <div className="text-slate-300 text-sm">No assignments yet.</div>
             ) : (
               <div className="space-y-3">
-                {assignments.map((a, index) => {
+                {(assignments || []).map((a, index) => {
                   const overdue =
                     !!(a as any).due_at &&
                     new Date((a as any).due_at).getTime() < Date.now() &&
@@ -1240,7 +1240,7 @@ export default function TeacherCourseDetailPage() {
                   <SelectValue placeholder="Select module" />
                 </SelectTrigger>
                 <SelectContent className="bg-slate-900/95 text-white border-white/10">
-                  {modules.map((m) => (
+                  {(modules || []).map((m) => (
                     <SelectItem key={m.id || `module-${Math.random()}`} value={m.id || ''}>
                       {m.title}
                     </SelectItem>
@@ -1348,7 +1348,7 @@ export default function TeacherCourseDetailPage() {
                   <SelectValue placeholder="Select a module (optional)" />
                 </SelectTrigger>
                 <SelectContent className="bg-slate-900/95 text-white border-white/10">
-                  {modules.map((module, index) => (
+                  {(modules || []).map((module, index) => (
                     <SelectItem key={module.id || `module-${index}`} value={module.id || ''}>
                       {module.title}
                     </SelectItem>
@@ -1408,7 +1408,7 @@ export default function TeacherCourseDetailPage() {
                 <div className="text-slate-400 text-sm">No students added.</div>
               ) : (
                 <div className="space-y-2">
-                  {invRows.map((r) => (
+                  {(invRows || []).map((r) => (
                     <div key={r.id} className="grid gap-2 md:grid-cols-[1fr_1fr_auto]">
                       <Input
                         placeholder="Full name"
@@ -1447,7 +1447,7 @@ export default function TeacherCourseDetailPage() {
                     Generated Invite Links:
                   </div>
                   <ul className="mt-2 space-y-2">
-                    {invRows.map((r) => (
+                    {(invRows || []).map((r) => (
                       <li key={`invite-${r.id}`} className="text-xs text-slate-400 break-all">
                         {r.name} • {r.email}
                       </li>
@@ -1477,7 +1477,7 @@ export default function TeacherCourseDetailPage() {
                 </div>
               ) : (
                 <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {existingStudents.map((student, index) => (
+                  {(existingStudents || []).map((student, index) => (
                     <div key={student.id || `${student.email || 'unknown'}-${index}`} className="flex items-center gap-3 p-2 rounded border border-white/10 bg-white/5">
                       <input
                         type="checkbox"

@@ -285,7 +285,7 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
                           <SelectValue placeholder="Select a course" />
                         </SelectTrigger>
                         <SelectContent className="bg-slate-900/95 text-white border-white/20 backdrop-blur-md">
-                          {courses.map((course) => (
+                          {(courses || []).map((course) => (
                             <SelectItem key={course.id} value={course.id} className="hover:bg-white/10">
                               {course.title}
                             </SelectItem>
@@ -338,7 +338,7 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
                           <SelectValue placeholder="Select module" />
                         </SelectTrigger>
                         <SelectContent className="bg-slate-900/95 text-white border-white/20 backdrop-blur-md">
-                          {selectedCourse.modules.map((module) => (
+                          {(selectedCourse?.modules || []).map((module) => (
                             <SelectItem key={module.id} value={module.id} className="hover:bg-white/10">
                               {module.title}
                             </SelectItem>
@@ -355,13 +355,13 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
                             <SelectValue placeholder="Select lesson" />
                           </SelectTrigger>
                           <SelectContent className="bg-slate-900/95 text-white border-white/20 backdrop-blur-md">
-                            {selectedCourse.modules
-                              .find(m => m.id === moduleId)?.lessons
+                            {(selectedCourse?.modules
+                              ?.find(m => m.id === moduleId)?.lessons || [])
                               .map((lesson) => (
                                 <SelectItem key={lesson.id} value={lesson.id} className="hover:bg-white/10">
                                   {lesson.title}
                                 </SelectItem>
-                              )) || []
+                              ))}
                             }
                           </SelectContent>
                         </Select>
@@ -437,7 +437,7 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {quizQuestions.map((question, index) => (
+                      {(quizQuestions || []).map((question, index) => (
                         <div key={question.id} className="border border-white/10 rounded-lg p-4 bg-white/5">
                           <div className="flex justify-between items-start mb-3">
                             <h5 className="font-medium text-white">Question {index + 1}</h5>
@@ -468,7 +468,7 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
                             </div>
 
                             <div className="grid grid-cols-2 gap-3">
-                              {question.options.map((option: string, optIndex: number) => (
+                              {(question.options || []).map((option: string, optIndex: number) => (
                                 <div key={optIndex} className="space-y-1">
                                   <Label className="text-white text-xs">Option {optIndex + 1}</Label>
                                   <Input
@@ -499,7 +499,7 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent className="bg-slate-900/95 text-white border-white/20 backdrop-blur-md">
-                                    {question.options.map((option: string, optIndex: number) => (
+                                    {(question.options || []).map((option: string, optIndex: number) => (
                                       <SelectItem key={optIndex} value={optIndex.toString()} className="hover:bg-white/10">
                                         Option {optIndex + 1}
                                       </SelectItem>
@@ -855,7 +855,7 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
                       </Button>
                     </div>
 
-                    {rubricCriteria.map((criterion, index) => (
+                    {(rubricCriteria || []).map((criterion, index) => (
                       <Card key={criterion.id} className="bg-white/5 border-white/10">
                         <CardContent className="p-4 space-y-3">
                           <div className="flex justify-between items-start">

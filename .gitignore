@@ -222,3 +222,4 @@ Endubackend/
 
 # Exclude old SQL migrations
 Endubackend/migrations/old sql/
+.next/
