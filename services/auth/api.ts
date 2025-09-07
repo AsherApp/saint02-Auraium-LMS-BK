@@ -76,18 +76,13 @@ export async function teacherSignIn(email: string, password: string): Promise<Us
   }
 }
 
-export async function registerTeacher(data: { name: string; email: string; password: string }): Promise<User> {
+export async function registerTeacher(data: { first_name: string; last_name: string; email: string; password: string }): Promise<User> {
   try {
-    // Split name into first_name and last_name
-    const nameParts = data.name.trim().split(' ')
-    const first_name = nameParts[0] || ''
-    const last_name = nameParts.slice(1).join(' ') || ''
-    
     const response = await http<AuthResponse>(`/api/auth/teacher/register`, {
       method: 'POST',
       body: {
-        first_name,
-        last_name,
+        first_name: data.first_name,
+        last_name: data.last_name,
         email: data.email,
         password: data.password
       }

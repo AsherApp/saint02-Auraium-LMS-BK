@@ -25,7 +25,7 @@ export function useAuthFn() {
     }
   }
 
-  const registerTeacherFn = async (data: { name: string; email: string; password: string }) => {
+  const registerTeacherFn = async (data: { first_name: string; last_name: string; email: string; password: string }) => {
     setLoading(true)
     setError(null)
     try {

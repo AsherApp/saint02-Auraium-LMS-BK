@@ -37,7 +37,9 @@ export function AuthModal({ label = "Login", className, asPlainButton = false }:
   const { signInTeacher, signInStudent, registerTeacher, loading, error } = useAuthFn()
 
   // Form state
-  const [name, setName] = useState("")
+  const [firstName, setFirstName] = useState("")
+  const [lastName, setLastName] = useState("")
+  const [name, setName] = useState("") // Keep for backward compatibility
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -47,12 +49,13 @@ export function AuthModal({ label = "Login", className, asPlainButton = false }:
 
 
   const resetForm = () => {
+    setFirstName("")
+    setLastName("")
     setName("")
     setEmail("")
     setPassword("")
     setConfirmPassword("")
     setStudentCode("")
-
   }
 
   const handleModeSwitch = (newMode: "login" | "signup") => {
@@ -94,10 +97,13 @@ export function AuthModal({ label = "Login", className, asPlainButton = false }:
       } else {
         // Signup mode
         if (role === "teacher") {
-          const user = await registerTeacher({ name, email, password })
+          if (!firstName || !lastName || !email || !password) {
+            throw new Error("Please fill in all required fields")
+          }
+          const user = await registerTeacher({ first_name: firstName, last_name: lastName, email, password })
           
           // Store teacher info and show billing flow
-          setRegisteredTeacher({ name: user.name || name, email: user.email || email })
+          setRegisteredTeacher({ name: `${firstName} ${lastName}`, email: user.email || email })
           setShowBillingFlow(true)
           
           // Don't close modal yet - let billing flow handle it
@@ -237,7 +243,36 @@ export function AuthModal({ label = "Login", className, asPlainButton = false }:
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
-              {mode === "signup" && (
+              {mode === "signup" && role === "teacher" && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="firstName">First Name</Label>
+                    <Input
+                      id="firstName"
+                      placeholder="Enter your first name"
+                      className="bg-white/5 border-white/10 text-white placeholder:text-slate-400 focus:border-blue-500/50 transition-colors h-11"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      required={mode === "signup"}
+                      disabled={loading}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName">Last Name</Label>
+                    <Input
+                      id="lastName"
+                      placeholder="Enter your last name"
+                      className="bg-white/5 border-white/10 text-white placeholder:text-slate-400 focus:border-blue-500/50 transition-colors h-11"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      required={mode === "signup"}
+                      disabled={loading}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {mode === "signup" && role === "student" && (
                 <div className="space-y-2">
                   <Label htmlFor="name">Full Name</Label>
                   <Input
