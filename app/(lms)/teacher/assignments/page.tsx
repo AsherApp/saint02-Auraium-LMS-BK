@@ -60,6 +60,9 @@ export default function TeacherAssignmentsPage() {
   const { user } = useAuthStore()
   const [courses, setCourses] = useState<any[]>([])
   const [assignments, setAssignments] = useState<AssignmentWithStats[]>([])
+  
+  // Ensure assignments is always an array
+  const safeAssignments = Array.isArray(assignments) ? assignments : []
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
@@ -82,6 +85,9 @@ export default function TeacherAssignmentsPage() {
     }
   }, [])
   const [submissions, setSubmissions] = useState<SubmissionWithAssignment[]>([])
+  
+  // Ensure submissions is always an array
+  const safeSubmissions = Array.isArray(submissions) ? submissions : []
   const [submissionsLoading, setSubmissionsLoading] = useState(false)
   
   // Document and presentation viewer states
@@ -487,13 +493,13 @@ export default function TeacherAssignmentsPage() {
               id: 'assignments', 
               label: 'Assignments', 
               icon: <FileText className="h-4 w-4" />, 
-              badge: (assignments || []).length 
+              badge: safeAssignments.length 
             },
             { 
               id: 'submissions', 
               label: 'Submissions', 
               icon: <Users className="h-4 w-4" />, 
-              badge: (submissions || []).length 
+              badge: safeSubmissions.length 
             }
           ]}
           activeTab={activeTab}
@@ -522,11 +528,11 @@ export default function TeacherAssignmentsPage() {
               </div>
               <FluidTabs
                 tabs={[
-                  { id: 'all', label: 'All', badge: (assignments || []).length },
+                  { id: 'all', label: 'All', badge: safeAssignments.length },
                   { 
                     id: 'pending', 
                     label: 'Pending', 
-                    badge: (assignments || []).filter(a => {
+                    badge: safeAssignments.filter(a => {
                       const pendingCount = a.stats?.pending_grading || 0
                       return pendingCount > 0
                     }).length 
@@ -534,7 +540,7 @@ export default function TeacherAssignmentsPage() {
                   { 
                     id: 'graded', 
                     label: 'Graded', 
-                    badge: (assignments || []).filter(a => {
+                    badge: safeAssignments.filter(a => {
                       const totalSubmissions = a.stats?.total_submissions || 0
                       const pendingCount = a.stats?.pending_grading || 0
                       return totalSubmissions > 0 && pendingCount === 0
@@ -543,7 +549,7 @@ export default function TeacherAssignmentsPage() {
                   { 
                     id: 'overdue', 
                     label: 'Overdue', 
-                    badge: (assignments || []).filter(a => {
+                    badge: safeAssignments.filter(a => {
                       const now = new Date().getTime()
                       const dueAt = a.due_at ? new Date(a.due_at).getTime() : null
                       return dueAt && dueAt < now
