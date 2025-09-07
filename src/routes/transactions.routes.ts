@@ -424,8 +424,8 @@ router.patch('/:transaction_id/status', async (req: Request, res: Response) => {
   }
 });
 
-// Get transaction by ID
-router.get('/:transaction_id', requireAuth, async (req: Request, res: Response) => {
+// Get transaction by ID (moved after specific routes to avoid conflicts)
+router.get('/id/:transaction_id', requireAuth, async (req: Request, res: Response) => {
   try {
     const { transaction_id } = req.params;
     const { email } = req.query;
