@@ -86,7 +86,11 @@ const limiter = rateLimit({
 
 // CORS configuration - More robust setup
 const allowedOrigins = process.env.NODE_ENV === 'production' 
-  ? [process.env.FRONTEND_URL || 'https://yourdomain.com'] 
+  ? [
+      process.env.FRONTEND_URL || 'https://yourdomain.com',
+      'https://auraiumlms-ten.vercel.app', // Vercel deployment
+      'https://auraiumlms.vercel.app' // Alternative Vercel URL
+    ] 
   : [
       'http://localhost:3000', 
       'http://localhost:3001', 
@@ -101,9 +105,16 @@ const corsOptions = {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true)
     
+    // Check if origin is in allowed origins
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true)
-    } else {
+    } 
+    // Allow Vercel domains (production only)
+    else if (process.env.NODE_ENV === 'production' && origin && origin.endsWith('.vercel.app')) {
+      console.log(`CORS allowing Vercel domain: ${origin}`)
+      callback(null, true)
+    }
+    else {
       console.warn(`CORS blocked request from origin: ${origin}`)
       callback(new Error('Not allowed by CORS'))
     }
