@@ -56,7 +56,12 @@ router.get('/:code', asyncHandler(async (req, res) => {
 
 // List invites for a teacher
 router.get('/', requireAuth, asyncHandler(async (req, res) => {
-  const teacher_email = String(req.headers['x-user-email'] || '').toLowerCase()
+  // SECURITY FIX: Use authenticated user from middleware instead of headers
+  const teacher_email = (req as any).user?.email
+  if (!teacher_email) {
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
+  
   const { course_id } = req.query
   
   let query = supabaseAdmin
@@ -84,7 +89,11 @@ router.get('/', requireAuth, asyncHandler(async (req, res) => {
 
 // Create invite
 router.post('/', requireAuth, asyncHandler(async (req, res) => {
-  const teacher_email = String(req.headers['x-user-email'] || '').toLowerCase()
+  // SECURITY FIX: Use authenticated user from middleware instead of headers
+  const teacher_email = (req as any).user?.email
+  if (!teacher_email) {
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
   const { student_email, student_name, email, name, course_id } = req.body
   
   // Handle both field name variations

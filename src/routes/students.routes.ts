@@ -7,47 +7,62 @@ import bcrypt from 'bcrypt'
 
 export const router = Router()
 
-// Test endpoint to check database state
+// Test endpoint to check database state - SECURITY FIXED
 router.get('/debug/courses', requireAuth, asyncHandler(async (req, res) => {
-  console.log('Debug: Checking courses table...')
+  const teacherEmail = (req as any).user?.email
+  if (!teacherEmail) {
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
   
+  console.log('Debug: Checking courses table for teacher:', teacherEmail)
+  
+  // SECURITY FIX: Only return courses for the authenticated teacher
   const { data: courses, error } = await supabaseAdmin
     .from('courses')
     .select('*')
+    .eq('teacher_email', teacherEmail)
   
   if (error) {
     console.error('Error fetching courses:', error)
     return res.status(500).json({ error: error.message })
   }
   
-  console.log('Debug: Courses data:', JSON.stringify(courses, null, 2))
+  console.log('Debug: Courses data for teacher:', JSON.stringify(courses, null, 2))
   res.json({ courses })
 }))
 
 router.get('/debug/enrollments', requireAuth, asyncHandler(async (req, res) => {
-  console.log('Debug: Checking enrollments table...')
+  const teacherEmail = (req as any).user?.email
+  if (!teacherEmail) {
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
   
+  console.log('Debug: Checking enrollments table for teacher:', teacherEmail)
+  
+  // SECURITY FIX: Only return enrollments for courses owned by the authenticated teacher
   const { data: enrollments, error } = await supabaseAdmin
     .from('enrollments')
     .select(`
       *,
-      courses(
+      courses!inner(
         id,
         title,
-        status
+        status,
+        teacher_email
       ),
       students(
         email,
         name
       )
     `)
+    .eq('courses.teacher_email', teacherEmail)
   
   if (error) {
     console.error('Error fetching enrollments:', error)
     return res.status(500).json({ error: error.message })
   }
   
-  console.log('Debug: Enrollments data:', JSON.stringify(enrollments, null, 2))
+  console.log('Debug: Enrollments data for teacher:', JSON.stringify(enrollments, null, 2))
   res.json({ enrollments })
 }))
 

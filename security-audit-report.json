@@ -1,0 +1,427 @@
+{
+  "timestamp": "2025-09-07T18:33:52.938Z",
+  "totalFiles": 42,
+  "issuesFound": 60,
+  "issues": [
+    {
+      "file": "announcement.routes.ts",
+      "issue": "SELECT without user filtering",
+      "severity": "HIGH",
+      "matches": 3,
+      "details": "Found 3 instances of SELECT without user filtering"
+    },
+    {
+      "file": "analytics.routes.ts",
+      "issue": "SELECT without user filtering",
+      "severity": "HIGH",
+      "matches": 4,
+      "details": "Found 4 instances of SELECT without user filtering"
+    },
+    {
+      "file": "analytics.routes.ts",
+      "issue": "No user-based filtering",
+      "severity": "HIGH",
+      "matches": 1,
+      "details": "Authenticated route but no user-based data filtering"
+    },
+    {
+      "file": "assignments.routes.ts",
+      "issue": "SELECT without user filtering",
+      "severity": "HIGH",
+      "matches": 4,
+      "details": "Found 4 instances of SELECT without user filtering"
+    },
+    {
+      "file": "assignments.routes.ts",
+      "issue": "No user-based filtering",
+      "severity": "HIGH",
+      "matches": 1,
+      "details": "Authenticated route but no user-based data filtering"
+    },
+    {
+      "file": "index.ts",
+      "issue": "No authentication middleware",
+      "severity": "CRITICAL",
+      "matches": 1,
+      "details": "Route has no authentication protection"
+    },
+    {
+      "file": "submissions.routes.ts",
+      "issue": "SELECT without user filtering",
+      "severity": "HIGH",
+      "matches": 5,
+      "details": "Found 5 instances of SELECT without user filtering"
+    },
+    {
+      "file": "submissions.routes.ts",
+      "issue": "No user-based filtering",
+      "severity": "HIGH",
+      "matches": 1,
+      "details": "Authenticated route but no user-based data filtering"
+    },
+    {
+      "file": "assignments.routes.ts",
+      "issue": "SELECT without user filtering",
+      "severity": "HIGH",
+      "matches": 13,
+      "details": "Found 13 instances of SELECT without user filtering"
+    },
+    {
+      "file": "auth.routes.ts",
+      "issue": "No user-based filtering",
+      "severity": "HIGH",
+      "matches": 1,
+      "details": "Authenticated route but no user-based data filtering"
+    },
+    {
+      "file": "billing.routes.ts",
+      "issue": "No user-based filtering",
+      "severity": "HIGH",
+      "matches": 1,
+      "details": "Authenticated route but no user-based data filtering"
+    },
+    {
+      "file": "bulk-courses.routes.ts",
+      "issue": "No user-based filtering",
+      "severity": "HIGH",
+      "matches": 1,
+      "details": "Authenticated route but no user-based data filtering"
+    },
+    {
+      "file": "certificates.routes.ts",
+      "issue": "No user-based filtering",
+      "severity": "HIGH",
+      "matches": 1,
+      "details": "Authenticated route but no user-based data filtering"
+    },
+    {
+      "file": "courses.routes.ts",
+      "issue": "SELECT without user filtering",
+      "severity": "HIGH",
+      "matches": 2,
+      "details": "Found 2 instances of SELECT without user filtering"
+    },
+    {
+      "file": "discussions.routes.ts",
+      "issue": "SELECT without user filtering",
+      "severity": "HIGH",
+      "matches": 3,
+      "details": "Found 3 instances of SELECT without user filtering"
+    },
+    {
+      "file": "events.routes.ts",
+      "issue": "SELECT without user filtering",
+      "severity": "HIGH",
+      "matches": 7,
+      "details": "Found 7 instances of SELECT without user filtering"
+    },
+    {
+      "file": "forum.routes.ts",
+      "issue": "SELECT without user filtering",
+      "severity": "HIGH",
+      "matches": 2,
+      "details": "Found 2 instances of SELECT without user filtering"
+    },
+    {
+      "file": "forum.routes.ts",
+      "issue": "No user-based filtering",
+      "severity": "HIGH",
+      "matches": 1,
+      "details": "Authenticated route but no user-based data filtering"
+    },
+    {
+      "file": "index.ts",
+      "issue": "No authentication middleware",
+      "severity": "CRITICAL",
+      "matches": 1,
+      "details": "Route has no authentication protection"
+    },
+    {
+      "file": "invites.routes.ts",
+      "issue": "SELECT without user filtering",
+      "severity": "HIGH",
+      "matches": 2,
+      "details": "Found 2 instances of SELECT without user filtering"
+    },
+    {
+      "file": "invites.routes.ts",
+      "issue": "No user-based filtering",
+      "severity": "HIGH",
+      "matches": 1,
+      "details": "Authenticated route but no user-based data filtering"
+    },
+    {
+      "file": "lessons.routes.ts",
+      "issue": "SELECT without user filtering",
+      "severity": "HIGH",
+      "matches": 4,
+      "details": "Found 4 instances of SELECT without user filtering"
+    },
+    {
+      "file": "lessons.routes.ts",
+      "issue": "No user-based filtering",
+      "severity": "HIGH",
+      "matches": 1,
+      "details": "Authenticated route but no user-based data filtering"
+    },
+    {
+      "file": "control.routes.ts",
+      "issue": "No user-based filtering",
+      "severity": "HIGH",
+      "matches": 1,
+      "details": "Authenticated route but no user-based data filtering"
+    },
+    {
+      "file": "index.ts",
+      "issue": "No authentication middleware",
+      "severity": "CRITICAL",
+      "matches": 1,
+      "details": "Route has no authentication protection"
+    },
+    {
+      "file": "messages.routes.ts",
+      "issue": "SELECT without user filtering",
+      "severity": "HIGH",
+      "matches": 1,
+      "details": "Found 1 instances of SELECT without user filtering"
+    },
+    {
+      "file": "participants.routes.ts",
+      "issue": "SELECT without user filtering",
+      "severity": "HIGH",
+      "matches": 1,
+      "details": "Found 1 instances of SELECT without user filtering"
+    },
+    {
+      "file": "participants.routes.ts",
+      "issue": "No user-based filtering",
+      "severity": "HIGH",
+      "matches": 1,
+      "details": "Authenticated route but no user-based data filtering"
+    },
+    {
+      "file": "sessions.routes.ts",
+      "issue": "SELECT without user filtering",
+      "severity": "HIGH",
+      "matches": 3,
+      "details": "Found 3 instances of SELECT without user filtering"
+    },
+    {
+      "file": "sessions.routes.ts",
+      "issue": "No user-based filtering",
+      "severity": "HIGH",
+      "matches": 1,
+      "details": "Authenticated route but no user-based data filtering"
+    },
+    {
+      "file": "live-attendance.routes.ts",
+      "issue": "SELECT without user filtering",
+      "severity": "HIGH",
+      "matches": 3,
+      "details": "Found 3 instances of SELECT without user filtering"
+    },
+    {
+      "file": "live.routes.ts",
+      "issue": "SELECT * without user filtering",
+      "severity": "CRITICAL",
+      "matches": 1,
+      "details": "Found 1 instances of SELECT * without user filtering"
+    },
+    {
+      "file": "live.routes.ts",
+      "issue": "SELECT without user filtering",
+      "severity": "HIGH",
+      "matches": 9,
+      "details": "Found 9 instances of SELECT without user filtering"
+    },
+    {
+      "file": "messages.routes.ts",
+      "issue": "SELECT * without user filtering",
+      "severity": "CRITICAL",
+      "matches": 3,
+      "details": "Found 3 instances of SELECT * without user filtering"
+    },
+    {
+      "file": "messages.routes.ts",
+      "issue": "SELECT without user filtering",
+      "severity": "HIGH",
+      "matches": 4,
+      "details": "Found 4 instances of SELECT without user filtering"
+    },
+    {
+      "file": "messages.routes.ts",
+      "issue": "No user-based filtering",
+      "severity": "HIGH",
+      "matches": 1,
+      "details": "Authenticated route but no user-based data filtering"
+    },
+    {
+      "file": "modules.routes.ts",
+      "issue": "SELECT without user filtering",
+      "severity": "HIGH",
+      "matches": 3,
+      "details": "Found 3 instances of SELECT without user filtering"
+    },
+    {
+      "file": "notes.routes.ts",
+      "issue": "No user-based filtering",
+      "severity": "HIGH",
+      "matches": 1,
+      "details": "Authenticated route but no user-based data filtering"
+    },
+    {
+      "file": "notifications.routes.ts",
+      "issue": "SELECT * without user filtering",
+      "severity": "CRITICAL",
+      "matches": 1,
+      "details": "Found 1 instances of SELECT * without user filtering"
+    },
+    {
+      "file": "notifications.routes.ts",
+      "issue": "SELECT without user filtering",
+      "severity": "HIGH",
+      "matches": 1,
+      "details": "Found 1 instances of SELECT without user filtering"
+    },
+    {
+      "file": "notifications.routes.ts",
+      "issue": "Query without user filtering (only ORDER BY)",
+      "severity": "HIGH",
+      "matches": 1,
+      "details": "Found 1 instances of Query without user filtering (only ORDER BY)"
+    },
+    {
+      "file": "polls.routes.ts",
+      "issue": "SELECT without user filtering",
+      "severity": "HIGH",
+      "matches": 1,
+      "details": "Found 1 instances of SELECT without user filtering"
+    },
+    {
+      "file": "quizzes.routes.ts",
+      "issue": "SELECT without user filtering",
+      "severity": "HIGH",
+      "matches": 1,
+      "details": "Found 1 instances of SELECT without user filtering"
+    },
+    {
+      "file": "recordings.routes.ts",
+      "issue": "SELECT without user filtering",
+      "severity": "HIGH",
+      "matches": 4,
+      "details": "Found 4 instances of SELECT without user filtering"
+    },
+    {
+      "file": "seed.routes.ts",
+      "issue": "SELECT without user filtering",
+      "severity": "HIGH",
+      "matches": 5,
+      "details": "Found 5 instances of SELECT without user filtering"
+    },
+    {
+      "file": "seed.routes.ts",
+      "issue": "No authentication middleware",
+      "severity": "CRITICAL",
+      "matches": 1,
+      "details": "Route has no authentication protection"
+    },
+    {
+      "file": "settings.routes.ts",
+      "issue": "No user-based filtering",
+      "severity": "HIGH",
+      "matches": 1,
+      "details": "Authenticated route but no user-based data filtering"
+    },
+    {
+      "file": "storage.routes.ts",
+      "issue": "No user-based filtering",
+      "severity": "HIGH",
+      "matches": 1,
+      "details": "Authenticated route but no user-based data filtering"
+    },
+    {
+      "file": "student-progress.routes.ts",
+      "issue": "SELECT without user filtering",
+      "severity": "HIGH",
+      "matches": 4,
+      "details": "Found 4 instances of SELECT without user filtering"
+    },
+    {
+      "file": "student-progress.routes.ts",
+      "issue": "No user-based filtering",
+      "severity": "HIGH",
+      "matches": 1,
+      "details": "Authenticated route but no user-based data filtering"
+    },
+    {
+      "file": "student.routes.ts",
+      "issue": "SELECT without user filtering",
+      "severity": "HIGH",
+      "matches": 7,
+      "details": "Found 7 instances of SELECT without user filtering"
+    },
+    {
+      "file": "students.routes.ts",
+      "issue": "SELECT without user filtering",
+      "severity": "HIGH",
+      "matches": 10,
+      "details": "Found 10 instances of SELECT without user filtering"
+    },
+    {
+      "file": "students.routes.ts",
+      "issue": "Query without user filtering (only ORDER BY)",
+      "severity": "HIGH",
+      "matches": 1,
+      "details": "Found 1 instances of Query without user filtering (only ORDER BY)"
+    },
+    {
+      "file": "students.routes.ts",
+      "issue": "Debug endpoints present",
+      "severity": "MEDIUM",
+      "matches": 1,
+      "details": "Debug endpoints should be removed in production"
+    },
+    {
+      "file": "submissions.routes.ts",
+      "issue": "SELECT without user filtering",
+      "severity": "HIGH",
+      "matches": 2,
+      "details": "Found 2 instances of SELECT without user filtering"
+    },
+    {
+      "file": "submissions.routes.ts",
+      "issue": "No user-based filtering",
+      "severity": "HIGH",
+      "matches": 1,
+      "details": "Authenticated route but no user-based data filtering"
+    },
+    {
+      "file": "teacher.routes.ts",
+      "issue": "SELECT without user filtering",
+      "severity": "HIGH",
+      "matches": 4,
+      "details": "Found 4 instances of SELECT without user filtering"
+    },
+    {
+      "file": "teacher.routes.ts",
+      "issue": "No user-based filtering",
+      "severity": "HIGH",
+      "matches": 1,
+      "details": "Authenticated route but no user-based data filtering"
+    },
+    {
+      "file": "transactions.routes.ts",
+      "issue": "No user-based filtering",
+      "severity": "HIGH",
+      "matches": 1,
+      "details": "Authenticated route but no user-based data filtering"
+    },
+    {
+      "file": "upload.routes.ts",
+      "issue": "No user-based filtering",
+      "severity": "HIGH",
+      "matches": 1,
+      "details": "Authenticated route but no user-based data filtering"
+    }
+  ]
+}

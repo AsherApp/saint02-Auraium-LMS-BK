@@ -1,11 +1,22 @@
 import { Router } from 'express'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { supabaseAdmin } from '../lib/supabase.js'
+import { requireAuth } from '../middlewares/auth.js'
 
 export const router = Router()
 
-// Add test data to database
-router.post('/seed', asyncHandler(async (req, res) => {
+// Add test data to database - SECURITY FIXED: Only allow in development
+router.post('/seed', requireAuth, asyncHandler(async (req, res) => {
+  // SECURITY FIX: Only allow seeding in development environment
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(403).json({ error: 'Seeding not allowed in production' })
+  }
+  
+  // SECURITY FIX: Only allow admin users to seed data
+  const userEmail = (req as any).user?.email
+  if (!userEmail || !userEmail.includes('admin') && !userEmail.includes('test')) {
+    return res.status(403).json({ error: 'Admin access required for seeding' })
+  }
   try {
     // Add a test teacher
     const { data: teacher, error: teacherError } = await supabaseAdmin

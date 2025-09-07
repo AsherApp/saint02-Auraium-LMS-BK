@@ -73,9 +73,10 @@ router.post('/categories', requireAuth, asyncHandler(async (req, res) => {
 
 // ===== FORUM DISCUSSIONS ENDPOINTS =====
 
-// Get forum discussions with pagination
+// Get forum discussions with pagination - SECURITY FIXED
 router.get('/posts', requireAuth, asyncHandler(async (req, res) => {
   const userEmail = (req as any).user?.email
+  const userRole = (req as any).user?.role
   const { categoryId, page = 1, limit = 20 } = req.query
   
   if (!userEmail) {
@@ -87,6 +88,47 @@ router.get('/posts', requireAuth, asyncHandler(async (req, res) => {
   let query = supabaseAdmin
     .from('discussions')
     .select('*', { count: 'exact' })
+
+  // SECURITY FIX: Filter discussions based on user role and enrollment
+  if (userRole === 'student') {
+    // Students can only see discussions from courses they're enrolled in
+    const { data: enrollments, error: enrollmentsError } = await supabaseAdmin
+      .from('enrollments')
+      .select('course_id')
+      .eq('student_email', userEmail)
+
+    if (enrollmentsError) {
+      return res.status(500).json({ error: 'Failed to fetch enrollments' })
+    }
+
+    const enrolledCourseIds = enrollments?.map(e => e.course_id) || []
+    
+    if (enrolledCourseIds.length === 0) {
+      // Student is not enrolled in any courses
+      return res.json({ posts: [], totalCount: 0, totalPages: 0 })
+    }
+
+    query = query.in('course_id', enrolledCourseIds)
+  } else if (userRole === 'teacher') {
+    // Teachers can only see discussions from their own courses
+    const { data: teacherCourses, error: coursesError } = await supabaseAdmin
+      .from('courses')
+      .select('id')
+      .eq('teacher_email', userEmail)
+
+    if (coursesError) {
+      return res.status(500).json({ error: 'Failed to fetch teacher courses' })
+    }
+
+    const teacherCourseIds = teacherCourses?.map(c => c.id) || []
+    
+    if (teacherCourseIds.length === 0) {
+      // Teacher has no courses
+      return res.json({ posts: [], totalCount: 0, totalPages: 0 })
+    }
+
+    query = query.in('course_id', teacherCourseIds)
+  }
 
   if (categoryId) {
     query = query.eq('course_id', categoryId)

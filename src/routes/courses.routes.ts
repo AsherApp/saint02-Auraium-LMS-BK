@@ -426,7 +426,11 @@ router.post('/:id/duplicate', requireAuth, asyncHandler(async (req, res) => {
     id: undefined, // Let the database generate a new ID
     title: `${originalCourse.title} (Copy)`,
     created_at: undefined, // Let the database set the current timestamp
-    updated_at: undefined
+    updated_at: undefined,
+    // Reset course-specific fields that shouldn't be duplicated
+    status: 'draft', // Always start duplicated courses as draft
+    enrollment_count: 0, // Reset enrollment count
+    completion_count: 0 // Reset completion count
   }
   
   const { data: newCourse, error: insertError } = await supabaseAdmin
@@ -452,43 +456,68 @@ router.post('/:id/duplicate', requireAuth, asyncHandler(async (req, res) => {
     return res.status(500).json({ error: modulesError.message })
   }
   
-  // Insert duplicated modules and lessons
+  // Insert duplicated modules and lessons with better error handling
+  let duplicatedModulesCount = 0
+  let duplicatedLessonsCount = 0
+  
   for (const module of modules || []) {
-    const { data: newModule, error: moduleInsertError } = await supabaseAdmin
-      .from('modules')
-      .insert({
-        course_id: newCourse.id,
-        title: module.title,
-        position: module.position
-      })
-      .select()
-      .single()
-    
-    if (moduleInsertError) {
-      console.error('Error duplicating module:', moduleInsertError)
-      continue
-    }
-    
-    // Duplicate lessons for this module
-    if (module.lessons && module.lessons.length > 0) {
-      for (const lesson of module.lessons) {
-        await supabaseAdmin
-          .from('lessons')
-          .insert({
-            module_id: newModule.id,
-            title: lesson.title,
-            type: lesson.type,
-            content: lesson.content,
-            position: lesson.position
-          })
+    try {
+      const { data: newModule, error: moduleInsertError } = await supabaseAdmin
+        .from('modules')
+        .insert({
+          course_id: newCourse.id,
+          title: module.title,
+          position: module.position,
+          description: module.description || null
+        })
+        .select()
+        .single()
+      
+      if (moduleInsertError) {
+        console.error('Error duplicating module:', moduleInsertError)
+        continue
       }
+      
+      duplicatedModulesCount++
+      
+      // Duplicate lessons for this module
+      if (module.lessons && module.lessons.length > 0) {
+        for (const lesson of module.lessons) {
+          try {
+            await supabaseAdmin
+              .from('lessons')
+              .insert({
+                module_id: newModule.id,
+                title: lesson.title,
+                type: lesson.type,
+                content: lesson.content,
+                position: lesson.position,
+                description: lesson.description || null,
+                duration: lesson.duration || 30,
+                points: lesson.points || 10,
+                required: lesson.required !== undefined ? lesson.required : true
+              })
+            duplicatedLessonsCount++
+          } catch (lessonError) {
+            console.error('Error duplicating lesson:', lessonError)
+            // Continue with other lessons
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error processing module:', error)
+      // Continue with other modules
     }
   }
   
   res.json({ 
     ok: true, 
     message: 'Course duplicated successfully',
-    course: newCourse
+    course: newCourse,
+    duplicated: {
+      modules: duplicatedModulesCount,
+      lessons: duplicatedLessonsCount
+    }
   })
 }))
 
