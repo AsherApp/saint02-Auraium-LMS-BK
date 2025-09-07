@@ -4,6 +4,7 @@ import { asyncHandler } from '../utils/asyncHandler.js'
 import { supabaseAdmin } from '../lib/supabase.js'
 import { AccessToken } from 'livekit-server-sdk'
 import { env } from '../config/env.js'
+import { NotificationService } from '../services/notification.service.js'
 
 export const router = Router()
 
@@ -181,6 +182,52 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
     .single()
 
   if (error) return res.status(500).json({ error: error.message })
+
+  // Send live session notifications to enrolled students
+  try {
+    if (course_id) {
+      // Get course details
+      const { data: courseData } = await supabaseAdmin
+        .from('courses')
+        .select('title')
+        .eq('id', course_id)
+        .single();
+
+      // Get enrolled students
+      const { data: enrollments } = await supabaseAdmin
+        .from('enrollments')
+        .select('student_email')
+        .eq('course_id', course_id);
+
+      if (enrollments && enrollments.length > 0) {
+        // Send notifications to all enrolled students
+        const notifications = enrollments.map(enrollment => ({
+          user_email: enrollment.student_email,
+          user_type: 'student' as const,
+          type: 'live_session_scheduled',
+          title: 'Live Session Scheduled',
+          message: `A live session "${title}" has been scheduled for the course "${courseData?.title}".`,
+          data: {
+            session_id: data.id,
+            session_title: title,
+            course_title: courseData?.title,
+            course_id: course_id,
+            start_time: startTime.toISOString(),
+            end_time: endTime.toISOString(),
+            duration_minutes: sessionDuration,
+            session_type: session_type,
+            created_at: new Date().toISOString()
+          }
+        }));
+
+        await NotificationService.sendBulkNotifications(notifications);
+      }
+    }
+  } catch (notificationError) {
+    console.error('Error sending live session notifications:', notificationError);
+    // Don't fail the session creation if notifications fail
+  }
+
   res.json(data)
 }))
 

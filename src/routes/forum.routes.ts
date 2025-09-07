@@ -100,21 +100,30 @@ router.get('/posts', requireAuth, asyncHandler(async (req, res) => {
     return res.status(500).json({ error: error.message })
   }
 
-  // Transform data to match frontend expectations
-  const transformedPosts = (discussions || []).map(discussion => ({
-    id: discussion.id,
-    categoryId: discussion.course_id,
-    title: discussion.title,
-    content: discussion.description || '',
-    authorEmail: discussion.created_by,
-    authorName: discussion.created_by?.split('@')[0] || 'Unknown',
-    isPinned: false, // Not available in current schema
-    isLocked: false, // Not available in current schema
-    replyCount: 0, // We'll calculate this later
-    viewCount: 0, // Not available in current schema
-    lastReplyAt: discussion.updated_at,
-    createdAt: discussion.created_at,
-    updatedAt: discussion.updated_at
+  // Get user profile information for each discussion creator
+  const transformedPosts = await Promise.all((discussions || []).map(async (discussion) => {
+    // Get user profile from user_profiles view
+    const { data: userProfile } = await supabaseAdmin
+      .from('user_profiles')
+      .select('first_name, last_name, email')
+      .eq('email', discussion.created_by)
+      .single()
+
+    return {
+      id: discussion.id,
+      categoryId: discussion.course_id,
+      title: discussion.title,
+      content: discussion.description || '',
+      authorEmail: discussion.created_by,
+      authorName: userProfile ? `${userProfile.first_name} ${userProfile.last_name}` : discussion.created_by?.split('@')[0] || 'Unknown',
+      isPinned: false, // Not available in current schema
+      isLocked: false, // Not available in current schema
+      replyCount: 0, // We'll calculate this later
+      viewCount: 0, // Not available in current schema
+      lastReplyAt: discussion.updated_at,
+      createdAt: discussion.created_at,
+      updatedAt: discussion.updated_at
+    }
   }))
 
   res.json({
@@ -172,7 +181,6 @@ router.get('/posts/:discussionId', requireAuth, asyncHandler(async (req, res) =>
     .select(`
       *,
       category:forum_categories(name),
-      created_by_user:users(name, email),
       posts:discussion_posts(count)
     `)
     .eq('id', discussionId)
@@ -192,14 +200,21 @@ router.get('/posts/:discussionId', requireAuth, asyncHandler(async (req, res) =>
     .update({ view_count: (discussion.view_count || 0) + 1 })
     .eq('id', discussionId)
 
+  // Get user profile information for the discussion creator
+  const { data: userProfile } = await supabaseAdmin
+    .from('user_profiles')
+    .select('first_name, last_name, email')
+    .eq('email', discussion.created_by)
+    .single()
+
   // Transform data to match frontend expectations
   const transformedPost = {
     id: discussion.id,
     categoryId: discussion.category_id,
     title: discussion.title,
     content: discussion.content,
-    authorEmail: discussion.created_by_user?.email,
-    authorName: discussion.created_by_user?.name,
+    authorEmail: discussion.created_by,
+    authorName: userProfile ? `${userProfile.first_name} ${userProfile.last_name}` : discussion.created_by?.split('@')[0] || 'Unknown',
     isPinned: discussion.is_pinned,
     isLocked: discussion.is_locked,
     replyCount: discussion.posts?.[0]?.count || 0,
@@ -228,10 +243,7 @@ router.get('/posts/:discussionId/replies', requireAuth, asyncHandler(async (req,
 
   const { data: posts, error, count } = await supabaseAdmin
     .from('discussion_posts')
-    .select(`
-      *,
-      created_by_user:users(name, email)
-    `, { count: 'exact' })
+    .select('*', { count: 'exact' })
     .eq('discussion_id', discussionId)
     .order('created_at', { ascending: true })
     .range(offset, offset + Number(limit) - 1)
@@ -240,15 +252,24 @@ router.get('/posts/:discussionId/replies', requireAuth, asyncHandler(async (req,
     return res.status(500).json({ error: error.message })
   }
 
-  // Transform data to match frontend expectations
-  const transformedReplies = (posts || []).map(post => ({
-    id: post.id,
-    postId: post.discussion_id,
-    content: post.content,
-    authorEmail: post.created_by_user?.email,
-    authorName: post.created_by_user?.name,
-    createdAt: post.created_at,
-    updatedAt: post.updated_at
+  // Get user profile information for each reply author
+  const transformedReplies = await Promise.all((posts || []).map(async (post) => {
+    // Get user profile from user_profiles view
+    const { data: userProfile } = await supabaseAdmin
+      .from('user_profiles')
+      .select('first_name, last_name, email')
+      .eq('email', post.author_email)
+      .single()
+
+    return {
+      id: post.id,
+      postId: post.discussion_id,
+      content: post.content,
+      authorEmail: post.author_email,
+      authorName: userProfile ? `${userProfile.first_name} ${userProfile.last_name}` : post.author_email?.split('@')[0] || 'Unknown',
+      createdAt: post.created_at,
+      updatedAt: post.updated_at
+    }
   }))
 
   res.json({

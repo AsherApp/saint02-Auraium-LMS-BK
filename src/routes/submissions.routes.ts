@@ -257,18 +257,19 @@ router.post('/assignment/:assignmentId', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Late submissions not allowed' });
     }
 
-    // Get student name
+    // Get student name from user_profiles view
     const { data: student, error: studentError } = await supabaseAdmin
-      .from('students')
-      .select('name')
+      .from('user_profiles')
+      .select('first_name, last_name')
       .eq('email', studentEmail)
+      .eq('user_type', 'student')
       .single();
 
     // Create or update submission
     const submissionData = {
       assignment_id: assignmentId,
       student_email: studentEmail,
-      student_name: student?.name || '',
+      student_name: student ? `${student.first_name} ${student.last_name}` : '',
       attempt_number: nextAttemptNumber,
       status,
       content: content || {},

@@ -60,19 +60,47 @@ router.get('/course/:courseId', requireAuth, asyncHandler(async (req, res) => {
     }
   }
 
-  // Get discussions
-  const { data: discussions, error: discussionsError } = await supabaseAdmin
+  // Get discussions with proper ownership filtering and user profile information
+  let discussionsQuery = supabaseAdmin
     .from('discussions')
-    .select('*')
+    .select(`
+      *,
+      courses:course_id (
+        title
+      )
+    `)
     .eq('course_id', courseId)
     .eq('is_active', true)
+
+  // For teachers, only show discussions they created
+  if (userRole === 'teacher') {
+    discussionsQuery = discussionsQuery.eq('created_by', userEmail)
+  }
+  // For students, show all discussions in courses they're enrolled in (already checked above)
+
+  const { data: discussions, error: discussionsError } = await discussionsQuery
     .order('created_at', { ascending: false })
+
+  // Get user profile information for discussion creators
+  const discussionsWithProfiles = await Promise.all((discussions || []).map(async (discussion) => {
+    const { data: creatorProfile } = await supabaseAdmin
+      .from('user_profiles')
+      .select('first_name, last_name, email')
+      .eq('email', discussion.created_by)
+      .single()
+
+    return {
+      ...discussion,
+      creator_name: creatorProfile ? `${creatorProfile.first_name} ${creatorProfile.last_name}` : discussion.created_by,
+      creator_email: discussion.created_by
+    }
+  }))
 
   if (discussionsError) {
     return res.status(500).json({ error: discussionsError.message })
   }
 
-  res.json({ items: discussions || [] })
+  res.json({ items: discussionsWithProfiles || [] })
 }))
 
 // Create a new discussion (teacher only)
@@ -172,7 +200,7 @@ router.get('/:discussionId', requireAuth, asyncHandler(async (req, res) => {
     }
   }
 
-  // Get posts
+  // Get posts with user profile information
   let postsQuery = supabaseAdmin
     .from('discussion_posts')
     .select('*')
@@ -190,9 +218,37 @@ router.get('/:discussionId', requireAuth, asyncHandler(async (req, res) => {
     return res.status(500).json({ error: postsError.message })
   }
 
+  // Get user profile information for post authors
+  const postsWithProfiles = await Promise.all((posts || []).map(async (post) => {
+    const { data: authorProfile } = await supabaseAdmin
+      .from('user_profiles')
+      .select('first_name, last_name, email')
+      .eq('email', post.author_email)
+      .single()
+
+    return {
+      ...post,
+      author_name: authorProfile ? `${authorProfile.first_name} ${authorProfile.last_name}` : post.author_email,
+      author_email: post.author_email
+    }
+  }))
+
+  // Get creator profile for discussion
+  const { data: creatorProfile } = await supabaseAdmin
+    .from('user_profiles')
+    .select('first_name, last_name, email')
+    .eq('email', discussion.created_by)
+    .single()
+
+  const discussionWithProfile = {
+    ...discussion,
+    creator_name: creatorProfile ? `${creatorProfile.first_name} ${creatorProfile.last_name}` : discussion.created_by,
+    creator_email: discussion.created_by
+  }
+
   const result = {
-    discussion,
-    posts: posts || []
+    discussion: discussionWithProfile,
+    posts: postsWithProfiles || []
   }
 
   res.json(result)

@@ -1,6 +1,7 @@
 import express from 'express';
 import { supabaseAdmin } from '../lib/supabase.js';
 import { requireAuth } from '../middlewares/auth.js';
+import { NotificationService } from '../services/notification.service.js';
 
 const router = express.Router();
 
@@ -141,6 +142,12 @@ router.post('/lesson-completed', requireAuth, async (req, res) => {
       .single();
 
     if (error) throw error;
+
+    // Check for module completion
+    await checkModuleCompletion(user.email, courseId, moduleId);
+    
+    // Check for course completion
+    await checkCourseCompletion(user.email, courseId);
 
     res.json({ message: 'Lesson completed successfully', progress });
   } catch (error) {
@@ -983,5 +990,226 @@ router.get('/:studentCode/engagement', requireAuth, async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch student engagement' });
   }
 });
+
+// Helper function to check module completion
+async function checkModuleCompletion(studentEmail: string, courseId: string, moduleId: string) {
+  try {
+    if (!moduleId) return;
+
+    // Get all lessons in the module
+    const { data: lessons, error: lessonsError } = await supabaseAdmin
+      .from('lessons')
+      .select('id')
+      .eq('module_id', moduleId);
+
+    if (lessonsError || !lessons || lessons.length === 0) return;
+
+    // Get completed lessons for this module
+    const { data: completedLessons, error: completedError } = await supabaseAdmin
+      .from('student_progress')
+      .select('lesson_id')
+      .eq('student_email', studentEmail)
+      .eq('course_id', courseId)
+      .eq('module_id', moduleId)
+      .eq('type', 'lesson_completed')
+      .eq('status', 'completed');
+
+    if (completedError) return;
+
+    // Check if all lessons are completed
+    const completedLessonIds = completedLessons?.map(l => l.lesson_id) || [];
+    const allLessonsCompleted = lessons.every(lesson => completedLessonIds.includes(lesson.id));
+
+    if (allLessonsCompleted) {
+      // Check if module completion is already recorded
+      const { data: existingModuleCompletion } = await supabaseAdmin
+        .from('student_progress')
+        .select('id')
+        .eq('student_email', studentEmail)
+        .eq('course_id', courseId)
+        .eq('module_id', moduleId)
+        .eq('type', 'module_completed')
+        .single();
+
+      if (!existingModuleCompletion) {
+        // Record module completion
+        const { data: moduleData } = await supabaseAdmin
+          .from('modules')
+          .select('title')
+          .eq('id', moduleId)
+          .single();
+
+        const { data: courseData } = await supabaseAdmin
+          .from('courses')
+          .select('title, teacher_email')
+          .eq('id', courseId)
+          .single();
+
+        await supabaseAdmin
+          .from('student_progress')
+          .insert({
+            student_email: studentEmail,
+            course_id: courseId,
+            module_id: moduleId,
+            type: 'module_completed',
+            status: 'completed',
+            score: 100,
+            metadata: {
+              module_title: moduleData?.title,
+              completed_at: new Date().toISOString()
+            }
+          });
+
+        // Send module completion notification to student
+        await NotificationService.sendNotification({
+          user_email: studentEmail,
+          user_type: 'student',
+          type: 'module_completion',
+          title: 'Module Completed!',
+          message: `You have successfully completed the module "${moduleData?.title}" in the course "${courseData?.title}".`,
+          data: {
+            module_title: moduleData?.title,
+            course_title: courseData?.title,
+            course_id: courseId,
+            module_id: moduleId,
+            completion_date: new Date().toISOString()
+          }
+        });
+
+        // Send notification to teacher
+        if (courseData?.teacher_email) {
+          const { data: studentProfile } = await supabaseAdmin
+            .from('user_profiles')
+            .select('first_name, last_name')
+            .eq('email', studentEmail)
+            .eq('user_type', 'student')
+            .single();
+
+          await NotificationService.sendNotification({
+            user_email: courseData.teacher_email,
+            user_type: 'teacher',
+            type: 'module_completion',
+            title: 'Student Completed Module',
+            message: `${studentProfile ? `${studentProfile.first_name} ${studentProfile.last_name}` : studentEmail} has completed the module "${moduleData?.title}" in your course "${courseData?.title}".`,
+            data: {
+              student_name: studentProfile ? `${studentProfile.first_name} ${studentProfile.last_name}` : studentEmail,
+              student_email: studentEmail,
+              module_title: moduleData?.title,
+              course_title: courseData?.title,
+              course_id: courseId,
+              module_id: moduleId,
+              completion_date: new Date().toISOString()
+            }
+          });
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error checking module completion:', error);
+  }
+}
+
+// Helper function to check course completion
+async function checkCourseCompletion(studentEmail: string, courseId: string) {
+  try {
+    // Get all modules in the course
+    const { data: modules, error: modulesError } = await supabaseAdmin
+      .from('modules')
+      .select('id')
+      .eq('course_id', courseId);
+
+    if (modulesError || !modules || modules.length === 0) return;
+
+    // Get completed modules for this course
+    const { data: completedModules, error: completedError } = await supabaseAdmin
+      .from('student_progress')
+      .select('module_id')
+      .eq('student_email', studentEmail)
+      .eq('course_id', courseId)
+      .eq('type', 'module_completed')
+      .eq('status', 'completed');
+
+    if (completedError) return;
+
+    // Check if all modules are completed
+    const completedModuleIds = completedModules?.map(m => m.module_id) || [];
+    const allModulesCompleted = modules.every(module => completedModuleIds.includes(module.id));
+
+    if (allModulesCompleted) {
+      // Check if course completion is already recorded
+      const { data: existingCourseCompletion } = await supabaseAdmin
+        .from('student_progress')
+        .select('id')
+        .eq('student_email', studentEmail)
+        .eq('course_id', courseId)
+        .eq('type', 'course_completed')
+        .single();
+
+      if (!existingCourseCompletion) {
+        // Record course completion
+        const { data: courseData } = await supabaseAdmin
+          .from('courses')
+          .select('title, teacher_email')
+          .eq('id', courseId)
+          .single();
+
+        await supabaseAdmin
+          .from('student_progress')
+          .insert({
+            student_email: studentEmail,
+            course_id: courseId,
+            type: 'course_completed',
+            status: 'completed',
+            score: 100,
+            metadata: {
+              course_title: courseData?.title,
+              completed_at: new Date().toISOString()
+            }
+          });
+
+        // Send course completion notification to student
+        await NotificationService.sendNotification({
+          user_email: studentEmail,
+          user_type: 'student',
+          type: 'course_completion',
+          title: 'Congratulations! Course Completed',
+          message: `You have successfully completed the course "${courseData?.title}"! Your certificate is available for download.`,
+          data: {
+            course_title: courseData?.title,
+            course_id: courseId,
+            completion_date: new Date().toISOString()
+          }
+        });
+
+        // Send notification to teacher
+        if (courseData?.teacher_email) {
+          const { data: studentProfile } = await supabaseAdmin
+            .from('user_profiles')
+            .select('first_name, last_name')
+            .eq('email', studentEmail)
+            .eq('user_type', 'student')
+            .single();
+
+          await NotificationService.sendNotification({
+            user_email: courseData.teacher_email,
+            user_type: 'teacher',
+            type: 'course_completion',
+            title: 'Student Completed Course',
+            message: `${studentProfile ? `${studentProfile.first_name} ${studentProfile.last_name}` : studentEmail} has successfully completed your course "${courseData?.title}".`,
+            data: {
+              student_name: studentProfile ? `${studentProfile.first_name} ${studentProfile.last_name}` : studentEmail,
+              student_email: studentEmail,
+              course_title: courseData?.title,
+              course_id: courseId,
+              completion_date: new Date().toISOString()
+            }
+          });
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error checking course completion:', error);
+  }
+}
 
 export default router;

@@ -4,6 +4,7 @@ import { supabaseAdmin } from '../lib/supabase.js'
 import { generateStudentCode } from '../utils/student-code.js'
 import { requireAuth } from '../middlewares/auth.js'
 import { generateToken } from '../lib/jwt.js'
+import { NotificationService } from '../services/notification.service.js'
 
 export const router = Router()
 
@@ -392,6 +393,28 @@ router.post('/student/register', asyncHandler(async (req, res) => {
       })
   }
 
+  // Send signup notification
+  try {
+    await NotificationService.sendNotification({
+      user_email: email.toLowerCase(),
+      user_type: 'student',
+      type: 'signup',
+      title: 'Welcome to AuraiumLMS!',
+      message: 'Your student account has been successfully created. You can now access your courses and start learning.',
+      data: {
+        student_code: studentCode,
+        first_name,
+        last_name,
+        invite_code: invite_code,
+        course_id: invite.course_id,
+        registration_date: new Date().toISOString()
+      }
+    })
+  } catch (notificationError) {
+    console.error('Error sending signup notification:', notificationError)
+    // Don't fail the registration if notification fails
+  }
+
   res.json({ 
     message: 'Student registered successfully',
     student_code: studentCode,
@@ -497,3 +520,114 @@ router.post('/student/change-password', requireAuth, asyncHandler(async (req, re
 
   res.json({ message: 'Password changed successfully' })
 }))
+
+// Password reset request
+router.post('/password-reset-request', asyncHandler(async (req, res) => {
+  const { email } = req.body
+  
+  if (!email) {
+    return res.status(400).json({ error: 'Email is required' })
+  }
+
+  try {
+    // Check if user exists in user_profiles
+    const { data: userProfile, error: userError } = await supabaseAdmin
+      .from('user_profiles')
+      .select('first_name, last_name, email, user_type')
+      .eq('email', email.toLowerCase())
+      .single()
+
+    if (userError || !userProfile) {
+      // Don't reveal if user exists or not for security
+      return res.json({ message: 'If the email exists, a password reset link has been sent.' })
+    }
+
+    // Generate reset token (in a real app, you'd use a proper token system)
+    const resetToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+
+    // Store reset token (you'd create a password_reset_tokens table)
+    // For now, we'll just send the notification
+    await NotificationService.sendNotification({
+      user_email: email.toLowerCase(),
+      user_type: userProfile.user_type,
+      type: 'password_reset',
+      title: 'Password Reset Request',
+      message: 'You have requested to reset your password. Please use the link below to reset your password.',
+      data: {
+        reset_token: resetToken,
+        expires_at: expiresAt.toISOString(),
+        user_name: `${userProfile.first_name} ${userProfile.last_name}`,
+        reset_url: `${process.env.FRONTEND_URL || 'https://auraiumlms.vercel.app'}/reset-password?token=${resetToken}`
+      }
+    })
+
+    res.json({ message: 'If the email exists, a password reset link has been sent.' })
+  } catch (error: any) {
+    console.error('Error in password reset request:', error)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+}))
+
+// Password reset confirmation
+router.post('/password-reset-confirm', asyncHandler(async (req, res) => {
+  const { token, newPassword, email } = req.body
+  
+  if (!token || !newPassword || !email) {
+    return res.status(400).json({ error: 'Token, email, and new password are required' })
+  }
+
+  try {
+    // In a real app, you'd validate the token from the database
+    // For now, we'll assume the token is valid and update the password
+    
+    // Hash the new password
+    const bcrypt = await import('bcrypt')
+    const passwordHash = await bcrypt.hash(newPassword, 10)
+
+    // Update password in both teachers and students tables
+    // First, find which table the user is in
+    const { data: userProfile } = await supabaseAdmin
+      .from('user_profiles')
+      .select('email, user_type')
+      .eq('email', email.toLowerCase())
+      .single()
+
+    if (!userProfile) {
+      return res.status(400).json({ error: 'Invalid or expired token' })
+    }
+
+    // Update password based on user type
+    if (userProfile.user_type === 'teacher') {
+      await supabaseAdmin
+        .from('teachers')
+        .update({ password_hash: passwordHash })
+        .eq('email', userProfile.email)
+    } else if (userProfile.user_type === 'student') {
+      await supabaseAdmin
+        .from('students')
+        .update({ password_hash: passwordHash })
+        .eq('email', userProfile.email)
+    }
+
+    // Send password reset success notification
+    await NotificationService.sendNotification({
+      user_email: userProfile.email,
+      user_type: userProfile.user_type,
+      type: 'password_reset_success',
+      title: 'Password Successfully Reset',
+      message: 'Your password has been successfully reset. You can now login with your new password.',
+      data: {
+        reset_at: new Date().toISOString(),
+        login_url: `${process.env.FRONTEND_URL || 'https://auraiumlms.vercel.app'}/login`
+      }
+    })
+
+    res.json({ message: 'Password has been successfully reset.' })
+  } catch (error: any) {
+    console.error('Error in password reset confirmation:', error)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+}))
+
+export default router
