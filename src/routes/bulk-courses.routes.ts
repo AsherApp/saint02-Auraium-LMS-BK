@@ -164,7 +164,7 @@ router.post('/bulk-create', requireAuth, asyncHandler(async (req, res) => {
             course_id: course.id,
             title: moduleData.title,
             description: moduleData.description || '',
-            order_index: moduleData.order_index
+            position: moduleData.order_index
           })
           .select()
           .single()
@@ -193,8 +193,8 @@ router.post('/bulk-create', requireAuth, asyncHandler(async (req, res) => {
               module_id: module.id,
               title: lessonData.title,
               description: lessonData.description || '',
-              order_index: lessonData.order_index,
-              content_type: lessonData.content_type
+              position: lessonData.order_index,
+              type: lessonData.content_type
             })
             .select()
             .single()

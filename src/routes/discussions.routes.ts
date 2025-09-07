@@ -91,6 +91,9 @@ router.get('/course/:courseId', requireAuth, asyncHandler(async (req, res) => {
 
     return {
       ...discussion,
+      createdAt: discussion.created_at,
+      isActive: discussion.is_active,
+      createdBy: discussion.created_by,
       creator_name: creatorProfile ? `${creatorProfile.first_name} ${creatorProfile.last_name}` : discussion.created_by,
       creator_email: discussion.created_by
     }
@@ -228,6 +231,8 @@ router.get('/:discussionId', requireAuth, asyncHandler(async (req, res) => {
 
     return {
       ...post,
+      createdAt: post.created_at,
+      isApproved: post.is_approved,
       author_name: authorProfile ? `${authorProfile.first_name} ${authorProfile.last_name}` : post.author_email,
       author_email: post.author_email
     }
