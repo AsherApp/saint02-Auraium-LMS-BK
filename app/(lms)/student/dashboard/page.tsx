@@ -70,9 +70,19 @@ export default function StudentDashboardPage() {
         const enrolledCourses = coursesResponse.items || []
         
         // Check if any course is in public mode
-        const hasPublicCourses = enrolledCourses.some((course: any) => course.course?.course_mode === 'public')
+        console.log('Student Dashboard - Checking course modes for student:', user?.email)
+        console.log('Student Dashboard - Enrolled courses:', enrolledCourses)
+        
+        const hasPublicCourses = enrolledCourses.some((course: any) => {
+          const courseMode = course.course?.course_mode
+          console.log('Student Dashboard - Course:', course.course?.title, 'Mode:', courseMode)
+          return courseMode === 'public'
+        })
+        
+        console.log('Student Dashboard - Has public courses:', hasPublicCourses)
         
         if (hasPublicCourses) {
+          console.log('Student Dashboard - Redirecting to public dashboard')
           // Redirect to public mode dashboard
           window.location.href = '/student/public-dashboard'
           return

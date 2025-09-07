@@ -32,6 +32,10 @@ export function AppSidebar() {
 
   if (!user) return null
 
+  // Check if student is in public mode (simplified environment)
+  const isPublicMode = pathname.startsWith('/student/public-') || 
+                      (user.role === 'student' && pathname.includes('public'))
+
 const teacherItems = [
     {
       title: "Core",
@@ -232,7 +236,55 @@ const studentItems = [
     }
   ]
 
-  const items = user.role === "teacher" ? teacherItems : studentItems
+  // Filter student items for public mode
+  const getFilteredStudentItems = () => {
+    if (!isPublicMode) return studentItems
+    
+    // For public mode, only show essential items
+    return [
+      {
+        title: "Core",
+        items: [
+          {
+            title: "Dashboard",
+            href: "/student/public-dashboard",
+            icon: Home,
+            description: "Learning overview"
+          },
+          {
+            title: "Courses",
+            href: "/student/courses",
+            icon: BookOpen,
+            description: "Enrolled courses"
+          }
+        ]
+      },
+      {
+        title: "Learning",
+        items: [
+          {
+            title: "Notes",
+            href: "/student/notes",
+            icon: StickyNote,
+            description: "Personal notes"
+          }
+        ]
+      },
+      {
+        title: "Account",
+        items: [
+          {
+            title: "Settings",
+            href: "/student/settings",
+            icon: Settings,
+            description: "Profile settings"
+          }
+        ]
+      }
+    ]
+  }
+
+  const items = user.role === "teacher" ? teacherItems : getFilteredStudentItems()
 
   return (
     <div className="flex h-full w-64 flex-col bg-white/5 backdrop-blur border-r border-white/10">
@@ -281,6 +333,23 @@ const studentItems = [
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.5, delay: 0.1 }}
       >
+        {/* Public Mode Indicator */}
+        {isPublicMode && (
+          <motion.div 
+            className="mb-3 p-2 bg-blue-500/20 border border-blue-500/30 rounded-lg"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3, delay: 0.2 }}
+          >
+            <div className="flex items-center gap-2 text-blue-400 text-xs">
+              <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+              <span className="font-medium">Public Learning Mode</span>
+            </div>
+            <p className="text-blue-300/70 text-xs mt-1">
+              Simplified environment
+            </p>
+          </motion.div>
+        )}
         <motion.div 
           className="flex items-center gap-3"
           whileHover={{ scale: 1.02 }}

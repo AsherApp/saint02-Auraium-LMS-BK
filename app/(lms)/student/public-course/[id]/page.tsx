@@ -1,26 +1,21 @@
 "use client"
 
 import type React from "react"
+
 import Link from "next/link"
 import { useMemo, useState, useEffect } from "react"
 import { useParams } from "next/navigation"
 import { GlassCard } from "@/components/shared/glass-card"
+import { Tabs, TabsContent } from "@/components/ui/tabs"
+import { FluidTabs, useFluidTabs } from "@/components/ui/fluid-tabs"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
-import { 
-  BookOpen, 
-  PlayCircle, 
-  CheckCircle2, 
-  ArrowLeft,
-  Award,
-  Clock,
-  User
-} from "lucide-react"
-import { CertificateDownload } from "@/components/shared/certificate-download"
+import { BookOpen, PlayCircle, CheckCircle2, ClipboardList, FileText, MessageSquare, AlarmClock, Eye, Download, Award } from "lucide-react"
 import { useAuthStore } from "@/store/auth-store"
 import { http } from "@/services/http"
-import { motion } from "framer-motion"
+import { DocumentViewer } from "@/components/shared/document-viewer"
+import { PresentationViewer } from "@/components/shared/presentation-viewer"
+import { getViewerType, canPreviewFile, contentToFileInfo, getPreviewButtonText, type FileInfo } from "@/utils/file-viewer-utils"
 
 export default function PublicStudentCourseDetailPage() {
   const params = useParams<{ id: string }>()
@@ -29,7 +24,11 @@ export default function PublicStudentCourseDetailPage() {
   const [modules, setModules] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [completionStatus, setCompletionStatus] = useState<any>({})
+  const [activeTab, setActiveTab] = useState("curriculum")
+  
+  // Document and presentation viewers
+  const [viewingDocument, setViewingDocument] = useState<FileInfo | null>(null)
+  const [viewingPresentation, setViewingPresentation] = useState<FileInfo | null>(null)
 
   // Fetch course data
   useEffect(() => {
@@ -42,44 +41,21 @@ export default function PublicStudentCourseDetailPage() {
       try {
         // Fetch course details
         const courseResponse = await http<any>(`/api/courses/${params.id}`)
+        
+        // Verify this is a public course
+        if (courseResponse.course_mode !== 'public') {
+          setError('This course is not available in public mode')
+          return
+        }
+        
         setCourse(courseResponse)
         
         // Fetch modules
-        const modulesResponse = await http<any>(`/api/modules/course/${params.id}`)
-        const modulesData = modulesResponse.items || []
+        const modulesResponse = await http<any>(`/api/courses/${params.id}/modules`)
+        setModules(modulesResponse.items || [])
         
-        // Fetch lessons for each module
-        const modulesWithLessons = await Promise.all(
-          modulesData.map(async (module: any) => {
-            try {
-              const lessonsResponse = await http<any>(`/api/lessons/module/${module.id}`)
-              return {
-                ...module,
-                lessons: lessonsResponse.items || []
-              }
-            } catch (error) {
-              console.error(`Failed to fetch lessons for module ${module.id}:`, error)
-              return {
-                ...module,
-                lessons: []
-              }
-            }
-          })
-        )
-        
-        setModules(modulesWithLessons)
-        
-        // Fetch completion status
-        try {
-          const completionResponse = await http<any>(`/api/progress/course/${params.id}`)
-          setCompletionStatus(completionResponse || {})
-        } catch (error) {
-          console.error('Failed to fetch completion status:', error)
-          setCompletionStatus({})
-        }
-        
-      } catch (error) {
-        console.error('Failed to fetch course data:', error)
+      } catch (err) {
+        console.error('Error fetching course data:', err)
         setError('Failed to load course data')
       } finally {
         setLoading(false)
@@ -89,46 +65,27 @@ export default function PublicStudentCourseDetailPage() {
     fetchCourseData()
   }, [params.id, user?.email])
 
-  const getModuleProgress = (module: any) => {
-    if (!completionStatus.modules) return 0
-    const moduleProgress = completionStatus.modules[module.id]
-    if (!moduleProgress) return 0
+  // Calculate progress
+  const progress = useMemo(() => {
+    if (!modules.length) return 0
     
-    const totalLessons = module.lessons.length
-    const completedLessons = moduleProgress.completed_lessons || 0
+    const totalLessons = modules.reduce((sum, module) => sum + (module.lessons?.length || 0), 0)
+    const completedLessons = modules.reduce((sum, module) => 
+      sum + (module.lessons?.filter((lesson: any) => lesson.completed).length || 0), 0
+    )
+    
     return totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0
-  }
+  }, [modules])
 
-  const getOverallProgress = () => {
-    if (!completionStatus.overall) return 0
-    return completionStatus.overall.percentage || 0
-  }
-
-  const isCourseCompleted = () => {
-    return getOverallProgress() === 100
-  }
-
-
-  const startCourse = () => {
-    // Navigate to the first lesson of the first module
-    if (modules.length > 0 && modules[0].lessons.length > 0) {
-      window.location.href = `/student/public-study/${params.id}/${modules[0].id}/${modules[0].lessons[0].id}`
-    }
-  }
+  // Check if course is completed
+  const isCompleted = progress >= 100
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
-        <div className="max-w-4xl mx-auto">
-          <div className="animate-pulse">
-            <div className="h-8 bg-slate-700 rounded w-1/3 mb-6"></div>
-            <div className="h-64 bg-slate-700 rounded-lg mb-6"></div>
-            <div className="space-y-4">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-32 bg-slate-700 rounded-lg"></div>
-              ))}
-            </div>
-          </div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <p className="text-white">Loading course...</p>
         </div>
       </div>
     )
@@ -136,199 +93,214 @@ export default function PublicStudentCourseDetailPage() {
 
   if (error || !course) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
-        <div className="max-w-4xl mx-auto">
-          <GlassCard className="p-8 text-center">
-            <h2 className="text-2xl font-semibold text-white mb-4">Course Not Found</h2>
-            <p className="text-slate-300 mb-6">{error || 'The requested course could not be found.'}</p>
-            <Button asChild>
-              <Link href="/student/public-dashboard">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Dashboard
-              </Link>
-            </Button>
-          </GlassCard>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <BookOpen className="h-12 w-12 text-red-400 mx-auto mb-4" />
+          <p className="text-white text-lg mb-4">{error || 'Course not found'}</p>
+          <Link href="/student/public-dashboard">
+            <Button variant="outline">Back to Dashboard</Button>
+          </Link>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-6"
-        >
-          <Button asChild variant="ghost" className="mb-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <div className="container mx-auto px-4 py-8">
+        {/* Course Header */}
+        <div className="mb-8">
+          <div className="flex items-center gap-4 mb-4">
             <Link href="/student/public-dashboard">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Dashboard
+              <Button variant="outline" size="sm">
+                ← Back to Dashboard
+              </Button>
             </Link>
-          </Button>
+            <Badge variant="outline" className="bg-green-500/20 text-green-400 border-green-500/30">
+              <Eye className="h-3 w-3 mr-1" />
+              Public Course
+            </Badge>
+          </div>
           
           <div className="flex items-start justify-between">
-            <div>
+            <div className="flex-1">
               <h1 className="text-3xl font-bold text-white mb-2">{course.title}</h1>
               <p className="text-slate-300 text-lg mb-4">{course.description}</p>
               
               <div className="flex items-center gap-4 text-sm text-slate-400">
-                <div className="flex items-center gap-1">
-                  <User className="h-4 w-4" />
-                  <span>Instructor: {course.teacher_name || 'Unknown'}</span>
-                </div>
-                <div className="flex items-center gap-1">
+                <span className="flex items-center gap-1">
                   <BookOpen className="h-4 w-4" />
-                  <span>{modules.length} Modules</span>
-                </div>
-                <Badge variant="outline" className="text-purple-300 border-purple-300">
-                  Public Mode
-                </Badge>
+                  {modules.length} Modules
+                </span>
+                <span className="flex items-center gap-1">
+                  <CheckCircle2 className="h-4 w-4" />
+                  {progress}% Complete
+                </span>
+                {isCompleted && (
+                  <Badge variant="outline" className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
+                    <Award className="h-3 w-3 mr-1" />
+                    Course Completed
+                  </Badge>
+                )}
               </div>
             </div>
-          </div>
-        </motion.div>
-
-        {/* Progress Overview */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="mb-8"
-        >
-          <GlassCard className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-white">Course Progress</h2>
-              <Badge variant={isCourseCompleted() ? "default" : "secondary"}>
-                {isCourseCompleted() ? 'Completed' : 'In Progress'}
-              </Badge>
-            </div>
             
-            <div className="mb-4">
-              <div className="flex items-center justify-between text-sm text-slate-300 mb-2">
-                <span>Overall Progress</span>
-                <span>{getOverallProgress()}%</span>
-              </div>
-              <Progress value={getOverallProgress()} className="h-3" />
-            </div>
-            
-            {isCourseCompleted() && (
-              <div className="flex items-center justify-between pt-4 border-t border-slate-700">
-                <div className="flex items-center gap-2 text-green-400">
-                  <Award className="h-5 w-5" />
-                  <span className="font-medium">Course Completed!</span>
-                </div>
-                <CertificateDownload
-                  courseId={params.id}
-                  studentId={user?.email || ''}
-                  courseTitle={course?.title}
-                  studentName={user?.name}
-                  size="sm"
-                />
+            {isCompleted && (
+              <div className="text-center">
+                <Button className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/30">
+                  <Download className="h-4 w-4 mr-2" />
+                  Download Certificate
+                </Button>
               </div>
             )}
-          </GlassCard>
-        </motion.div>
+          </div>
+          
+          {/* Progress Bar */}
+          <div className="mt-6">
+            <div className="flex justify-between text-sm text-slate-400 mb-2">
+              <span>Course Progress</span>
+              <span>{progress}%</span>
+            </div>
+            <div className="w-full bg-slate-700 rounded-full h-2">
+              <div 
+                className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-500"
+                style={{ width: `${progress}%` }}
+              ></div>
+            </div>
+          </div>
+        </div>
 
         {/* Course Content */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <h2 className="text-2xl font-semibold text-white mb-4">Course Content</h2>
-          
-          {modules.length === 0 ? (
-            <GlassCard className="p-8 text-center">
-              <BookOpen className="h-16 w-16 text-slate-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-white mb-2">No Content Available</h3>
-              <p className="text-slate-300">
-                This course doesn't have any modules or lessons yet.
-              </p>
-            </GlassCard>
-          ) : (
-            <div className="space-y-4">
-              {modules.map((module, moduleIndex) => {
-                const moduleProgress = getModuleProgress(module)
-                const isModuleCompleted = moduleProgress === 100
-                
-                return (
-                  <motion.div
-                    key={module.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 * moduleIndex }}
-                  >
-                    <GlassCard className="p-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
-                          <h3 className="text-lg font-semibold text-white mb-2">
+        <GlassCard className="p-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <FluidTabs
+              tabs={[
+                { 
+                  id: 'curriculum', 
+                  label: 'Curriculum', 
+                  icon: <BookOpen className="h-4 w-4" />,
+                  badge: modules.length
+                }
+              ]}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              variant="default"
+              width="wide"
+            />
+
+            <TabsContent value="curriculum" className="mt-6">
+              {modules.length === 0 ? (
+                <div className="text-center py-12">
+                  <BookOpen className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                  <p className="text-slate-400 text-lg">No modules available</p>
+                  <p className="text-slate-500 text-sm mt-2">
+                    Course content is being prepared
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {modules.map((module, moduleIndex) => (
+                    <div key={module.id} className="bg-white/5 rounded-lg p-6 border border-white/10">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <h3 className="text-xl font-semibold text-white mb-2">
                             Module {moduleIndex + 1}: {module.title}
                           </h3>
-                          <p className="text-slate-300 text-sm mb-3">
-                            {module.description}
-                          </p>
-                          
-                          <div className="flex items-center gap-4 text-xs text-slate-400">
-                            <span>{module.lessons.length} Lessons</span>
-                            <span>Estimated {module.estimated_duration || 30} minutes</span>
-                          </div>
+                          <p className="text-slate-400">{module.description}</p>
                         </div>
-                        
-                        <Badge variant={isModuleCompleted ? "default" : "secondary"}>
-                          {isModuleCompleted ? 'Completed' : `${moduleProgress}%`}
+                        <Badge variant="outline" className="bg-blue-500/20 text-blue-400 border-blue-500/30">
+                          {module.lessons?.length || 0} Lessons
                         </Badge>
                       </div>
-                      
-                      <div className="mb-4">
-                        <Progress value={moduleProgress} className="h-2" />
-                      </div>
-                      
-                      <div className="flex gap-2">
-                        <Button 
-                          asChild 
-                          className="flex-1"
-                          variant="outline"
-                        >
-                          <Link href={`/student/public-study/${params.id}/${module.id}`}>
-                            {isModuleCompleted ? 'Review Module' : 'Start Module'}
-                          </Link>
-                        </Button>
-                      </div>
-                    </GlassCard>
-                  </motion.div>
-                )
-              })}
-            </div>
-          )}
-        </motion.div>
+
+                      {module.lessons && module.lessons.length > 0 ? (
+                        <div className="space-y-3">
+                          {module.lessons.map((lesson: any, lessonIndex: number) => (
+                            <div 
+                              key={lesson.id} 
+                              className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/10 hover:border-white/20 transition-all duration-200"
+                            >
+                              <div className="flex items-center gap-4">
+                                <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-sm text-slate-300">
+                                  {lessonIndex + 1}
+                                </div>
+                                <div>
+                                  <h4 className="text-white font-medium">{lesson.title}</h4>
+                                  <p className="text-slate-400 text-sm">{lesson.description}</p>
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-center gap-3">
+                                {lesson.completed ? (
+                                  <Badge variant="outline" className="bg-green-500/20 text-green-400 border-green-500/30">
+                                    <CheckCircle2 className="h-3 w-3 mr-1" />
+                                    Completed
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="outline" className="bg-slate-500/20 text-slate-400 border-slate-500/30">
+                                    <AlarmClock className="h-3 w-3 mr-1" />
+                                    Pending
+                                  </Badge>
+                                )}
+                                
+                                <Link href={`/student/public-study/${params.id}/${module.id}/${lesson.id}`}>
+                                  <Button size="sm" variant="outline">
+                                    <PlayCircle className="h-4 w-4 mr-1" />
+                                    {lesson.completed ? 'Review' : 'Start'}
+                                  </Button>
+                                </Link>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <FileText className="h-8 w-8 text-slate-400 mx-auto mb-2" />
+                          <p className="text-slate-400">No lessons available</p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+        </GlassCard>
 
         {/* Public Mode Notice */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="mt-8"
-        >
-          <GlassCard className="p-6 border-amber-500/20">
-            <div className="flex items-start gap-4">
-              <div className="p-2 bg-amber-500/20 rounded-lg">
-                <Award className="h-6 w-6 text-amber-400" />
-              </div>
+        <div className="mt-8">
+          <GlassCard className="p-6 bg-blue-500/10 border-blue-500/20">
+            <div className="flex items-center gap-4">
+              <Eye className="h-8 w-8 text-blue-400" />
               <div>
-                <h3 className="font-semibold text-white mb-2">Public Learning Mode</h3>
+                <h3 className="text-lg font-semibold text-white mb-1">
+                  Public Learning Mode
+                </h3>
                 <p className="text-slate-300 text-sm">
-                  This is a simplified learning experience. You can only access course content 
-                  and must complete lessons in order. No assignments, live classes, or discussions 
-                  are available. Complete all modules to earn your certificate.
+                  You're viewing this course in public mode. Some features like assignments, 
+                  live classes, and discussions are not available in this simplified environment.
                 </p>
               </div>
             </div>
           </GlassCard>
-        </motion.div>
+        </div>
       </div>
+
+      {/* Document Viewer */}
+      {viewingDocument && (
+        <DocumentViewer
+          file={viewingDocument}
+          onClose={() => setViewingDocument(null)}
+        />
+      )}
+
+      {/* Presentation Viewer */}
+      {viewingPresentation && (
+        <PresentationViewer
+          file={viewingPresentation}
+          onClose={() => setViewingPresentation(null)}
+        />
+      )}
     </div>
   )
 }
