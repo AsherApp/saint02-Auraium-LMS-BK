@@ -32,17 +32,8 @@ export default function StudyAreaPage() {
         const courseResponse = await http<any>(`/api/courses/${params.id}`)
         
         // Check if course is in public mode
-        if (courseResponse.course_mode === 'public') {
-          // Redirect to public mode study area
-          if (moduleId && lessonId) {
-            window.location.href = `/student/public-study/${params.id}/${moduleId}/${lessonId}`
-          } else if (moduleId) {
-            window.location.href = `/student/public-study/${params.id}/${moduleId}`
-          } else {
-            window.location.href = `/student/public-course/${params.id}`
-          }
-          return
-        }
+        // Note: Public mode is now handled by hiding features in the same pages
+        // No need to redirect to separate public pages
         
         setCourse(courseResponse)
       } catch (err: any) {

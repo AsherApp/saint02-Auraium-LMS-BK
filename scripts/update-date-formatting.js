@@ -17,7 +17,6 @@ const filesToUpdate = [
   'app/(lms)/student/messages/page.tsx',
   'app/(lms)/teacher/messages/page.tsx',
   'app/(lms)/student/performance/page.tsx',
-  'app/(lms)/student/public-dashboard/page.tsx',
   'app/(lms)/teacher/student-management/page.tsx',
   'app/(lms)/teacher/student-management/[studentCode]/page.tsx',
   'app/(lms)/teacher/recordings/page.tsx',

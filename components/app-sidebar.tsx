@@ -247,7 +247,7 @@ const studentItems = [
         items: [
           {
             title: "Dashboard",
-            href: "/student/public-dashboard",
+            href: "/student/dashboard",
             icon: Home,
             description: "Learning overview"
           },
