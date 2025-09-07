@@ -230,6 +230,63 @@ router.get('/me/enrollments', requireAuth, asyncHandler(async (req, res) => {
   res.json({ items: enrollments })
 }))
 
+// Alias for /me/enrollments for backward compatibility
+router.get('/me/courses', requireAuth, asyncHandler(async (req, res) => {
+  const userEmail = (req as any).user?.email
+  const userRole = (req as any).user?.role
+  
+  // Only students can access their own enrollments
+  if (userRole !== 'student') {
+    return res.status(403).json({ error: 'Access denied - Students only' })
+  }
+  
+  // Get student enrollments
+  const { data, error } = await supabaseAdmin
+    .from('enrollments')
+    .select(`
+      *,
+      courses(
+        id,
+        title,
+        description,
+        status,
+        teacher_email,
+        thumbnail_url,
+        visibility,
+        enrollment_policy,
+        course_mode
+      )
+    `)
+    .eq('student_email', userEmail)
+    .order('enrolled_at', { ascending: false })
+  
+  if (error) return res.status(500).json({ error: error.message })
+  
+  // Transform the data
+  const enrollments = (data || []).map((enrollment: any) => ({
+    id: enrollment.id,
+    course_id: enrollment.course_id,
+    enrolled_at: enrollment.enrolled_at,
+    progress_percentage: enrollment.progress_percentage || 0,
+    grade_percentage: enrollment.grade_percentage || 0,
+    last_activity: enrollment.last_activity,
+    status: enrollment.status || 'active',
+    course: {
+      id: enrollment.courses?.id,
+      title: enrollment.courses?.title || 'Untitled Course',
+      description: enrollment.courses?.description,
+      status: enrollment.courses?.status,
+      teacher_email: enrollment.courses?.teacher_email,
+      thumbnail_url: enrollment.courses?.thumbnail_url,
+      visibility: enrollment.courses?.visibility,
+      enrollment_policy: enrollment.courses?.enrollment_policy,
+      course_mode: enrollment.courses?.course_mode
+    }
+  }))
+  
+  res.json({ items: enrollments })
+}))
+
 // Get student enrollments by email (for teachers accessing their students)
 router.get('/:email/enrollments', requireAuth, asyncHandler(async (req, res) => {
   const { email } = req.params

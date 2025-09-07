@@ -69,7 +69,7 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
     enrollment_policy: enrollment_policy || 'invite_only',
     allow_discussions: courseSettings.allow_student_discussions,
     default_duration: courseSettings.default_course_duration,
-    course_mode: course_mode || 'normal',
+    course_mode: course_mode || 'full',
     thumbnail_url: thumbnail_url || null
   }
   
