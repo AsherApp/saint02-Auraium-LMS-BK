@@ -18,12 +18,27 @@ const app = express()
 // Health check endpoint - MUST be first to avoid middleware interference
 app.get('/health', (req, res) => {
   console.log('Health check requested from:', req.ip, req.headers['user-agent'])
-  res.json({ 
-    ok: true, 
+  
+  // Simple health check response
+  const healthData = {
+    status: 'healthy',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development',
     uptime: process.uptime(),
-    port: process.env.PORT || 4000
+    environment: process.env.NODE_ENV || 'development',
+    port: process.env.PORT || 4000,
+    version: '1.0.0'
+  }
+  
+  console.log('Health check response:', healthData)
+  res.status(200).json(healthData)
+})
+
+// Simple readiness check
+app.get('/ready', (req, res) => {
+  console.log('Readiness check requested')
+  res.status(200).json({ 
+    ready: true,
+    timestamp: new Date().toISOString()
   })
 })
 
@@ -184,8 +199,40 @@ app.use('*', (req, res) => {
 })
 
 const port = Number(process.env.PORT || 4000)
-app.listen(port, () => {
-  console.log(`🚀 Endubackend listening on port ${port}`)
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`)
-  console.log(`🔒 Security: ${process.env.NODE_ENV === 'production' ? 'Production mode' : 'Development mode'}`)
+
+// Add startup logging
+console.log('🚀 Starting server...')
+console.log(`📡 Port: ${port}`)
+console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`)
+console.log(`🔒 Security: ${process.env.NODE_ENV === 'production' ? 'Production mode' : 'Development mode'}`)
+
+// Start server
+const server = app.listen(port, '0.0.0.0', () => {
+  console.log(`✅ Server successfully started on port ${port}`)
+  console.log(`🏥 Health check available at: http://0.0.0.0:${port}/health`)
+})
+
+// Handle server errors
+server.on('error', (error: any) => {
+  console.error('❌ Server error:', error)
+  if (error.code === 'EADDRINUSE') {
+    console.error(`Port ${port} is already in use`)
+  }
+})
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('🛑 SIGTERM received, shutting down gracefully')
+  server.close(() => {
+    console.log('✅ Server closed')
+    process.exit(0)
+  })
+})
+
+process.on('SIGINT', () => {
+  console.log('🛑 SIGINT received, shutting down gracefully')
+  server.close(() => {
+    console.log('✅ Server closed')
+    process.exit(0)
+  })
 })

@@ -19,8 +19,11 @@ RUN npm run build
 # Remove devDependencies to reduce image size
 RUN npm prune --omit=dev
 
+# Make startup script executable
+RUN chmod +x start.sh
+
 # Expose port
 EXPOSE 4000
 
 # Start the application
-CMD ["npm", "start"]
+CMD ["./start.sh"]
