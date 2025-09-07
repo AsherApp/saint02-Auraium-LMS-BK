@@ -376,11 +376,18 @@ router.get('/with-enrollments', requireAuth, asyncHandler(async (req, res) => {
 router.get('/consolidated', requireAuth, asyncHandler(async (req, res) => {
   console.log('Fetching consolidated student data...')
   
+  // SECURITY FIX: Get the authenticated teacher's email
+  const teacherEmail = (req as any).user?.email
+  if (!teacherEmail) {
+    return res.status(401).json({ error: 'Teacher email not found in request' })
+  }
+  
+  // SECURITY FIX: Only return students who are enrolled in courses owned by this teacher
   const { data, error } = await supabaseAdmin
     .from('students')
     .select(`
       *,
-      enrollments(
+      enrollments!inner(
         id,
         course_id,
         enrolled_at,
@@ -388,14 +395,16 @@ router.get('/consolidated', requireAuth, asyncHandler(async (req, res) => {
         grade_percentage,
         last_activity,
         status,
-        courses(
+        courses!inner(
           id,
           title,
           description,
-          status
+          status,
+          teacher_email
         )
       )
     `)
+    .eq('enrollments.courses.teacher_email', teacherEmail)
     .order('name', { ascending: true })
   
   if (error) {
@@ -403,10 +412,15 @@ router.get('/consolidated', requireAuth, asyncHandler(async (req, res) => {
     return res.status(500).json({ error: error.message })
   }
   
-  console.log('Raw student data:', JSON.stringify(data, null, 2))
+  console.log('Raw student data for teacher:', teacherEmail, JSON.stringify(data, null, 2))
+  
+  // Remove duplicate students (same student enrolled in multiple courses)
+  const uniqueStudents = (data || []).filter((student: any, index: number, self: any[]) => 
+    index === self.findIndex((s: any) => s.email === student.email)
+  )
   
   // Transform to consolidated student data with real progress metrics
-  const consolidatedStudents = await Promise.all((data || []).map(async (student: any) => {
+  const consolidatedStudents = await Promise.all(uniqueStudents.map(async (student: any) => {
     const enrollments = student.enrollments || []
     console.log(`Processing student ${student.email} with ${enrollments.length} enrollments`)
     
