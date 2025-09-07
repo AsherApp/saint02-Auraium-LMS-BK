@@ -152,15 +152,15 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
         { level: 1, description: "Poor", points: 10 }
       ]
     }
-    setRubricCriteria([...rubricCriteria, newCriterion])
+    setRubricCriteria([...(rubricCriteria || []), newCriterion])
   }
 
   const removeRubricCriterion = (id: string) => {
-    setRubricCriteria(rubricCriteria.filter(c => c.id !== id))
+    setRubricCriteria((rubricCriteria || []).filter(c => c.id !== id))
   }
 
   const updateRubricCriterion = (id: string, updates: Partial<RubricCriteria>) => {
-    setRubricCriteria(rubricCriteria.map(c => c.id === id ? { ...c, ...updates } : c))
+    setRubricCriteria((rubricCriteria || []).map(c => c.id === id ? { ...c, ...updates } : c))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
