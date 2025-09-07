@@ -10,7 +10,7 @@ import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { FluidTabs, useFluidTabs } from "@/components/ui/fluid-tabs"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { BookOpen, PlayCircle, CheckCircle2, ClipboardList, FileText, MessageSquare, AlarmClock } from "lucide-react"
+import { BookOpen, PlayCircle, CheckCircle2, ClipboardList, FileText, MessageSquare, AlarmClock, Award, Eye } from "lucide-react"
 import { useAuthStore } from "@/store/auth-store"
 import { http } from "@/services/http"
 import { DocumentViewer } from "@/components/shared/document-viewer"
@@ -26,6 +26,7 @@ export default function StudentCourseDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState("curriculum")
+  const [isPublicMode, setIsPublicMode] = useState(false)
   
   // Document and presentation viewers
   const [viewingDocument, setViewingDocument] = useState<FileInfo | null>(null)
@@ -44,11 +45,8 @@ export default function StudentCourseDetailPage() {
         const courseResponse = await http<any>(`/api/courses/${params.id}`)
         
         // Check if course is in public mode
-        if (courseResponse.course_mode === 'public') {
-          // Redirect to public mode course page
-          window.location.href = `/student/public-course/${params.id}`
-          return
-        }
+        const isPublic = courseResponse.course_mode === 'public'
+        setIsPublicMode(isPublic)
         
         setCourse(courseResponse)
         
@@ -77,10 +75,12 @@ export default function StudentCourseDetailPage() {
         
         setModules(modulesWithLessons)
         
-        // Fetch assignments
-        const assignmentsResponse = await http<any>(`/api/courses/${params.id}/assignments`)
-        const assignmentsData = assignmentsResponse.items || []
-        setAssignments(assignmentsData)
+        // Fetch assignments (skip in public mode)
+        if (!isPublic) {
+          const assignmentsResponse = await http<any>(`/api/courses/${params.id}/assignments`)
+          const assignmentsData = assignmentsResponse.items || []
+          setAssignments(assignmentsData)
+        }
         
       } catch (err: any) {
         setError(err.message || "Failed to load course data")
@@ -155,7 +155,15 @@ export default function StudentCourseDetailPage() {
       <GlassCard className="p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-white text-2xl font-semibold">{course.title}</h1>
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-white text-2xl font-semibold">{course.title}</h1>
+              {isPublicMode && (
+                <Badge variant="outline" className="bg-blue-500/20 text-blue-400 border-blue-500/30">
+                  <Eye className="h-3 w-3 mr-1" />
+                  Public Course
+                </Badge>
+              )}
+            </div>
             {course.description ? <p className="text-slate-300">{course.description}</p> : null}
           </div>
           <div className="flex flex-wrap gap-2">
@@ -169,6 +177,19 @@ export default function StudentCourseDetailPage() {
             ) : (
               <Button disabled className="bg-white/10 text-white border border-white/15">
                 Resume study
+              </Button>
+            )}
+            {isPublicMode && (
+              <Button 
+                variant="outline" 
+                className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/30"
+                onClick={() => {
+                  // TODO: Implement certificate download
+                  alert('Certificate download will be implemented soon!')
+                }}
+              >
+                <Award className="h-4 w-4 mr-1" />
+                Download Certificate
               </Button>
             )}
           </div>
@@ -188,8 +209,10 @@ export default function StudentCourseDetailPage() {
               tabs={[
                 { id: 'overview', label: 'Overview', icon: <BookOpen className="h-4 w-4" /> },
                 { id: 'curriculum', label: 'Curriculum', icon: <PlayCircle className="h-4 w-4" />, badge: modules?.length || 0 },
-                { id: 'assignments', label: 'Assignments', icon: <ClipboardList className="h-4 w-4" />, badge: assignments?.length || 0 },
-                { id: 'discussions', label: 'Discussions', icon: <MessageSquare className="h-4 w-4" /> },
+                ...(isPublicMode ? [] : [
+                  { id: 'assignments', label: 'Assignments', icon: <ClipboardList className="h-4 w-4" />, badge: assignments?.length || 0 },
+                  { id: 'discussions', label: 'Discussions', icon: <MessageSquare className="h-4 w-4" /> }
+                ]),
                 { id: 'resources', label: 'Resources', icon: <FileText className="h-4 w-4" /> }
               ]}
               activeTab={activeTab}

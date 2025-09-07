@@ -43,6 +43,7 @@ export default function StudentDashboardPage() {
   const [studentCode, setStudentCode] = useState<string>("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isPublicMode, setIsPublicMode] = useState(false)
   
   // Debug logging
   useEffect(() => {
@@ -80,56 +81,81 @@ export default function StudentDashboardPage() {
         })
         
         console.log('Student Dashboard - Has public courses:', hasPublicCourses)
+        setIsPublicMode(hasPublicCourses)
         
-        if (hasPublicCourses) {
-          console.log('Student Dashboard - Redirecting to public dashboard')
-          // Redirect to public mode dashboard
-          window.location.href = '/student/public-dashboard'
-          return
-        }
+        // Filter courses to show only public courses if in public mode
+        const filteredCourses = hasPublicCourses 
+          ? enrolledCourses.filter((course: any) => course.course?.course_mode === 'public')
+          : enrolledCourses
         
-        setEnrolledCourses(enrolledCourses)
+        setEnrolledCourses(filteredCourses)
         
-        // Get assignments for enrolled courses
-        const assignmentPromises = (enrolledCourses || []).map(async (course: any) => {
+        // Skip assignments, live sessions, and announcements in public mode
+        if (!hasPublicCourses) {
+          // Get assignments for enrolled courses
+          const assignmentPromises = (enrolledCourses || []).map(async (course: any) => {
+            try {
+              console.log('Student Dashboard - Fetching assignments for course:', course.course_id)
+              const assignmentsResponse = await http<any>(`/api/courses/${course.course_id}/assignments`)
+              return (assignmentsResponse.items || []).map((assignment: any) => ({
+                ...assignment,
+                course_title: course.course?.title || "Unknown Course"
+              }))
+            } catch (err) {
+              console.error(`Failed to fetch assignments for course ${course.course_id}:`, err)
+              return []
+            }
+          })
+          
+          const assignmentResults = await Promise.all(assignmentPromises)
+          const allAssignments = assignmentResults.flat()
+          console.log('Student Dashboard - All assignments:', allAssignments)
+          setAssignments(allAssignments)
+          
+          // Get live sessions for the student
           try {
-            console.log('Student Dashboard - Fetching assignments for course:', course.course_id)
-            const assignmentsResponse = await http<any>(`/api/courses/${course.course_id}/assignments`)
-            return (assignmentsResponse.items || []).map((assignment: any) => ({
-              ...assignment,
-              course_title: course.course?.title || "Unknown Course"
-            }))
+            console.log('Student Dashboard - Fetching live sessions...')
+            const sessionsResponse = await http<any>(`/api/live/my-sessions`)
+            console.log('Student Dashboard - Live sessions response:', sessionsResponse)
+            setLiveSessions(sessionsResponse.items || [])
           } catch (err) {
-            console.error(`Failed to fetch assignments for course ${course.course_id}:`, err)
-            return []
+            console.error('Failed to fetch live sessions:', err)
+            setLiveSessions([])
           }
-        })
-        
-        const assignmentResults = await Promise.all(assignmentPromises)
-        const allAssignments = assignmentResults.flat()
-        console.log('Student Dashboard - All assignments:', allAssignments)
-        setAssignments(allAssignments)
-        
-        // Get live sessions for the student
-        try {
-          console.log('Student Dashboard - Fetching live sessions...')
-          const sessionsResponse = await http<any>(`/api/live/my-sessions`)
-          console.log('Student Dashboard - Live sessions response:', sessionsResponse)
-          setLiveSessions(sessionsResponse.items || [])
-        } catch (err) {
-          console.error('Failed to fetch live sessions:', err)
-          setLiveSessions([])
-        }
 
-        // Get announcements for the student
-        try {
-          console.log('Student Dashboard - Fetching announcements...')
-          const announcementsResponse = await http<any>(`/api/announcements/student`)
-          console.log('Student Dashboard - Announcements response:', announcementsResponse)
-          setAnnouncements(announcementsResponse.items || [])
-        } catch (err) {
-          console.error('Failed to fetch announcements:', err)
-          setAnnouncements([])
+          // Get announcements for the student
+          try {
+            console.log('Student Dashboard - Fetching announcements...')
+            const announcementsResponse = await http<any>(`/api/announcements/student`)
+            console.log('Student Dashboard - Announcements response:', announcementsResponse)
+            setAnnouncements(announcementsResponse.items || [])
+          } catch (err) {
+            console.error('Failed to fetch announcements:', err)
+            setAnnouncements([])
+          }
+        } else {
+          // In public mode, only get announcements for public courses
+          try {
+            console.log('Student Dashboard - Fetching announcements for public courses...')
+            const announcementPromises = filteredCourses.map(async (course: any) => {
+              try {
+                const announcementsResponse = await http<any>(`/api/announcements?course_id=${course.course_id}`)
+                return (announcementsResponse.items || []).map((announcement: any) => ({
+                  ...announcement,
+                  course_title: course.course?.title || "Unknown Course"
+                }))
+              } catch (err) {
+                console.error(`Failed to fetch announcements for course ${course.course_id}:`, err)
+                return []
+              }
+            })
+            
+            const allAnnouncements = await Promise.all(announcementPromises)
+            setAnnouncements(allAnnouncements.flat())
+          } catch (err) {
+            console.error('Failed to fetch announcements:', err)
+            setAnnouncements([])
+          }
         }
 
         // Get student code
@@ -256,6 +282,12 @@ export default function StudentDashboardPage() {
                   <GraduationCap className="h-4 w-4 mr-1" />
                   Student
                 </Badge>
+                {isPublicMode && (
+                  <Badge variant="outline" className="bg-blue-500/20 text-blue-400 border-blue-500/30 px-3 py-1">
+                    <Eye className="h-4 w-4 mr-1" />
+                    Public Learning Mode
+                  </Badge>
+                )}
               </div>
             </div>
             <div className="flex gap-3">
@@ -266,13 +298,15 @@ export default function StudentDashboardPage() {
               >
                 View Courses
               </Button>
-              <Button 
-                onClick={() => window.location.href = '/student/assignments'}
-                variant="outline"
-                className="text-sm sm:text-base border-white/20 text-white hover:bg-white/10"
-              >
-                My Assignments
-              </Button>
+              {!isPublicMode && (
+                <Button 
+                  onClick={() => window.location.href = '/student/assignments'}
+                  variant="outline"
+                  className="text-sm sm:text-base border-white/20 text-white hover:bg-white/10"
+                >
+                  My Assignments
+                </Button>
+              )}
             </div>
           </div>
         </GlassCard>
@@ -301,14 +335,16 @@ export default function StudentDashboardPage() {
                 <BookOpen className="h-4 w-4 mr-2" />
                 Browse Courses
               </Button>
-              <Button 
-                onClick={() => window.location.href = '/student/assignments'}
-                variant="outline"
-                className="text-sm sm:text-base border-white/20 text-white hover:bg-white/10"
-              >
-                <ListChecks className="h-4 w-4 mr-2" />
-                View Assignments
-              </Button>
+              {!isPublicMode && (
+                <Button 
+                  onClick={() => window.location.href = '/student/assignments'}
+                  variant="outline"
+                  className="text-sm sm:text-base border-white/20 text-white hover:bg-white/10"
+                >
+                  <ListChecks className="h-4 w-4 mr-2" />
+                  View Assignments
+                </Button>
+              )}
             </div>
           </GlassCard>
         </motion.div>
@@ -481,33 +517,58 @@ export default function StudentDashboardPage() {
           href="/student/courses"
         />
         
-        <QuickActionCard
-          title="Assignments"
-          description="View and submit tasks"
-          icon={ListChecks}
-          iconColor="green"
-          href="/student/assignments"
-        />
+        {!isPublicMode && (
+          <>
+            <QuickActionCard
+              title="Assignments"
+              description="View and submit tasks"
+              icon={ListChecks}
+              iconColor="green"
+              href="/student/assignments"
+            />
+            
+            <QuickActionCard
+              title="Live Classes"
+              description="Join live sessions"
+              icon={Users}
+              iconColor="purple"
+              href="/student/live-class"
+            />
+            
+            <QuickActionCard
+              title="Discussions"
+              description="View announcements and discussions"
+              icon={MessageSquare}
+              iconColor="blue"
+              href="/student/discussions"
+            />
+          </>
+        )}
         
-        <QuickActionCard
-          title="Live Classes"
-          description="Join live sessions"
-          icon={Users}
-          iconColor="purple"
-          href="/student/live-class"
-        />
-        
-        <QuickActionCard
-          title="Discussions"
-          description="View announcements and discussions"
-          icon={MessageSquare}
-          iconColor="blue"
-          href="/student/discussions"
-        />
+        {isPublicMode && (
+          <>
+            <QuickActionCard
+              title="Notes"
+              description="Access your study notes"
+              icon={FileText}
+              iconColor="green"
+              href="/student/notes"
+            />
+            
+            <QuickActionCard
+              title="Settings"
+              description="Manage your profile"
+              icon={User}
+              iconColor="purple"
+              href="/student/settings"
+            />
+          </>
+        )}
       </motion.div>
 
       {/* Recent Assignments - Simplified */}
-      <motion.div variants={itemVariants}>
+      {!isPublicMode && (
+        <motion.div variants={itemVariants}>
         <GlassCard className="p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
@@ -581,6 +642,7 @@ export default function StudentDashboardPage() {
           )}
         </GlassCard>
       </motion.div>
+      )}
     </motion.div>
   )
 }
