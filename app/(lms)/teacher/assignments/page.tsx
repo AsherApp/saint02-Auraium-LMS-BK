@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import Link from "next/link"
 import { GlassCard } from "@/components/shared/glass-card"
 import { Button } from "@/components/ui/button"
@@ -174,43 +174,47 @@ export default function TeacherAssignmentsPage() {
     fetchData()
   }, [user?.email])
 
-  // Filter assignments
-  console.log('Filtering assignments:', assignments)
-  console.log('Assignments type:', typeof assignments)
-  console.log('Assignments is array:', Array.isArray(assignments))
-  
-  const assignmentsForFilter = Array.isArray(assignments) ? assignments : []
-  const filteredAssignments = assignmentsForFilter.filter((assignment) => {
-    const matchesSearch = searchTerm === "" || 
-      assignment.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      assignment.course_title?.toLowerCase().includes(searchTerm.toLowerCase())
+  // Filter assignments with useMemo to prevent unnecessary recalculations
+  const filteredAssignments = useMemo(() => {
+    console.log('Filtering assignments:', assignments)
+    console.log('Assignments type:', typeof assignments)
+    console.log('Assignments is array:', Array.isArray(assignments))
     
-    let matchesFilter = true
-    const now = new Date().getTime()
-    const dueAt = assignment.due_at ? new Date(assignment.due_at).getTime() : null
-    const isOverdue = dueAt && dueAt < now
-    const pendingCount = assignment.stats?.pending_grading || 0
-    const totalSubmissions = assignment.stats?.total_submissions || 0
+    const assignmentsForFilter = Array.isArray(assignments) ? assignments : []
+    console.log('Assignments for filter:', assignmentsForFilter)
     
-    switch (filterType) {
-      case "pending":
-        matchesFilter = pendingCount > 0
-        break
-      case "graded":
-        matchesFilter = totalSubmissions > 0 && pendingCount === 0
-        break
+    return assignmentsForFilter.filter((assignment) => {
+      const matchesSearch = searchTerm === "" || 
+        assignment.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        assignment.course_title?.toLowerCase().includes(searchTerm.toLowerCase())
+      
+      let matchesFilter = true
+      const now = new Date().getTime()
+      const dueAt = assignment.due_at ? new Date(assignment.due_at).getTime() : null
+      const isOverdue = dueAt && dueAt < now
+      const pendingCount = assignment.stats?.pending_grading || 0
+      const totalSubmissions = assignment.stats?.total_submissions || 0
+      
+      switch (filterType) {
+        case "pending":
+          matchesFilter = pendingCount > 0
+          break
+        case "graded":
+          matchesFilter = totalSubmissions > 0 && pendingCount === 0
+          break
       case "overdue":
-        matchesFilter = isOverdue
+        matchesFilter = Boolean(isOverdue)
         break
-      case "all":
-      default:
-        matchesFilter = true
-    }
-    
-    console.log(`Assignment: ${assignment.title}, Filter: ${filterType}, Pending: ${pendingCount}, Total: ${totalSubmissions}, Overdue: ${isOverdue}, Matches: ${matchesSearch && matchesFilter}`)
-    
-    return matchesSearch && matchesFilter
-  })
+        case "all":
+        default:
+          matchesFilter = true
+      }
+      
+      console.log(`Assignment: ${assignment.title}, Filter: ${filterType}, Pending: ${pendingCount}, Total: ${totalSubmissions}, Overdue: ${isOverdue}, Matches: ${matchesSearch && matchesFilter}`)
+      
+      return matchesSearch && matchesFilter
+    })
+  }, [assignments, searchTerm, filterType])
 
   const handleDuplicateAssignment = async (assignment: Assignment) => {
     try {
@@ -264,15 +268,15 @@ export default function TeacherAssignmentsPage() {
             assignmentId: assignment.id, // Use the assignment ID from the context
             assignmentTitle: assignment.title,
             courseTitle: assignment.course_title || '',
-            studentEmail: submission.studentEmail,
-            studentName: submission.studentName,
+            studentEmail: submission.student_email,
+            studentName: submission.student_name,
             status: submission.status,
-            submittedAt: submission.submitted_at,
+            submittedAt: submission.submitted_at || '',
             grade: submission.grade,
             feedback: submission.feedback,
             content: submission.content,
             attachments: submission.attachments,
-            lateSubmission: submission.lateSubmission
+            lateSubmission: submission.late_submission
           }))
           
           allSubmissions.push(...submissionsWithDetails)
@@ -483,13 +487,13 @@ export default function TeacherAssignmentsPage() {
               id: 'assignments', 
               label: 'Assignments', 
               icon: <FileText className="h-4 w-4" />, 
-              badge: assignments.length 
+              badge: (assignments || []).length 
             },
             { 
               id: 'submissions', 
               label: 'Submissions', 
               icon: <Users className="h-4 w-4" />, 
-              badge: submissions.length 
+              badge: (submissions || []).length 
             }
           ]}
           activeTab={activeTab}
@@ -518,11 +522,11 @@ export default function TeacherAssignmentsPage() {
               </div>
               <FluidTabs
                 tabs={[
-                  { id: 'all', label: 'All', badge: assignments.length },
+                  { id: 'all', label: 'All', badge: (assignments || []).length },
                   { 
                     id: 'pending', 
                     label: 'Pending', 
-                    badge: assignments.filter(a => {
+                    badge: (assignments || []).filter(a => {
                       const pendingCount = a.stats?.pending_grading || 0
                       return pendingCount > 0
                     }).length 
@@ -530,7 +534,7 @@ export default function TeacherAssignmentsPage() {
                   { 
                     id: 'graded', 
                     label: 'Graded', 
-                    badge: assignments.filter(a => {
+                    badge: (assignments || []).filter(a => {
                       const totalSubmissions = a.stats?.total_submissions || 0
                       const pendingCount = a.stats?.pending_grading || 0
                       return totalSubmissions > 0 && pendingCount === 0
@@ -539,7 +543,7 @@ export default function TeacherAssignmentsPage() {
                   { 
                     id: 'overdue', 
                     label: 'Overdue', 
-                    badge: assignments.filter(a => {
+                    badge: (assignments || []).filter(a => {
                       const now = new Date().getTime()
                       const dueAt = a.due_at ? new Date(a.due_at).getTime() : null
                       return dueAt && dueAt < now
