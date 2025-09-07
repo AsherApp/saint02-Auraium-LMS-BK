@@ -131,11 +131,11 @@ export default function PublicStudentDashboardPage() {
     
     try {
       // Fetch enrolled courses (public mode only)
-      const coursesResponse = await http<any>(`/api/students/me/courses`)
+      const coursesResponse = await http<any>(`/api/students/me/enrollments`)
       const courses = coursesResponse.items || []
       
       // Filter only public mode courses and fetch full course details
-      const publicCourses = courses.filter((course: any) => course.courses?.course_mode === 'public')
+      const publicCourses = courses.filter((course: any) => course.course?.course_mode === 'public')
       
       // Fetch full course details for each public course
       const coursesWithDetails = await Promise.all(

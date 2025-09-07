@@ -65,12 +65,12 @@ export default function StudentDashboardPage() {
       try {
         console.log('Student Dashboard - Fetching courses...')
         // Get enrolled courses
-        const coursesResponse = await http<any>(`/api/students/me/courses`)
+        const coursesResponse = await http<any>(`/api/students/me/enrollments`)
         console.log('Student Dashboard - Courses response:', coursesResponse)
         const enrolledCourses = coursesResponse.items || []
         
         // Check if any course is in public mode
-        const hasPublicCourses = enrolledCourses.some((course: any) => course.courses?.course_mode === 'public')
+        const hasPublicCourses = enrolledCourses.some((course: any) => course.course?.course_mode === 'public')
         
         if (hasPublicCourses) {
           // Redirect to public mode dashboard
@@ -87,7 +87,7 @@ export default function StudentDashboardPage() {
             const assignmentsResponse = await http<any>(`/api/courses/${course.course_id}/assignments`)
             return (assignmentsResponse.items || []).map((assignment: any) => ({
               ...assignment,
-              course_title: course.courses?.title || "Unknown Course"
+              course_title: course.course?.title || "Unknown Course"
             }))
           } catch (err) {
             console.error(`Failed to fetch assignments for course ${course.course_id}:`, err)
