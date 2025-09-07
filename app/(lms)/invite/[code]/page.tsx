@@ -48,7 +48,30 @@ export default function InvitePage() {
     lastName: "",
     email: "",
     password: "",
-    confirmPassword: ""
+    confirmPassword: "",
+    // Comprehensive profile data
+    dateOfBirth: "",
+    phoneNumber: "",
+    address: "",
+    city: "",
+    state: "",
+    country: "",
+    postalCode: "",
+    emergencyContactName: "",
+    emergencyContactPhone: "",
+    emergencyContactRelationship: "",
+    academicLevel: "",
+    major: "",
+    minor: "",
+    graduationYear: "",
+    gpa: "",
+    academicInterests: "",
+    careerGoals: "",
+    bio: "",
+    timezone: "",
+    preferredLanguage: "",
+    accessibilityNeeds: "",
+    dietaryRestrictions: ""
   })
   
   const [registrationLoading, setRegistrationLoading] = useState(false)
@@ -90,7 +113,7 @@ export default function InvitePage() {
   const handleRegistration = async () => {
     if (!invite) return
     
-    // Validate form
+    // Validate only basic required fields
     if (!formData.firstName.trim() || !formData.lastName.trim()) {
       toast({ title: "Error", description: "First and last name are required", variant: "destructive" })
       return
@@ -121,14 +144,57 @@ export default function InvitePage() {
           first_name: formData.firstName.trim(),
           last_name: formData.lastName.trim(),
           email: formData.email.trim(),
-          password: formData.password
+          password: formData.password,
+          // Send all profile data (optional fields)
+          date_of_birth: formData.dateOfBirth || null,
+          phone_number: formData.phoneNumber || null,
+          address: formData.address || null,
+          city: formData.city || null,
+          state: formData.state || null,
+          country: formData.country || null,
+          postal_code: formData.postalCode || null,
+          emergency_contact_name: formData.emergencyContactName || null,
+          emergency_contact_phone: formData.emergencyContactPhone || null,
+          emergency_contact_relationship: formData.emergencyContactRelationship || null,
+          academic_level: formData.academicLevel || null,
+          major: formData.major || null,
+          minor: formData.minor || null,
+          graduation_year: formData.graduationYear || null,
+          gpa: formData.gpa || null,
+          academic_interests: formData.academicInterests || null,
+          career_goals: formData.careerGoals || null,
+          bio: formData.bio || null,
+          timezone: formData.timezone || null,
+          preferred_language: formData.preferredLanguage || null,
+          accessibility_needs: formData.accessibilityNeeds || null,
+          dietary_restrictions: formData.dietaryRestrictions || null
         }
       })
       
-      // Store student data and show welcome modal
+      // Store student data and token for auto-login
       setStudentData(response.student)
-      setShowRegistration(false)
-      setShowWelcome(true)
+      
+      // If we have a token, auto-login the student
+      if (response.token && response.user) {
+        // Store the auth token and user data
+        localStorage.setItem('auth-token', response.token)
+        localStorage.setItem('user', JSON.stringify(response.user))
+        
+        // Update auth store
+        setUser(response.user)
+        
+        toast({
+          title: "Welcome!",
+          description: `Successfully registered and logged in as ${response.user.name}`,
+        })
+        
+        setShowRegistration(false)
+        router.push('/student/dashboard')
+      } else {
+        // Fallback to welcome modal if no token
+        setShowRegistration(false)
+        setShowWelcome(true)
+      }
     } catch (err: any) {
       toast({ title: "Error", description: err.message || "Failed to create account", variant: "destructive" })
     } finally {

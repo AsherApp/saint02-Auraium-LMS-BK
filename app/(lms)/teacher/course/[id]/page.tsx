@@ -113,6 +113,7 @@ export default function TeacherCourseDetailPage() {
   const [editStatus, setEditStatus] = useState<"draft" | "published" | "archived">("draft")
   const [editVisibility, setEditVisibility] = useState<"private" | "unlisted" | "public">("private")
   const [editPolicy, setEditPolicy] = useState<"invite_only" | "request" | "open">("invite_only")
+  const [editCourseMode, setEditCourseMode] = useState<"full" | "public">("full")
   const [assignmentOpen, setAssignmentOpen] = useState<false | { level: "course" | "module" | "lesson"; moduleId?: string; lessonId?: string }>(false)
 
   // Live sessions
@@ -397,6 +398,7 @@ export default function TeacherCourseDetailPage() {
     setEditStatus(course.status || "draft")
     setEditVisibility(course.visibility || "private")
     setEditPolicy(course.enrollment_policy || "invite_only")
+    setEditCourseMode(course.course_mode || "full")
     setSettingsOpen(true)
   }
 
@@ -409,7 +411,8 @@ export default function TeacherCourseDetailPage() {
         thumbnail_url: editThumbnail,
         status: editStatus,
         visibility: editVisibility,
-        enrollment_policy: editPolicy
+        enrollment_policy: editPolicy,
+        course_mode: editCourseMode
       })
       toast({ title: "Course updated successfully" })
       setSettingsOpen(false)
@@ -1127,6 +1130,21 @@ export default function TeacherCourseDetailPage() {
                       <SelectItem value="open">Open - Anyone can join</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="space-y-3">
+                  <Label className="text-white font-medium">Course Mode</Label>
+                  <Select value={editCourseMode} onValueChange={(v) => setEditCourseMode(v as any)}>
+                    <SelectTrigger className="bg-white/5 border-white/20 text-white focus:border-blue-500/50 focus:ring-blue-500/20 focus:ring-1 transition-all duration-200 w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-800/95 text-white border-white/20">
+                      <SelectItem value="full">Full Mode - All features</SelectItem>
+                      <SelectItem value="public">Public Mode - Simplified environment</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-slate-400">
+                    Public mode provides a simplified learning environment with limited features for students.
+                  </p>
                 </div>
               </div>
             </div>

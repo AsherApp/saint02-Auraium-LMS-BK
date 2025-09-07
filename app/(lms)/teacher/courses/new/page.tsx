@@ -80,6 +80,7 @@ export default function NewCourseWizardPage() {
   const [status, setStatus] = useState<"draft" | "published">("draft")
   const [visibility, setVisibility] = useState<"private" | "unlisted" | "public">("private")
   const [enrollmentPolicy, setEnrollmentPolicy] = useState<"invite_only" | "request" | "open">("invite_only")
+  const [courseMode, setCourseMode] = useState<"full" | "public">("full")
 
   // Step 2: Structure
   const [modules, setModules] = useState<Module[]>([])
@@ -120,6 +121,7 @@ export default function NewCourseWizardPage() {
         status,
         visibility,
         enrollment_policy: enrollmentPolicy,
+        course_mode: courseMode,
         thumbnail_url: thumbnailUrl.trim() || undefined
       })
       
@@ -785,6 +787,22 @@ export default function NewCourseWizardPage() {
                   <SelectItem value="open">Open Enrollment</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Course Mode</Label>
+              <Select value={courseMode} onValueChange={(v: "full" | "public") => setCourseMode(v)}>
+                <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                  <SelectValue placeholder="Select course mode" />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-900/95 text-white border-white/10">
+                  <SelectItem value="full">Full Mode</SelectItem>
+                  <SelectItem value="public">Public Mode</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-slate-400">
+                Public mode provides a simplified learning environment for students with limited features.
+              </p>
             </div>
           </section>
         )}
