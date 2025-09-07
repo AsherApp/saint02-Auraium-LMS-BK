@@ -85,20 +85,17 @@ const limiter = rateLimit({
 // })
 
 // CORS configuration - More robust setup
-const allowedOrigins = process.env.NODE_ENV === 'production' 
-  ? [
-      process.env.FRONTEND_URL || 'https://yourdomain.com',
-      'https://auraiumlms-ten.vercel.app', // Vercel deployment
-      'https://auraiumlms.vercel.app' // Alternative Vercel URL
-    ] 
-  : [
-      'http://localhost:3000', 
-      'http://localhost:3001', 
-      'http://localhost:3002',
-      'http://127.0.0.1:3000',
-      'http://127.0.0.1:3001', 
-      'http://127.0.0.1:3002'
-    ]
+const allowedOrigins = [
+  process.env.FRONTEND_URL || 'https://yourdomain.com',
+  'https://auraiumlms-ten.vercel.app', // Vercel deployment
+  'https://auraiumlms.vercel.app', // Alternative Vercel URL
+  'http://localhost:3000', 
+  'http://localhost:3001', 
+  'http://localhost:3002',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:3001', 
+  'http://127.0.0.1:3002'
+]
 
 const corsOptions = {
   origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
@@ -113,17 +110,23 @@ const corsOptions = {
     // Check if origin is in allowed origins
     if (allowedOrigins.indexOf(origin) !== -1) {
       console.log(`CORS allowing origin from allowedOrigins: ${origin}`)
-      callback(null, true)
+      return callback(null, true)
     } 
-    // Allow Vercel domains (always, not just in production)
-    else if (origin && origin.endsWith('.vercel.app')) {
+    
+    // Allow Vercel domains (always)
+    if (origin && origin.endsWith('.vercel.app')) {
       console.log(`CORS allowing Vercel domain: ${origin}`)
-      callback(null, true)
+      return callback(null, true)
     }
-    else {
-      console.warn(`CORS blocked request from origin: ${origin}`)
-      callback(new Error('Not allowed by CORS'))
+    
+    // Allow localhost in development
+    if (origin && (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:'))) {
+      console.log(`CORS allowing localhost: ${origin}`)
+      return callback(null, true)
     }
+    
+    console.warn(`CORS blocked request from origin: ${origin}`)
+    callback(new Error('Not allowed by CORS'))
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
