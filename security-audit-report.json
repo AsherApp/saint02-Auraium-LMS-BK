@@ -1,7 +1,7 @@
 {
-  "timestamp": "2025-09-07T18:33:52.938Z",
+  "timestamp": "2025-09-07T19:47:54.272Z",
   "totalFiles": 42,
-  "issuesFound": 60,
+  "issuesFound": 59,
   "issues": [
     {
       "file": "announcement.routes.ts",
@@ -121,13 +121,6 @@
       "severity": "HIGH",
       "matches": 2,
       "details": "Found 2 instances of SELECT without user filtering"
-    },
-    {
-      "file": "forum.routes.ts",
-      "issue": "No user-based filtering",
-      "severity": "HIGH",
-      "matches": 1,
-      "details": "Authenticated route but no user-based data filtering"
     },
     {
       "file": "index.ts",
@@ -320,10 +313,10 @@
     },
     {
       "file": "seed.routes.ts",
-      "issue": "No authentication middleware",
-      "severity": "CRITICAL",
+      "issue": "No user-based filtering",
+      "severity": "HIGH",
       "matches": 1,
-      "details": "Route has no authentication protection"
+      "details": "Authenticated route but no user-based data filtering"
     },
     {
       "file": "settings.routes.ts",

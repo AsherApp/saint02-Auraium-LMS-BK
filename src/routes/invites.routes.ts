@@ -309,7 +309,10 @@ router.post('/:code/complete', asyncHandler(async (req, res) => {
 // Delete invite
 router.delete('/:code', requireAuth, asyncHandler(async (req, res) => {
   const { code } = req.params
-  const teacher_email = String(req.headers['x-user-email'] || '').toLowerCase()
+  const teacher_email = (req as any).user?.email
+  if (!teacher_email) {
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
   
   // First check if the invite exists and belongs to the teacher
   const { data: invite, error: inviteError } = await supabaseAdmin

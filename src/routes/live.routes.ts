@@ -52,7 +52,10 @@ router.get('/', requireAuth, asyncHandler(async (req, res) => {
 
 // Get scheduled sessions for a teacher
 router.get('/scheduled', requireAuth, asyncHandler(async (req, res) => {
-  const teacher_email = String(req.headers['x-user-email'] || '').toLowerCase()
+  const teacher_email = (req as any).user?.email
+  if (!teacher_email) {
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
   
   const { data, error } = await supabaseAdmin
     .from('live_sessions')
@@ -71,7 +74,10 @@ router.get('/scheduled', requireAuth, asyncHandler(async (req, res) => {
 
 // Schedule a new live session
 router.post('/schedule', requireAuth, asyncHandler(async (req, res) => {
-  const teacher_email = String(req.headers['x-user-email'] || '').toLowerCase()
+  const teacher_email = (req as any).user?.email
+  if (!teacher_email) {
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
   const { title, description, scheduled_at, duration_minutes = 60 } = req.body
   
   if (!title || !scheduled_at) {
