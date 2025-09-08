@@ -2,15 +2,25 @@
 
 import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
+import { getUserDisplayName } from "@/utils/name-utils"
 import { Sun, Moon, Coffee, BookOpen, Star, Sparkles } from "lucide-react"
+
+interface User {
+  first_name?: string
+  last_name?: string
+  name?: string
+  email?: string
+}
 
 interface GreetingProps {
   userName?: string
+  user?: User | null
   className?: string
   showIcon?: boolean
 }
 
-export function Greeting({ userName = "Student", className = "", showIcon = true }: GreetingProps) {
+export function Greeting({ userName, user, className = "", showIcon = true }: GreetingProps) {
+  const displayName = user ? getUserDisplayName(user) : (userName || "Student")
   const [greeting, setGreeting] = useState("")
   const [icon, setIcon] = useState(<Sun className="h-5 w-5" />)
   const [timeOfDay, setTimeOfDay] = useState("")
@@ -79,7 +89,7 @@ export function Greeting({ userName = "Student", className = "", showIcon = true
       )}
       <div>
         <h2 className="text-2xl sm:text-3xl font-bold text-white">
-          {greeting}, {userName}! 👋
+          {greeting}, {displayName}! 👋
         </h2>
         <p className="text-slate-300 text-sm sm:text-base mt-1">
           {getMotivationalMessage()}
@@ -90,7 +100,8 @@ export function Greeting({ userName = "Student", className = "", showIcon = true
 }
 
 // Compact version for smaller spaces
-export function CompactGreeting({ userName = "Student", className = "" }: GreetingProps) {
+export function CompactGreeting({ userName, user, className = "" }: GreetingProps) {
+  const displayName = user ? getUserDisplayName(user) : (userName || "Student")
   const [greeting, setGreeting] = useState("")
 
   useEffect(() => {
@@ -119,7 +130,7 @@ export function CompactGreeting({ userName = "Student", className = "" }: Greeti
   return (
     <div className={cn("flex items-center gap-2", className)}>
       <span className="text-lg font-semibold text-white">
-        {greeting}, {userName}!
+        {greeting}, {displayName}!
       </span>
       <Sparkles className="h-4 w-4 text-yellow-400" />
     </div>
@@ -127,14 +138,15 @@ export function CompactGreeting({ userName = "Student", className = "" }: Greeti
 }
 
 // Welcome message for new users
-export function WelcomeMessage({ userName = "Student", className = "" }: GreetingProps) {
+export function WelcomeMessage({ userName, user, className = "" }: GreetingProps) {
+  const displayName = user ? getUserDisplayName(user) : (userName || "Student")
   return (
     <div className={cn("text-center py-8", className)}>
       <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full mx-auto mb-4">
         <BookOpen className="h-8 w-8 text-white" />
       </div>
       <h2 className="text-2xl font-bold text-white mb-2">
-        Welcome to your learning journey, {userName}! 🎓
+        Welcome to your learning journey, {displayName}! 🎓
       </h2>
       <p className="text-slate-300 max-w-md mx-auto">
         You're all set to start exploring courses, completing assignments, and achieving your goals. Let's make learning fun and rewarding!

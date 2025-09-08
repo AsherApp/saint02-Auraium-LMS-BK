@@ -6,6 +6,7 @@ import { useCourseStore } from "@/store/course-store"
 import { useCoursesFn } from "@/services/courses/hook"
 import { useAssignmentsFn } from "@/services/assignments/hook"
 import { http } from "@/services/http"
+import { getUserDisplayName } from "@/utils/name-utils"
 import { GlassCard } from "@/components/shared/glass-card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -350,7 +351,7 @@ export default function TeacherDashboard() {
       >
         <div>
           <h1 className="text-3xl font-bold text-white mb-2">
-            Welcome back, {user?.name || 'Teacher'}! 👋
+            Welcome back, {getUserDisplayName(user)}! 👋
           </h1>
           <p className="text-slate-300">
             Here's what's happening with your courses and students today.

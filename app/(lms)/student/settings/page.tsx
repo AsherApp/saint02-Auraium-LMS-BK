@@ -24,8 +24,8 @@ export default function StudentSettingsPage() {
   
   // Profile state - comprehensive profile data
   const [profile, setProfile] = useState({
-    first_name: user?.name?.split(' ')[0] || '',
-    last_name: user?.name?.split(' ').slice(1).join(' ') || '',
+    first_name: user?.first_name || user?.name?.split(' ')[0] || '',
+    last_name: user?.last_name || user?.name?.split(' ').slice(1).join(' ') || '',
     bio: '',
     avatar_url: '',
     student_code: '',

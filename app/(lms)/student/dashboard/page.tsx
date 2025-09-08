@@ -224,7 +224,7 @@ export default function StudentDashboardPage() {
     return (
       <div className="space-y-6">
         <GlassCard className="p-6" variant="medium" hover={false}>
-          <Greeting userName={user?.name || 'Student'} />
+          <Greeting user={user} />
           <div className="text-slate-300 mt-4 flex items-center gap-2">
             <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/20 border-t-white"></div>
             Loading your dashboard...
@@ -238,7 +238,7 @@ export default function StudentDashboardPage() {
     return (
       <div className="space-y-6">
         <GlassCard className="p-6" variant="medium" hover={false}>
-          <Greeting userName={user?.name || 'Student'} />
+          <Greeting user={user} />
           <div className="text-red-300 mt-4 flex items-center gap-2">
             <AlertCircle className="h-4 w-4" />
             Error: {error}
@@ -275,7 +275,7 @@ export default function StudentDashboardPage() {
         <GlassCard className="p-6" variant="medium" hover={false}>
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
             <div className="flex-1">
-              <Greeting userName={user?.name || 'Student'} />
+              <Greeting user={user} />
               <div className="flex items-center gap-4 mt-4">
                 <div className="flex items-center gap-2">
                   <Key className="h-4 w-4 text-blue-300" />
