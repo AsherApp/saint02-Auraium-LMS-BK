@@ -45,7 +45,7 @@ export default function StudentCourseDetailPage() {
         const courseResponse = await http<any>(`/api/courses/${params.id}`)
         
         // Check if course is in public mode
-        const isPublic = courseResponse.course_mode === 'public'
+        const isPublic = courseResponse.course_mode === 'public' || courseResponse.course_mode === 'full'
         setIsPublicMode(isPublic)
         
         setCourse(courseResponse)

@@ -82,7 +82,7 @@ export default function StudentDashboardPage() {
         const hasPublicCourses = enrolledCourses.some((course: any) => {
           const courseMode = course.course?.course_mode
           console.log('Student Dashboard - Course:', course.course?.title, 'Mode:', courseMode)
-          return courseMode === 'public'
+          return courseMode === 'public' || courseMode === 'full'
         })
         
         console.log('Student Dashboard - Has public courses:', hasPublicCourses)
@@ -99,7 +99,7 @@ export default function StudentDashboardPage() {
         
         // Filter courses to show only public courses if in public mode
         const filteredCourses = hasPublicCourses 
-          ? enrolledCourses.filter((course: any) => course.course?.course_mode === 'public')
+          ? enrolledCourses.filter((course: any) => course.course?.course_mode === 'public' || course.course?.course_mode === 'full')
           : enrolledCourses
         
         setEnrolledCourses(filteredCourses)
