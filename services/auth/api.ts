@@ -13,6 +13,8 @@ export type User = {
   last_name?: string
   full_name?: string
   user_type?: string
+  // Course mode for public students
+  course_mode?: 'public' | 'private'
 }
 
 export type Student = {

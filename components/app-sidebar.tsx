@@ -33,8 +33,7 @@ export function AppSidebar() {
   if (!user) return null
 
   // Check if student is in public mode (simplified environment)
-  const isPublicMode = pathname.startsWith('/student/public-') || 
-                      (user.role === 'student' && pathname.includes('public'))
+  const isPublicMode = user.role === 'student' && user.course_mode === 'public'
 
 const teacherItems = [
     {
@@ -243,7 +242,7 @@ const studentItems = [
     // For public mode, only show essential items
     return [
       {
-        title: "Core",
+        title: "Learning",
         items: [
           {
             title: "Dashboard",
@@ -256,12 +255,7 @@ const studentItems = [
             href: "/student/courses",
             icon: BookOpen,
             description: "Enrolled courses"
-          }
-        ]
-      },
-      {
-        title: "Learning",
-        items: [
+          },
           {
             title: "Notes",
             href: "/student/notes",
@@ -385,13 +379,24 @@ const studentItems = [
               }}
               transition={{ duration: 0.3 }}
             >
-              {user.name || user.email}
+              {user.first_name && user.last_name ? `${user.first_name} ${user.last_name}` : user.name || user.email}
             </motion.p>
-            <motion.p 
-              className="text-xs text-slate-400 capitalize hover:text-purple-400 transition-colors duration-300"
-            >
-              {user.role}
-            </motion.p>
+            <motion.div className="flex items-center gap-2">
+              <motion.p 
+                className="text-xs text-slate-400 capitalize hover:text-purple-400 transition-colors duration-300"
+              >
+                {user.role}
+              </motion.p>
+              {user.role === 'student' && user.student_code && (
+                <motion.p 
+                  className="text-xs text-blue-400 font-mono bg-blue-500/20 px-2 py-1 rounded"
+                  whileHover={{ scale: 1.05 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {user.student_code}
+                </motion.p>
+              )}
+            </motion.div>
           </div>
         </motion.div>
       </motion.div>

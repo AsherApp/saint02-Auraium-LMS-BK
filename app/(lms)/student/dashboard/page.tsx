@@ -88,6 +88,15 @@ export default function StudentDashboardPage() {
         console.log('Student Dashboard - Has public courses:', hasPublicCourses)
         setIsPublicMode(hasPublicCourses)
         
+        // Update user object with course_mode for sidebar detection
+        if (hasPublicCourses && user) {
+          // Update the user object in the auth store to include course_mode
+          const updatedUser = { ...user, course_mode: 'public' }
+          // Update the auth store directly
+          const { setUser } = useAuthStore.getState()
+          setUser(updatedUser)
+        }
+        
         // Filter courses to show only public courses if in public mode
         const filteredCourses = hasPublicCourses 
           ? enrolledCourses.filter((course: any) => course.course?.course_mode === 'public')

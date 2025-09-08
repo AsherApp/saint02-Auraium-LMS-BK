@@ -17,6 +17,8 @@ type AuthUser = {
   last_name?: string
   full_name?: string
   user_type?: string
+  // Course mode for public students
+  course_mode?: 'public' | 'private'
 } | null
 
 type AuthState = {
