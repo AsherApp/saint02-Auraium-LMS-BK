@@ -29,7 +29,23 @@ const upload = multer({
 
 // Video upload endpoint
 router.post('/video', requireAuth, upload.single('video'), asyncHandler(async (req, res) => {
+  console.log('Video upload request received:', {
+    hasFile: !!req.file,
+    fileInfo: req.file ? {
+      fieldname: req.file.fieldname,
+      originalname: req.file.originalname,
+      mimetype: req.file.mimetype,
+      size: req.file.size
+    } : null,
+    body: req.body,
+    headers: {
+      'content-type': req.headers['content-type'],
+      'content-length': req.headers['content-length']
+    }
+  })
+  
   if (!req.file) {
+    console.error('No file received in video upload request')
     return res.status(400).json({ error: 'No video file uploaded' })
   }
 
