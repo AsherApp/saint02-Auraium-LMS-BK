@@ -24,11 +24,11 @@ export default function StudentInboxPage() {
         <GlassCard className="p-0 overflow-hidden">
           <div className="p-3 border-b border-white/10 text-slate-300 text-sm">Threads</div>
           <div className="max-h-[420px] overflow-y-auto">
-            {threads.length === 0 ? (
+            {(!threads || threads.length === 0) ? (
               <div className="p-3 text-slate-400 text-sm">No threads.</div>
             ) : (
               <ul className="divide-y divide-white/10">
-                {threads.map((t) => (
+                {(threads || []).map((t) => (
                   <li key={t.withEmail} className="p-3 hover:bg-white/5">
                     <div className="flex items-center justify-between">
                       <div className="text-white text-sm">Conversation</div>
