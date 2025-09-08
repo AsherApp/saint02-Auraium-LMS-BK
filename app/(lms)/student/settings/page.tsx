@@ -22,7 +22,7 @@ export default function StudentSettingsPage() {
   const [activeTab, setActiveTab] = useState("profile")
   const [theme, setTheme] = useState<'light' | 'dark' | 'auto'>('dark')
   
-  // Profile state
+  // Profile state - comprehensive profile data
   const [profile, setProfile] = useState({
     first_name: user?.name?.split(' ')[0] || '',
     last_name: user?.name?.split(' ').slice(1).join(' ') || '',
@@ -30,7 +30,32 @@ export default function StudentSettingsPage() {
     avatar_url: '',
     student_code: '',
     grade_level: '',
-    interests: ''
+    interests: '',
+    // Personal Information
+    date_of_birth: '',
+    phone_number: '',
+    address: '',
+    city: '',
+    state: '',
+    country: '',
+    postal_code: '',
+    // Emergency Contact
+    emergency_contact_name: '',
+    emergency_contact_phone: '',
+    emergency_contact_relationship: '',
+    // Academic Information
+    academic_level: '',
+    major: '',
+    minor: '',
+    graduation_year: '',
+    gpa: '',
+    academic_interests: '',
+    career_goals: '',
+    // Additional Information
+    timezone: '',
+    preferred_language: '',
+    accessibility_needs: '',
+    dietary_restrictions: ''
   })
   const [isEditingProfile, setIsEditingProfile] = useState(false)
   const [notifications, setNotifications] = useState({
@@ -55,6 +80,58 @@ export default function StudentSettingsPage() {
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [changingPassword, setChangingPassword] = useState(false)
+
+  // Fetch comprehensive profile data
+  useEffect(() => {
+    if (user?.email) {
+      fetchProfileData()
+    }
+  }, [user?.email])
+
+  const fetchProfileData = async () => {
+    try {
+      const response = await http<any>(`/api/students/me/profile`)
+      if (response) {
+        setProfile(prev => ({
+          ...prev,
+          first_name: response.first_name || prev.first_name,
+          last_name: response.last_name || prev.last_name,
+          bio: response.bio || prev.bio,
+          avatar_url: response.avatar_url || prev.avatar_url,
+          student_code: response.student_code || prev.student_code,
+          grade_level: response.grade_level || prev.grade_level,
+          interests: response.interests || prev.interests,
+          // Personal Information
+          date_of_birth: response.date_of_birth || prev.date_of_birth,
+          phone_number: response.phone_number || prev.phone_number,
+          address: response.address || prev.address,
+          city: response.city || prev.city,
+          state: response.state || prev.state,
+          country: response.country || prev.country,
+          postal_code: response.postal_code || prev.postal_code,
+          // Emergency Contact
+          emergency_contact_name: response.emergency_contact_name || prev.emergency_contact_name,
+          emergency_contact_phone: response.emergency_contact_phone || prev.emergency_contact_phone,
+          emergency_contact_relationship: response.emergency_contact_relationship || prev.emergency_contact_relationship,
+          // Academic Information
+          academic_level: response.academic_level || prev.academic_level,
+          major: response.major || prev.major,
+          minor: response.minor || prev.minor,
+          graduation_year: response.graduation_year || prev.graduation_year,
+          gpa: response.gpa || prev.gpa,
+          academic_interests: response.academic_interests || prev.academic_interests,
+          career_goals: response.career_goals || prev.career_goals,
+          // Additional Information
+          timezone: response.timezone || prev.timezone,
+          preferred_language: response.preferred_language || prev.preferred_language,
+          accessibility_needs: response.accessibility_needs || prev.accessibility_needs,
+          dietary_restrictions: response.dietary_restrictions || prev.dietary_restrictions
+        }))
+      }
+    } catch (err) {
+      console.error('Failed to fetch profile data:', err)
+    }
+  }
 
   // Update form when settings load
   useEffect(() => {
@@ -299,10 +376,207 @@ export default function StudentSettingsPage() {
               </div>
             </div>
 
+            {/* Profile Display */}
+            {!isEditingProfile && (
+              <div className="space-y-6">
+                {/* Basic Information Display */}
+                <div className="space-y-4">
+                  <h4 className="text-lg font-semibold text-white border-b border-white/20 pb-2">Basic Information</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-slate-400 text-sm">First Name</Label>
+                      <p className="text-white">{profile.first_name || 'Not provided'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-slate-400 text-sm">Last Name</Label>
+                      <p className="text-white">{profile.last_name || 'Not provided'}</p>
+                    </div>
+                  </div>
+                  {profile.bio && (
+                    <div>
+                      <Label className="text-slate-400 text-sm">Bio</Label>
+                      <p className="text-white">{profile.bio}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Personal Information Display */}
+                {(profile.date_of_birth || profile.phone_number || profile.address || profile.city || profile.state || profile.country) && (
+                  <div className="space-y-4">
+                    <h4 className="text-lg font-semibold text-white border-b border-white/20 pb-2">Personal Information</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {profile.date_of_birth && (
+                        <div>
+                          <Label className="text-slate-400 text-sm">Date of Birth</Label>
+                          <p className="text-white">{new Date(profile.date_of_birth).toLocaleDateString()}</p>
+                        </div>
+                      )}
+                      {profile.phone_number && (
+                        <div>
+                          <Label className="text-slate-400 text-sm">Phone Number</Label>
+                          <p className="text-white">{profile.phone_number}</p>
+                        </div>
+                      )}
+                    </div>
+                    {profile.address && (
+                      <div>
+                        <Label className="text-slate-400 text-sm">Address</Label>
+                        <p className="text-white">{profile.address}</p>
+                      </div>
+                    )}
+                    {(profile.city || profile.state || profile.postal_code) && (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {profile.city && (
+                          <div>
+                            <Label className="text-slate-400 text-sm">City</Label>
+                            <p className="text-white">{profile.city}</p>
+                          </div>
+                        )}
+                        {profile.state && (
+                          <div>
+                            <Label className="text-slate-400 text-sm">State/Province</Label>
+                            <p className="text-white">{profile.state}</p>
+                          </div>
+                        )}
+                        {profile.postal_code && (
+                          <div>
+                            <Label className="text-slate-400 text-sm">Postal Code</Label>
+                            <p className="text-white">{profile.postal_code}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {profile.country && (
+                      <div>
+                        <Label className="text-slate-400 text-sm">Country</Label>
+                        <p className="text-white">{profile.country}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Emergency Contact Display */}
+                {(profile.emergency_contact_name || profile.emergency_contact_phone || profile.emergency_contact_relationship) && (
+                  <div className="space-y-4">
+                    <h4 className="text-lg font-semibold text-white border-b border-white/20 pb-2">Emergency Contact</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {profile.emergency_contact_name && (
+                        <div>
+                          <Label className="text-slate-400 text-sm">Contact Name</Label>
+                          <p className="text-white">{profile.emergency_contact_name}</p>
+                        </div>
+                      )}
+                      {profile.emergency_contact_phone && (
+                        <div>
+                          <Label className="text-slate-400 text-sm">Contact Phone</Label>
+                          <p className="text-white">{profile.emergency_contact_phone}</p>
+                        </div>
+                      )}
+                    </div>
+                    {profile.emergency_contact_relationship && (
+                      <div>
+                        <Label className="text-slate-400 text-sm">Relationship</Label>
+                        <p className="text-white">{profile.emergency_contact_relationship}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Academic Information Display */}
+                {(profile.academic_level || profile.major || profile.minor || profile.graduation_year || profile.gpa || profile.academic_interests || profile.career_goals) && (
+                  <div className="space-y-4">
+                    <h4 className="text-lg font-semibold text-white border-b border-white/20 pb-2">Academic Information</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {profile.academic_level && (
+                        <div>
+                          <Label className="text-slate-400 text-sm">Academic Level</Label>
+                          <p className="text-white capitalize">{profile.academic_level.replace('_', ' ')}</p>
+                        </div>
+                      )}
+                      {profile.graduation_year && (
+                        <div>
+                          <Label className="text-slate-400 text-sm">Graduation Year</Label>
+                          <p className="text-white">{profile.graduation_year}</p>
+                        </div>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {profile.major && (
+                        <div>
+                          <Label className="text-slate-400 text-sm">Major/Field of Study</Label>
+                          <p className="text-white">{profile.major}</p>
+                        </div>
+                      )}
+                      {profile.minor && (
+                        <div>
+                          <Label className="text-slate-400 text-sm">Minor</Label>
+                          <p className="text-white">{profile.minor}</p>
+                        </div>
+                      )}
+                    </div>
+                    {profile.gpa && (
+                      <div>
+                        <Label className="text-slate-400 text-sm">GPA</Label>
+                        <p className="text-white">{profile.gpa}</p>
+                      </div>
+                    )}
+                    {profile.academic_interests && (
+                      <div>
+                        <Label className="text-slate-400 text-sm">Academic Interests</Label>
+                        <p className="text-white">{profile.academic_interests}</p>
+                      </div>
+                    )}
+                    {profile.career_goals && (
+                      <div>
+                        <Label className="text-slate-400 text-sm">Career Goals</Label>
+                        <p className="text-white">{profile.career_goals}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Additional Information Display */}
+                {(profile.timezone || profile.preferred_language || profile.accessibility_needs || profile.dietary_restrictions) && (
+                  <div className="space-y-4">
+                    <h4 className="text-lg font-semibold text-white border-b border-white/20 pb-2">Additional Information</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {profile.timezone && (
+                        <div>
+                          <Label className="text-slate-400 text-sm">Timezone</Label>
+                          <p className="text-white">{profile.timezone}</p>
+                        </div>
+                      )}
+                      {profile.preferred_language && (
+                        <div>
+                          <Label className="text-slate-400 text-sm">Preferred Language</Label>
+                          <p className="text-white">{profile.preferred_language}</p>
+                        </div>
+                      )}
+                    </div>
+                    {profile.accessibility_needs && (
+                      <div>
+                        <Label className="text-slate-400 text-sm">Accessibility Needs</Label>
+                        <p className="text-white">{profile.accessibility_needs}</p>
+                      </div>
+                    )}
+                    {profile.dietary_restrictions && (
+                      <div>
+                        <Label className="text-slate-400 text-sm">Dietary Restrictions</Label>
+                        <p className="text-white">{profile.dietary_restrictions}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Profile Form */}
             {isEditingProfile && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-8">
+                {/* Basic Information */}
                 <div className="space-y-4">
+                  <h4 className="text-lg font-semibold text-white border-b border-white/20 pb-2">Basic Information</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label className="text-white font-medium">First Name</Label>
                     <Input
@@ -319,43 +593,240 @@ export default function StudentSettingsPage() {
                       className="bg-white/5 border-white/10 text-white"
                     />
                   </div>
-                  <div>
-                    <Label className="text-white font-medium">Grade Level</Label>
-                    <Select
-                      value={profile.grade_level}
-                      onValueChange={(value) => setProfile(prev => ({ ...prev, grade_level: value }))}
-                    >
-                      <SelectTrigger className="bg-white/5 border-white/10 text-white">
-                        <SelectValue placeholder="Select grade level" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-slate-900/95 text-white border-white/10">
-                        <SelectItem value="9">Grade 9</SelectItem>
-                        <SelectItem value="10">Grade 10</SelectItem>
-                        <SelectItem value="11">Grade 11</SelectItem>
-                        <SelectItem value="12">Grade 12</SelectItem>
-                        <SelectItem value="college">College</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
                   </div>
-                </div>
-                <div className="space-y-4">
                   <div>
                     <Label className="text-white font-medium">Bio</Label>
                     <textarea
                       value={profile.bio}
                       onChange={(e) => setProfile(prev => ({ ...prev, bio: e.target.value }))}
-                      className="w-full bg-white/5 border border-white/10 text-white rounded-md p-3 min-h-24"
-                      placeholder="Tell teachers about yourself..."
+                      className="w-full bg-white/5 border border-white/10 text-white rounded-md p-3 min-h-20"
+                      placeholder="Tell us about yourself..."
+                    />
+                  </div>
+                </div>
+
+                {/* Personal Information */}
+                <div className="space-y-4">
+                  <h4 className="text-lg font-semibold text-white border-b border-white/20 pb-2">Personal Information</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-white font-medium">Date of Birth</Label>
+                      <Input
+                        type="date"
+                        value={profile.date_of_birth}
+                        onChange={(e) => setProfile(prev => ({ ...prev, date_of_birth: e.target.value }))}
+                        className="bg-white/5 border-white/10 text-white"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-white font-medium">Phone Number</Label>
+                      <Input
+                        type="tel"
+                        value={profile.phone_number}
+                        onChange={(e) => setProfile(prev => ({ ...prev, phone_number: e.target.value }))}
+                        className="bg-white/5 border-white/10 text-white"
+                        placeholder="+1 (555) 123-4567"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-white font-medium">Address</Label>
+                    <Input
+                      value={profile.address}
+                      onChange={(e) => setProfile(prev => ({ ...prev, address: e.target.value }))}
+                      className="bg-white/5 border-white/10 text-white"
+                      placeholder="123 Main Street"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label className="text-white font-medium">City</Label>
+                      <Input
+                        value={profile.city}
+                        onChange={(e) => setProfile(prev => ({ ...prev, city: e.target.value }))}
+                        className="bg-white/5 border-white/10 text-white"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-white font-medium">State/Province</Label>
+                      <Input
+                        value={profile.state}
+                        onChange={(e) => setProfile(prev => ({ ...prev, state: e.target.value }))}
+                        className="bg-white/5 border-white/10 text-white"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-white font-medium">Postal Code</Label>
+                      <Input
+                        value={profile.postal_code}
+                        onChange={(e) => setProfile(prev => ({ ...prev, postal_code: e.target.value }))}
+                        className="bg-white/5 border-white/10 text-white"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-white font-medium">Country</Label>
+                    <Input
+                      value={profile.country}
+                      onChange={(e) => setProfile(prev => ({ ...prev, country: e.target.value }))}
+                      className="bg-white/5 border-white/10 text-white"
+                    />
+                  </div>
+                </div>
+
+                {/* Emergency Contact */}
+                <div className="space-y-4">
+                  <h4 className="text-lg font-semibold text-white border-b border-white/20 pb-2">Emergency Contact</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-white font-medium">Contact Name</Label>
+                      <Input
+                        value={profile.emergency_contact_name}
+                        onChange={(e) => setProfile(prev => ({ ...prev, emergency_contact_name: e.target.value }))}
+                        className="bg-white/5 border-white/10 text-white"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-white font-medium">Contact Phone</Label>
+                      <Input
+                        type="tel"
+                        value={profile.emergency_contact_phone}
+                        onChange={(e) => setProfile(prev => ({ ...prev, emergency_contact_phone: e.target.value }))}
+                        className="bg-white/5 border-white/10 text-white"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-white font-medium">Relationship</Label>
+                    <Input
+                      value={profile.emergency_contact_relationship}
+                      onChange={(e) => setProfile(prev => ({ ...prev, emergency_contact_relationship: e.target.value }))}
+                      className="bg-white/5 border-white/10 text-white"
+                      placeholder="Parent, Guardian, etc."
+                    />
+                  </div>
+                </div>
+
+                {/* Academic Information */}
+                <div className="space-y-4">
+                  <h4 className="text-lg font-semibold text-white border-b border-white/20 pb-2">Academic Information</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-white font-medium">Academic Level</Label>
+                      <select
+                        value={profile.academic_level}
+                        onChange={(e) => setProfile(prev => ({ ...prev, academic_level: e.target.value }))}
+                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-md text-white"
+                      >
+                        <option value="">Select level</option>
+                        <option value="high_school">High School</option>
+                        <option value="undergraduate">Undergraduate</option>
+                        <option value="graduate">Graduate</option>
+                        <option value="professional">Professional</option>
+                        <option value="other">Other</option>
+                      </select>
+                  </div>
+                    <div>
+                      <Label className="text-white font-medium">Graduation Year</Label>
+                      <Input
+                        type="number"
+                        value={profile.graduation_year}
+                        onChange={(e) => setProfile(prev => ({ ...prev, graduation_year: e.target.value }))}
+                        className="bg-white/5 border-white/10 text-white"
+                        placeholder="2024"
+                      />
+                </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-white font-medium">Major/Field of Study</Label>
+                      <Input
+                        value={profile.major}
+                        onChange={(e) => setProfile(prev => ({ ...prev, major: e.target.value }))}
+                        className="bg-white/5 border-white/10 text-white"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-white font-medium">Minor</Label>
+                      <Input
+                        value={profile.minor}
+                        onChange={(e) => setProfile(prev => ({ ...prev, minor: e.target.value }))}
+                        className="bg-white/5 border-white/10 text-white"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-white font-medium">GPA</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="4"
+                      value={profile.gpa}
+                      onChange={(e) => setProfile(prev => ({ ...prev, gpa: e.target.value }))}
+                      className="bg-white/5 border-white/10 text-white"
+                      placeholder="3.5"
                     />
                   </div>
                   <div>
-                    <Label className="text-white font-medium">Interests</Label>
+                    <Label className="text-white font-medium">Academic Interests</Label>
+                    <textarea
+                      value={profile.academic_interests}
+                      onChange={(e) => setProfile(prev => ({ ...prev, academic_interests: e.target.value }))}
+                      className="w-full bg-white/5 border border-white/10 text-white rounded-md p-3 min-h-20"
+                      placeholder="What subjects or topics interest you most?"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-white font-medium">Career Goals</Label>
+                    <textarea
+                      value={profile.career_goals}
+                      onChange={(e) => setProfile(prev => ({ ...prev, career_goals: e.target.value }))}
+                      className="w-full bg-white/5 border border-white/10 text-white rounded-md p-3 min-h-20"
+                      placeholder="What are your career aspirations?"
+                    />
+                  </div>
+                </div>
+
+                {/* Additional Information */}
+                <div className="space-y-4">
+                  <h4 className="text-lg font-semibold text-white border-b border-white/20 pb-2">Additional Information</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                      <Label className="text-white font-medium">Timezone</Label>
+                      <Input
+                        value={profile.timezone}
+                        onChange={(e) => setProfile(prev => ({ ...prev, timezone: e.target.value }))}
+                        className="bg-white/5 border-white/10 text-white"
+                        placeholder="UTC-5"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-white font-medium">Preferred Language</Label>
+                      <Input
+                        value={profile.preferred_language}
+                        onChange={(e) => setProfile(prev => ({ ...prev, preferred_language: e.target.value }))}
+                        className="bg-white/5 border-white/10 text-white"
+                        placeholder="English"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-white font-medium">Accessibility Needs</Label>
+                    <textarea
+                      value={profile.accessibility_needs}
+                      onChange={(e) => setProfile(prev => ({ ...prev, accessibility_needs: e.target.value }))}
+                      className="w-full bg-white/5 border border-white/10 text-white rounded-md p-3 min-h-16"
+                      placeholder="Any accessibility accommodations you need..."
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-white font-medium">Dietary Restrictions</Label>
                     <Input
-                      value={profile.interests}
-                      onChange={(e) => setProfile(prev => ({ ...prev, interests: e.target.value }))}
+                      value={profile.dietary_restrictions}
+                      onChange={(e) => setProfile(prev => ({ ...prev, dietary_restrictions: e.target.value }))}
                       className="bg-white/5 border-white/10 text-white"
-                      placeholder="e.g., Mathematics, Science, Art"
+                      placeholder="Vegetarian, allergies, etc."
                     />
                   </div>
                 </div>

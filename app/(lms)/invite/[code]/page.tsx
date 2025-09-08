@@ -320,71 +320,349 @@ export default function InvitePage() {
 
       {/* Registration Modal */}
       <Dialog open={showRegistration} onOpenChange={setShowRegistration}>
-        <DialogContent className="bg-white/10 border-white/20 backdrop-blur text-white max-w-md">
+        <DialogContent className="bg-white/10 border-white/20 backdrop-blur text-white max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create Your Account</DialogTitle>
             <DialogDescription>
-              Please confirm your details and create a password for your account.
+              Please fill in your details to create your student account. Only basic fields are required.
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-6">
+            {/* Basic Information */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-white border-b border-white/20 pb-2">Basic Information</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">First Name *</Label>
+                  <Input
+                    id="firstName"
+                    value={formData.firstName}
+                    onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
+                    className="bg-white/5 border-white/10 text-white"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Last Name *</Label>
+                  <Input
+                    id="lastName"
+                    value={formData.lastName}
+                    onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
+                    className="bg-white/5 border-white/10 text-white"
+                    required
+                  />
+                </div>
+              </div>
+              
               <div className="space-y-2">
-                <Label htmlFor="firstName">First Name</Label>
+                <Label htmlFor="email">Email *</Label>
                 <Input
-                  id="firstName"
-                  value={formData.firstName}
-                  onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                  className="bg-white/5 border-white/10 text-white"
+                  required
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password *</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                    className="bg-white/5 border-white/10 text-white"
+                    placeholder="At least 6 characters"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm Password *</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    value={formData.confirmPassword}
+                    onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                    className="bg-white/5 border-white/10 text-white"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Personal Information */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-white border-b border-white/20 pb-2">Personal Information</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="dateOfBirth">Date of Birth</Label>
+                  <Input
+                    id="dateOfBirth"
+                    type="date"
+                    value={formData.dateOfBirth}
+                    onChange={(e) => setFormData(prev => ({ ...prev, dateOfBirth: e.target.value }))}
+                    className="bg-white/5 border-white/10 text-white"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phoneNumber">Phone Number</Label>
+                  <Input
+                    id="phoneNumber"
+                    type="tel"
+                    value={formData.phoneNumber}
+                    onChange={(e) => setFormData(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                    className="bg-white/5 border-white/10 text-white"
+                    placeholder="+1 (555) 123-4567"
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="address">Address</Label>
+                <Input
+                  id="address"
+                  value={formData.address}
+                  onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+                  className="bg-white/5 border-white/10 text-white"
+                  placeholder="123 Main Street"
+                />
+              </div>
+              
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="city">City</Label>
+                  <Input
+                    id="city"
+                    value={formData.city}
+                    onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
+                    className="bg-white/5 border-white/10 text-white"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="state">State/Province</Label>
+                  <Input
+                    id="state"
+                    value={formData.state}
+                    onChange={(e) => setFormData(prev => ({ ...prev, state: e.target.value }))}
+                    className="bg-white/5 border-white/10 text-white"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="postalCode">Postal Code</Label>
+                  <Input
+                    id="postalCode"
+                    value={formData.postalCode}
+                    onChange={(e) => setFormData(prev => ({ ...prev, postalCode: e.target.value }))}
+                    className="bg-white/5 border-white/10 text-white"
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="country">Country</Label>
+                <Input
+                  id="country"
+                  value={formData.country}
+                  onChange={(e) => setFormData(prev => ({ ...prev, country: e.target.value }))}
                   className="bg-white/5 border-white/10 text-white"
                 />
               </div>
+            </div>
+
+            {/* Emergency Contact */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-white border-b border-white/20 pb-2">Emergency Contact</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="emergencyContactName">Contact Name</Label>
+                  <Input
+                    id="emergencyContactName"
+                    value={formData.emergencyContactName}
+                    onChange={(e) => setFormData(prev => ({ ...prev, emergencyContactName: e.target.value }))}
+                    className="bg-white/5 border-white/10 text-white"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="emergencyContactPhone">Contact Phone</Label>
+                  <Input
+                    id="emergencyContactPhone"
+                    type="tel"
+                    value={formData.emergencyContactPhone}
+                    onChange={(e) => setFormData(prev => ({ ...prev, emergencyContactPhone: e.target.value }))}
+                    className="bg-white/5 border-white/10 text-white"
+                  />
+                </div>
+              </div>
+              
               <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name</Label>
+                <Label htmlFor="emergencyContactRelationship">Relationship</Label>
                 <Input
-                  id="lastName"
-                  value={formData.lastName}
-                  onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
+                  id="emergencyContactRelationship"
+                  value={formData.emergencyContactRelationship}
+                  onChange={(e) => setFormData(prev => ({ ...prev, emergencyContactRelationship: e.target.value }))}
                   className="bg-white/5 border-white/10 text-white"
+                  placeholder="Parent, Guardian, etc."
+                />
+              </div>
+            </div>
+
+            {/* Academic Information */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-white border-b border-white/20 pb-2">Academic Information</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="academicLevel">Academic Level</Label>
+                  <select
+                    id="academicLevel"
+                    value={formData.academicLevel}
+                    onChange={(e) => setFormData(prev => ({ ...prev, academicLevel: e.target.value }))}
+                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-md text-white"
+                  >
+                    <option value="">Select level</option>
+                    <option value="high_school">High School</option>
+                    <option value="undergraduate">Undergraduate</option>
+                    <option value="graduate">Graduate</option>
+                    <option value="professional">Professional</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="graduationYear">Graduation Year</Label>
+                  <Input
+                    id="graduationYear"
+                    type="number"
+                    value={formData.graduationYear}
+                    onChange={(e) => setFormData(prev => ({ ...prev, graduationYear: e.target.value }))}
+                    className="bg-white/5 border-white/10 text-white"
+                    placeholder="2024"
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="major">Major/Field of Study</Label>
+                  <Input
+                    id="major"
+                    value={formData.major}
+                    onChange={(e) => setFormData(prev => ({ ...prev, major: e.target.value }))}
+                    className="bg-white/5 border-white/10 text-white"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="minor">Minor</Label>
+                  <Input
+                    id="minor"
+                    value={formData.minor}
+                    onChange={(e) => setFormData(prev => ({ ...prev, minor: e.target.value }))}
+                    className="bg-white/5 border-white/10 text-white"
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="gpa">GPA</Label>
+                <Input
+                  id="gpa"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="4"
+                  value={formData.gpa}
+                  onChange={(e) => setFormData(prev => ({ ...prev, gpa: e.target.value }))}
+                  className="bg-white/5 border-white/10 text-white"
+                  placeholder="3.5"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="academicInterests">Academic Interests</Label>
+                <textarea
+                  id="academicInterests"
+                  value={formData.academicInterests}
+                  onChange={(e) => setFormData(prev => ({ ...prev, academicInterests: e.target.value }))}
+                  className="w-full bg-white/5 border border-white/10 text-white rounded-md p-3 min-h-20"
+                  placeholder="What subjects or topics interest you most?"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="careerGoals">Career Goals</Label>
+                <textarea
+                  id="careerGoals"
+                  value={formData.careerGoals}
+                  onChange={(e) => setFormData(prev => ({ ...prev, careerGoals: e.target.value }))}
+                  className="w-full bg-white/5 border border-white/10 text-white rounded-md p-3 min-h-20"
+                  placeholder="What are your career aspirations?"
+                />
+              </div>
+            </div>
+
+            {/* Additional Information */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-white border-b border-white/20 pb-2">Additional Information</h3>
+              <div className="space-y-2">
+                <Label htmlFor="bio">Bio</Label>
+                <textarea
+                  id="bio"
+                  value={formData.bio}
+                  onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
+                  className="w-full bg-white/5 border border-white/10 text-white rounded-md p-3 min-h-20"
+                  placeholder="Tell us about yourself..."
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="timezone">Timezone</Label>
+                  <Input
+                    id="timezone"
+                    value={formData.timezone}
+                    onChange={(e) => setFormData(prev => ({ ...prev, timezone: e.target.value }))}
+                    className="bg-white/5 border-white/10 text-white"
+                    placeholder="UTC-5"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="preferredLanguage">Preferred Language</Label>
+                  <Input
+                    id="preferredLanguage"
+                    value={formData.preferredLanguage}
+                    onChange={(e) => setFormData(prev => ({ ...prev, preferredLanguage: e.target.value }))}
+                    className="bg-white/5 border-white/10 text-white"
+                    placeholder="English"
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="accessibilityNeeds">Accessibility Needs</Label>
+                <textarea
+                  id="accessibilityNeeds"
+                  value={formData.accessibilityNeeds}
+                  onChange={(e) => setFormData(prev => ({ ...prev, accessibilityNeeds: e.target.value }))}
+                  className="w-full bg-white/5 border border-white/10 text-white rounded-md p-3 min-h-16"
+                  placeholder="Any accessibility accommodations you need..."
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="dietaryRestrictions">Dietary Restrictions</Label>
+                <Input
+                  id="dietaryRestrictions"
+                  value={formData.dietaryRestrictions}
+                  onChange={(e) => setFormData(prev => ({ ...prev, dietaryRestrictions: e.target.value }))}
+                  className="bg-white/5 border-white/10 text-white"
+                  placeholder="Vegetarian, allergies, etc."
                 />
               </div>
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                className="bg-white/5 border-white/10 text-white"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={formData.password}
-                onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                className="bg-white/5 border-white/10 text-white"
-                placeholder="At least 6 characters"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                value={formData.confirmPassword}
-                onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                className="bg-white/5 border-white/10 text-white"
-              />
-            </div>
-            
-            <div className="flex justify-end space-x-2 pt-4">
+            <div className="flex justify-end space-x-2 pt-4 border-t border-white/20">
               <Button 
                 variant="secondary" 
                 onClick={() => setShowRegistration(false)}
