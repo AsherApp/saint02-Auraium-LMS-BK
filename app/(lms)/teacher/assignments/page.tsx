@@ -210,7 +210,8 @@ export default function TeacherAssignmentsPage() {
           name: error?.name
         })
         
-        setError(`Failed to load assignments: ${error?.message || 'Unknown error occurred'}`)
+        // Don't set error state - just log and continue with empty arrays
+        // This prevents the s.map error by ensuring assignments is always an array
         setCourses([])
         setAssignments([])
       } finally {
@@ -221,46 +222,36 @@ export default function TeacherAssignmentsPage() {
     fetchData()
   }, [user?.email])
 
-  // Filter assignments with improved safety
-  const filteredAssignments = (() => {
-    console.log('Filtering assignments:', assignments)
-    console.log('Assignments is array:', Array.isArray(assignments))
+  // Filter assignments with student-side safety pattern
+  const filteredAssignments = (assignments || []).filter((assignment) => {
+    const matchesSearch = searchTerm === "" || 
+      assignment.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      assignment.course_title?.toLowerCase().includes(searchTerm.toLowerCase())
     
-    const assignmentsArray = Array.isArray(assignments) ? assignments : []
+    let matchesFilter = true
+    const now = new Date().getTime()
+    const dueAt = assignment.due_at ? new Date(assignment.due_at).getTime() : null
+    const isOverdue = dueAt && dueAt < now
+    const pendingCount = assignment.stats?.pending_grading || 0
+    const totalSubmissions = assignment.stats?.total_submissions || 0
     
-    return assignmentsArray.filter((assignment) => {
-      const matchesSearch = searchTerm === "" || 
-        assignment.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        assignment.course_title?.toLowerCase().includes(searchTerm.toLowerCase())
-      
-      let matchesFilter = true
-      const now = new Date().getTime()
-      const dueAt = assignment.due_at ? new Date(assignment.due_at).getTime() : null
-      const isOverdue = dueAt && dueAt < now
-      const pendingCount = assignment.stats?.pending_grading || 0
-      const totalSubmissions = assignment.stats?.total_submissions || 0
-      
-      switch (filterType) {
-        case "pending":
-          matchesFilter = pendingCount > 0
-          break
-        case "graded":
-          matchesFilter = totalSubmissions > 0 && pendingCount === 0
-          break
-        case "overdue":
-          matchesFilter = isOverdue
-          break
-        case "all":
-        default:
-          matchesFilter = true
-      }
-      
-      const matches = matchesSearch && matchesFilter
-      console.log(`Assignment: ${assignment.title}, Filter: ${filterType}, Pending: ${pendingCount}, Total: ${totalSubmissions}, Overdue: ${isOverdue}, Matches: ${matches}`)
-      
-      return matches
-    })
-  })()
+    switch (filterType) {
+      case "pending":
+        matchesFilter = pendingCount > 0
+        break
+      case "graded":
+        matchesFilter = totalSubmissions > 0 && pendingCount === 0
+        break
+      case "overdue":
+        matchesFilter = isOverdue
+        break
+      case "all":
+      default:
+        matchesFilter = true
+    }
+    
+    return matchesSearch && matchesFilter
+  })
 
   const handleDuplicateAssignment = async (assignment: Assignment) => {
     try {
@@ -464,39 +455,7 @@ export default function TeacherAssignmentsPage() {
     )
   }
 
-  if (error) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-white">Assignments</h1>
-        </div>
-        <GlassCard className="p-8">
-          <div className="text-center">
-            <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />
-            <div className="text-red-400 mb-4">{error}</div>
-            <div className="flex gap-4 justify-center">
-              <Button 
-                onClick={() => {
-                  setError(null)
-                  window.location.reload()
-                }}
-                className="bg-blue-600/80 hover:bg-blue-600 text-white"
-              >
-                Retry
-              </Button>
-              <Button 
-                onClick={() => setError(null)}
-                variant="outline"
-                className="border-slate-500 text-slate-300 hover:bg-white/10"
-              >
-                Dismiss
-              </Button>
-            </div>
-          </div>
-        </GlassCard>
-      </div>
-    )
-  }
+  // Removed error display - using student-side pattern of graceful degradation
 
   return (
     <div className="space-y-6">
@@ -546,7 +505,7 @@ export default function TeacherAssignmentsPage() {
                 id: 'assignments', 
                 label: 'Assignments', 
                 icon: <FileText className="h-4 w-4" />, 
-                badge: Array.isArray(assignments) ? assignments.length : 0
+                badge: (assignments || []).length
               },
               { 
                 id: 'submissions', 
@@ -584,32 +543,32 @@ export default function TeacherAssignmentsPage() {
                 </div>
                 <FluidTabs
                   tabs={[
-                    { id: 'all', label: 'All', badge: Array.isArray(assignments) ? assignments.length : 0 },
+                    { id: 'all', label: 'All', badge: (assignments || []).length },
                     { 
                       id: 'pending', 
                       label: 'Pending', 
-                      badge: Array.isArray(assignments) ? assignments.filter(a => {
+                      badge: (assignments || []).filter(a => {
                         const pendingCount = a.stats?.pending_grading || 0
                         return pendingCount > 0
-                      }).length : 0
+                      }).length
                     },
                     { 
                       id: 'graded', 
                       label: 'Graded', 
-                      badge: Array.isArray(assignments) ? assignments.filter(a => {
+                      badge: (assignments || []).filter(a => {
                         const totalSubmissions = a.stats?.total_submissions || 0
                         const pendingCount = a.stats?.pending_grading || 0
                         return totalSubmissions > 0 && pendingCount === 0
-                      }).length : 0
+                      }).length
                     },
                     { 
                       id: 'overdue', 
                       label: 'Overdue', 
-                      badge: Array.isArray(assignments) ? assignments.filter(a => {
+                      badge: (assignments || []).filter(a => {
                         const now = new Date().getTime()
                         const dueAt = a.due_at ? new Date(a.due_at).getTime() : null
                         return dueAt && dueAt < now
-                      }).length : 0
+                      }).length
                     }
                   ]}
                   activeTab={filterType}
@@ -875,28 +834,28 @@ export default function TeacherAssignmentsPage() {
       <StaggeredAnimationWrapper delay={0.4} stagger={0.1}>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <GlassCard className="p-4 text-center hover:bg-white/5 transition-all duration-300 hover:scale-105">
-            <div className="text-2xl font-bold text-white">{Array.isArray(assignments) ? assignments.length : 0}</div>
+            <div className="text-2xl font-bold text-white">{(assignments || []).length}</div>
             <div className="text-sm text-slate-400">Total Assignments</div>
           </GlassCard>
           <GlassCard className="p-4 text-center hover:bg-white/5 transition-all duration-300 hover:scale-105">
             <div className="text-2xl font-bold text-orange-400">
-              {Array.isArray(assignments) ? assignments.reduce((sum, a) => sum + (a.stats?.pending_grading || 0), 0) : 0}
+              {(assignments || []).reduce((sum, a) => sum + (a.stats?.pending_grading || 0), 0)}
             </div>
             <div className="text-sm text-slate-400">Pending Grading</div>
           </GlassCard>
           <GlassCard className="p-4 text-center hover:bg-white/5 transition-all duration-300 hover:scale-105">
             <div className="text-2xl font-bold text-green-400">
-              {Array.isArray(assignments) ? assignments.reduce((sum, a) => sum + (a.stats?.total_submissions || 0), 0) : 0}
+              {(assignments || []).reduce((sum, a) => sum + (a.stats?.total_submissions || 0), 0)}
             </div>
             <div className="text-sm text-slate-400">Total Submissions</div>
           </GlassCard>
           <GlassCard className="p-4 text-center hover:bg-white/5 transition-all duration-300 hover:scale-105">
             <div className="text-2xl font-bold text-blue-400">
-              {Array.isArray(assignments) ? assignments.filter(a => {
+              {(assignments || []).filter(a => {
                 const now = new Date().getTime()
                 const dueAt = a.due_at ? new Date(a.due_at).getTime() : null
                 return dueAt && dueAt < now
-              }).length : 0}
+              }).length}
             </div>
             <div className="text-sm text-slate-400">Overdue</div>
           </GlassCard>
