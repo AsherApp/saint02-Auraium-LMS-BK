@@ -5,13 +5,13 @@ import { supabaseAdmin } from '../lib/supabase.js'
 
 export const router = Router()
 
-// Get student settings by ID
-router.get('/student/:userId', requireAuth, asyncHandler(async (req, res) => {
-  const { userId } = req.params
+// Get student settings by email (more consistent with the system)
+router.get('/student/:email', requireAuth, asyncHandler(async (req, res) => {
+  const { email } = req.params
   
   // Check if user is requesting their own settings
   const user = (req as any).user
-  if (user?.id !== userId) {
+  if (user?.email !== email) {
     return res.status(403).json({ error: 'Access denied' })
   }
 
@@ -19,7 +19,7 @@ router.get('/student/:userId', requireAuth, asyncHandler(async (req, res) => {
   const { data: student, error: studentError } = await supabaseAdmin
     .from('students')
     .select('id')
-    .eq('id', userId)
+    .eq('email', email.toLowerCase())
     .single()
 
   if (student) {
@@ -27,7 +27,7 @@ router.get('/student/:userId', requireAuth, asyncHandler(async (req, res) => {
     const { data, error } = await supabaseAdmin
       .from('student_settings')
       .select('*')
-      .eq('student_id', userId)
+      .eq('student_id', student.id)
       .single()
 
     if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
@@ -69,14 +69,14 @@ router.get('/student/:userId', requireAuth, asyncHandler(async (req, res) => {
   }
 }))
 
-// Update student settings by ID
-router.put('/student/:userId', requireAuth, asyncHandler(async (req, res) => {
-  const { userId } = req.params
+// Update student settings by email
+router.put('/student/:email', requireAuth, asyncHandler(async (req, res) => {
+  const { email } = req.params
   const { theme, notifications, privacy, preferences } = req.body
   
   // Check if user is updating their own settings
   const user = (req as any).user
-  if (user?.id !== userId) {
+  if (user?.email !== email) {
     return res.status(403).json({ error: 'Access denied' })
   }
 
@@ -84,7 +84,7 @@ router.put('/student/:userId', requireAuth, asyncHandler(async (req, res) => {
   const { data: student, error: studentError } = await supabaseAdmin
     .from('students')
     .select('id')
-    .eq('id', userId)
+    .eq('email', email.toLowerCase())
     .single()
 
   if (student) {
@@ -92,7 +92,7 @@ router.put('/student/:userId', requireAuth, asyncHandler(async (req, res) => {
     const { data, error } = await supabaseAdmin
       .from('student_settings')
       .upsert({
-        student_id: userId,
+        student_id: student.id,
         theme,
         notifications,
         privacy,
