@@ -330,7 +330,11 @@ router.post('/:code/complete', asyncHandler(async (req, res) => {
       .from('enrollments')
       .upsert({
         course_id: invite.course_id,
-        student_email: email.toLowerCase()
+        student_email: email.toLowerCase(),
+        student_id: student.id, // Include student_id to fix the constraint issue
+        enrolled_at: new Date().toISOString(),
+        status: 'active',
+        progress_percentage: 0
       }, {
         onConflict: 'course_id,student_email'
       })

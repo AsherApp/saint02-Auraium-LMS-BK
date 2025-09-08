@@ -1,106 +1,125 @@
+// Fix script to manually enroll student and set up password
 import { createClient } from '@supabase/supabase-js'
-import 'dotenv/config'
+import bcrypt from 'bcrypt'
 
-const supabaseUrl = process.env.SUPABASE_URL
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+const supabaseUrl = 'https://nasikwatndaxsgemnylp.supabase.co'
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5hc2lrd2F0bmRheHNnZW1ueWxwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NDc2NzgwNiwiZXhwIjoyMDcwMzQzODA2fQ.FnwWpdeUmWP8U2O1QA3cdav2I0SVN0BZDcBr82da4hs'
 
-if (!supabaseUrl || !supabaseKey) {
-  console.error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables')
-  process.exit(1)
-}
+const supabase = createClient(supabaseUrl, supabaseKey)
 
-const supabase = createClient(supabaseUrl, supabaseKey, {
-  auth: { persistSession: false },
-})
-
-async function fixStudentEnrollment() {
+const fixStudentEnrollment = async () => {
+  console.log('🔧 === FIXING STUDENT ENROLLMENT ===')
+  
+  const studentCode = 'AA25090801'
+  const studentEmail = 'adedapoademola004@gmail.com'
+  const courseId = '30c9039e-5282-4914-92e1-04f7096a97b4' // Introduction to Programming
+  
   try {
-    console.log('🔧 Fixing student enrollment for MD25090701...')
+    // 1. Set up student password
+    console.log('\n1. 🔐 SETTING UP STUDENT PASSWORD...')
+    const password = 'Taptap123'
+    const passwordHash = await bcrypt.hash(password, 10)
     
-    const publicCourseId = 'ed43d452-ebfc-42a4-9478-56921123e696'
-    
-    // Step 1: Publish the public course
-    console.log('📚 Publishing public course...')
-    const { error: publishError } = await supabase
-      .from('courses')
-      .update({ status: 'published' })
-      .eq('id', publicCourseId)
-    
-    if (publishError) {
-      console.error('❌ Error publishing course:', publishError)
-      return
-    }
-    
-    console.log('✅ Course published successfully')
-    
-    // Step 2: Get student details
-    const { data: student, error: studentError } = await supabase
+    const { data: studentUpdate, error: passwordError } = await supabase
       .from('students')
-      .select('*')
-      .eq('student_code', 'MD25090701')
-      .single()
+      .update({ password_hash: passwordHash })
+      .eq('student_code', studentCode)
+      .select()
     
-    if (studentError || !student) {
-      console.error('❌ Student MD25090701 not found')
+    if (passwordError) {
+      console.error('❌ Error setting password:', passwordError)
       return
     }
     
-    console.log('✅ Student found:', student.email)
+    console.log('✅ Password set successfully')
+    console.log('Student can now login with:')
+    console.log(`- Student Code: ${studentCode}`)
+    console.log(`- Password: ${password}`)
     
-    // Step 3: Enroll student in the public course
-    console.log('📝 Enrolling student in public course...')
-    const { error: enrollError } = await supabase
+    // 2. Create enrollment record
+    console.log('\n2. 🎓 CREATING ENROLLMENT RECORD...')
+    const { data: enrollment, error: enrollmentError } = await supabase
       .from('enrollments')
       .insert({
-        student_id: student.id,
-        student_email: student.email,
-        course_id: publicCourseId,
-        status: 'active',
+        course_id: courseId,
+        student_email: studentEmail,
+        student_id: studentUpdate[0].id, // Include the student_id
         enrolled_at: new Date().toISOString(),
-        progress_percentage: 0,
-        grade_percentage: 0
+        status: 'active',
+        progress_percentage: 0
       })
+      .select()
     
-    if (enrollError) {
-      console.error('❌ Error enrolling student:', enrollError)
+    if (enrollmentError) {
+      console.error('❌ Error creating enrollment:', enrollmentError)
+      
+      // Check if enrollment already exists
+      const { data: existingEnrollment } = await supabase
+        .from('enrollments')
+        .select('*')
+        .eq('course_id', courseId)
+        .eq('student_email', studentEmail)
+        .single()
+      
+      if (existingEnrollment) {
+        console.log('✅ Enrollment already exists:', existingEnrollment)
+      } else {
+        console.log('❌ Failed to create enrollment and none exists')
+        return
+      }
+    } else {
+      console.log('✅ Enrollment created successfully:', enrollment)
+    }
+    
+    // 3. Test the fix
+    console.log('\n3. 🧪 TESTING THE FIX...')
+    
+    // Test login
+    const loginResponse = await fetch('https://auraiumlmsbk.up.railway.app/api/auth/student/signin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        student_code: studentCode,
+        password: password
+      })
+    })
+    
+    const loginData = await loginResponse.json()
+    console.log('🔐 Login test:', loginResponse.status, loginData)
+    
+    if (!loginData.token) {
+      console.log('❌ Login still failing')
       return
     }
     
-    console.log('✅ Student enrolled successfully')
+    const token = loginData.token
     
-    // Step 4: Verify the enrollment
-    const { data: enrollment, error: verifyError } = await supabase
-      .from('enrollments')
-      .select(`
-        *,
-        courses(
-          id,
-          title,
-          course_mode,
-          status
-        )
-      `)
-      .eq('student_email', student.email)
-      .eq('course_id', publicCourseId)
-      .single()
+    // Test enrollments endpoint
+    const enrollmentsResponse = await fetch('https://auraiumlmsbk.up.railway.app/api/students/me/enrollments', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    })
     
-    if (verifyError) {
-      console.error('❌ Error verifying enrollment:', verifyError)
-      return
+    const enrollmentsData = await enrollmentsResponse.json()
+    console.log('🎓 Enrollments test:', enrollmentsResponse.status, enrollmentsData)
+    
+    if (enrollmentsResponse.ok && enrollmentsData.items?.length > 0) {
+      console.log('✅ SUCCESS! Student can now see their course!')
+      console.log('Courses found:', enrollmentsData.items.map(item => ({
+        course_title: item.course?.title,
+        course_id: item.course_id,
+        enrolled_at: item.enrolled_at
+      })))
+    } else {
+      console.log('❌ Student still cannot see courses')
     }
-    
-    console.log('🎯 Enrollment verified:')
-    console.log('  - Course:', enrollment.courses?.title)
-    console.log('  - Course Mode:', enrollment.courses?.course_mode)
-    console.log('  - Course Status:', enrollment.courses?.status)
-    console.log('  - Enrollment Status:', enrollment.status)
-    
-    console.log('\n🎉 SUCCESS! Student MD25090701 should now see the public dashboard!')
-    console.log('   The student can logout and login again to see the changes.')
     
   } catch (error) {
     console.error('❌ Fix failed:', error)
   }
 }
 
+// Run the fix
 fixStudentEnrollment()
