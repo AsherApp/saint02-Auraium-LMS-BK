@@ -61,7 +61,7 @@ export default function StudentCertificatesPage() {
       
       // Filter for completed courses (100% completion)
       const completed = progressData.filter((course: any) => 
-        course.completion_percentage >= 100 && course.course?.course_mode === 'public'
+        course.completion_percentage >= 100 && (course.course?.course_mode === 'public' || course.course?.course_mode === 'full')
       )
       
       setCompletedCourses(completed)

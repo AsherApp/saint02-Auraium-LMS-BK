@@ -17,7 +17,7 @@ export default function StudentSettingsPage() {
   const { user } = useAuthStore()
   const { toast } = useToast()
   
-  const { settings, loading, error, update } = useSettingsFn(user?.id || "", "student")
+  const { settings, loading, error, update } = useSettingsFn(user?.email || "", "student")
   
   const [activeTab, setActiveTab] = useState("profile")
   const [theme, setTheme] = useState<'light' | 'dark' | 'auto'>('dark')
