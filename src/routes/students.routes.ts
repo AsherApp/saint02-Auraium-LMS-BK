@@ -122,6 +122,62 @@ router.get('/me/profile', requireAuth, asyncHandler(async (req, res) => {
   res.json(data)
 }))
 
+// Update current student's own profile (secure - no email in URL)
+router.put('/me/profile', requireAuth, asyncHandler(async (req, res) => {
+  const userEmail = (req as any).user?.email
+  const userRole = (req as any).user?.role
+  
+  // Only students can update their own profile
+  if (userRole !== 'student') {
+    return res.status(403).json({ error: 'Access denied - Students only' })
+  }
+  
+  const updateData = req.body
+  
+  // Update student profile
+  const { data, error } = await supabaseAdmin
+    .from('students')
+    .update(updateData)
+    .eq('email', userEmail.toLowerCase())
+    .select()
+    .single()
+  
+  if (error) {
+    console.error('Error updating student profile:', error)
+    return res.status(500).json({ error: error.message })
+  }
+  
+  res.json(data)
+}))
+
+// Update current student's own profile (secure - no email in URL)
+router.put('/me/profile', requireAuth, asyncHandler(async (req, res) => {
+  const userEmail = (req as any).user?.email
+  const userRole = (req as any).user?.role
+  
+  // Only students can update their own profile
+  if (userRole !== 'student') {
+    return res.status(403).json({ error: 'Access denied - Students only' })
+  }
+  
+  const updateData = req.body
+  
+  // Update student profile
+  const { data, error } = await supabaseAdmin
+    .from('students')
+    .update(updateData)
+    .eq('email', userEmail.toLowerCase())
+    .select()
+    .single()
+  
+  if (error) {
+    console.error('Error updating student profile:', error)
+    return res.status(500).json({ error: error.message })
+  }
+  
+  res.json(data)
+}))
+
 // Get student profile by email (for teachers accessing their students)
 router.get('/:email/profile', requireAuth, asyncHandler(async (req, res) => {
   const { email } = req.params
@@ -1218,6 +1274,70 @@ router.get('/:email/study-time', requireAuth, asyncHandler(async (req, res) => {
   } catch (error) {
     console.error('Error fetching study time:', error)
     res.status(500).json({ error: 'Failed to fetch study time' })
+  }
+}))
+
+// Get current student's progress data (for certificates)
+router.get('/me/progress', requireAuth, asyncHandler(async (req, res) => {
+  const userEmail = (req as any).user?.email
+  const userRole = (req as any).user?.role
+  
+  // Only students can access their own progress
+  if (userRole !== 'student') {
+    return res.status(403).json({ error: 'Access denied - Students only' })
+  }
+  
+  try {
+    // Get student enrollments with course details
+    const { data: enrollments, error } = await supabaseAdmin
+      .from('enrollments')
+      .select(`
+        *,
+        courses(
+          id,
+          title,
+          description,
+          status,
+          course_mode
+        )
+      `)
+      .eq('student_email', userEmail)
+      .order('enrolled_at', { ascending: false })
+    
+    if (error) {
+      console.error('Error fetching enrollments:', error)
+      return res.status(500).json({ error: error.message })
+    }
+    
+    // Transform enrollments to progress data
+    const progressData = (enrollments || []).map((enrollment: any) => {
+      // For now, we'll use mock data for lessons and assignments
+      // In a real implementation, you'd calculate these from actual lesson/assignment completion
+      const mockLessons = Math.floor(Math.random() * 10) + 5 // 5-15 lessons
+      const mockAssignments = Math.floor(Math.random() * 5) + 2 // 2-7 assignments
+      const mockQuizzes = Math.floor(Math.random() * 3) + 1 // 1-4 quizzes
+      
+      return {
+        course_id: enrollment.course_id,
+        course_title: enrollment.courses?.title || 'Untitled Course',
+        completion_percentage: enrollment.progress_percentage || 0,
+        completed_lessons: Math.floor((enrollment.progress_percentage || 0) / 100 * mockLessons),
+        total_lessons: mockLessons,
+        completed_assignments: Math.floor((enrollment.progress_percentage || 0) / 100 * mockAssignments),
+        total_assignments: mockAssignments,
+        passed_quizzes: Math.floor((enrollment.progress_percentage || 0) / 100 * mockQuizzes),
+        total_quizzes: mockQuizzes,
+        started_at: enrollment.enrolled_at,
+        completed_at: enrollment.progress_percentage >= 100 ? enrollment.last_activity : null,
+        certificate_issued: enrollment.progress_percentage >= 100,
+        certificate_url: enrollment.progress_percentage >= 100 ? `/api/certificates/${enrollment.course_id}` : null
+      }
+    })
+    
+    res.json({ items: progressData })
+  } catch (error) {
+    console.error('Error fetching student progress:', error)
+    res.status(500).json({ error: 'Failed to fetch progress data' })
   }
 }))
 

@@ -26,9 +26,10 @@ import { router as forumRoutes } from './forum.routes.js'
 import studentAnalyticsRoutes from './student.routes.js'
 import { router as notificationsRoutes } from './notifications.routes.js'
 import transactionRoutes from './transactions.routes.js'
-import { certificateRoutes } from './certificates.routes.js'
+import { router as certificateRoutes } from './certificates.routes.js'
 import { router as bulkCoursesRoutes } from './bulk-courses.routes.js'
 import { router as messagesRoutes } from './messages.routes.js'
+import recordingsRoutes from './recordings.routes.js'
 
 export const router = Router()
 
@@ -62,3 +63,4 @@ router.use('/transactions', transactionRoutes)
 router.use('/certificates', certificateRoutes)
 router.use('/bulk-courses', bulkCoursesRoutes)
 router.use('/messages', messagesRoutes)
+router.use('/recordings', recordingsRoutes)
