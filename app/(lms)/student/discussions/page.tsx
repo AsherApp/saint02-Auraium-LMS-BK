@@ -117,7 +117,7 @@ export default function StudentDiscussionsPage() {
       
       if (selectedCourse === "all") {
         // Fetch discussions from all enrolled courses
-        const promises = coursesList.map(course => 
+        const promises = (coursesList || []).map(course => 
           http<{ items: Discussion[] }>(`/api/discussions/course/${course.id}`)
             .then(response => response.items || [])
             .catch(() => [])
@@ -232,7 +232,7 @@ export default function StudentDiscussionsPage() {
           </div>
         </GlassCard>
 
-        {coursesList.map((course) => (
+        {(coursesList || []).map((course) => (
           <GlassCard 
             key={course.id} 
             className={`p-4 cursor-pointer transition-all hover:bg-white/10 ${

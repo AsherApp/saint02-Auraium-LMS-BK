@@ -162,7 +162,7 @@ export default function TeacherAssignmentsPage() {
             
             // Fetch stats for each assignment
             const assignmentsWithStats = await Promise.all(
-              courseAssignments.map(async (assignment) => {
+              (courseAssignments || []).map(async (assignment) => {
                 try {
                   console.log(`Fetching stats for assignment: ${assignment.id}`)
                   const stats = await AssignmentProAPI.getGradingStats(assignment.id)
@@ -305,7 +305,7 @@ export default function TeacherAssignmentsPage() {
           const courseAssignments = extractArrayFromResponse(courseAssignmentsResponse, `Refresh course ${course.id}`)
           
           const assignmentsWithStats = await Promise.all(
-            courseAssignments.map(async (assignment) => {
+            (courseAssignments || []).map(async (assignment) => {
               try {
                 const stats = await AssignmentProAPI.getGradingStats(assignment.id)
                 return {
@@ -360,7 +360,7 @@ export default function TeacherAssignmentsPage() {
             `Assignment ${assignment.id} submissions`
           )
           
-          const submissionsWithDetails = assignmentSubmissions.map(submission => ({
+          const submissionsWithDetails = (assignmentSubmissions || []).map(submission => ({
             id: submission.id,
             assignmentId: assignment.id,
             assignmentTitle: assignment.title,
@@ -552,7 +552,7 @@ export default function TeacherAssignmentsPage() {
                 id: 'submissions', 
                 label: 'Submissions', 
                 icon: <Users className="h-4 w-4" />, 
-                badge: submissions.length 
+                badge: (submissions || []).length 
               }
             ]}
             activeTab={activeTab}
@@ -625,7 +625,7 @@ export default function TeacherAssignmentsPage() {
           </AnimationWrapper>
 
           {/* Assignment Grid */}
-          {filteredAssignments.length === 0 ? (
+          {(!filteredAssignments || filteredAssignments.length === 0) ? (
             <AnimationWrapper delay={0.3}>
               <GlassCard className="p-8">
                 <div className="text-center">
@@ -654,7 +654,7 @@ export default function TeacherAssignmentsPage() {
           ) : (
             <StaggeredAnimationWrapper delay={0.3} stagger={0.1}>
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {filteredAssignments.map((assignment) => (
+                {(filteredAssignments || []).map((assignment) => (
                   <GlassCard key={assignment.id} className="p-5 hover:bg-white/10 transition-all duration-300 hover:scale-105 hover:shadow-lg">
                     <div className="space-y-4">
                       {/* Header */}
@@ -775,7 +775,7 @@ export default function TeacherAssignmentsPage() {
                 <div className="text-center text-slate-300">Loading submissions...</div>
               </GlassCard>
             </AnimationWrapper>
-          ) : submissions.length === 0 ? (
+          ) : (!submissions || submissions.length === 0) ? (
             <AnimationWrapper delay={0.2}>
               <GlassCard className="p-8">
                 <div className="text-center">
@@ -790,7 +790,7 @@ export default function TeacherAssignmentsPage() {
           ) : (
             <StaggeredAnimationWrapper delay={0.2} stagger={0.1}>
               <div className="space-y-4">
-                {submissions.map((submission) => (
+                {(submissions || []).map((submission) => (
                   <GlassCard key={submission.id} className="p-6 hover:bg-white/5 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
