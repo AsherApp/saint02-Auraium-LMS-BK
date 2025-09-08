@@ -21,9 +21,13 @@ export async function http<T>(path: string, opts: HttpOptions = {}): Promise<T> 
   // Get authentication token
   const token = getAuthToken()
   
+  // Check if body is FormData
+  const isFormData = opts.body instanceof FormData
+  
   // Prepare headers
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+    // Only set Content-Type for non-FormData requests
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...(opts.headers || {}),
   }
   
@@ -32,10 +36,20 @@ export async function http<T>(path: string, opts: HttpOptions = {}): Promise<T> 
     headers['Authorization'] = `Bearer ${token}`
   }
   
+  // Prepare body
+  let body: string | FormData | undefined
+  if (opts.body) {
+    if (isFormData) {
+      body = opts.body as FormData
+    } else {
+      body = JSON.stringify(opts.body)
+    }
+  }
+  
   const res = await fetch(url, {
     method: opts.method || 'GET',
     headers,
-    body: opts.body ? JSON.stringify(opts.body) : undefined,
+    body,
     cache: 'no-store',
   })
   
