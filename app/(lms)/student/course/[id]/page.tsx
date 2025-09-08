@@ -179,17 +179,17 @@ export default function StudentCourseDetailPage() {
                 Resume study
               </Button>
             )}
-            {isPublicMode && (
+            {isPublicMode && course.completion_percentage >= 100 && (
               <Button 
                 variant="outline" 
                 className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/30"
                 onClick={() => {
-                  // TODO: Implement certificate download
-                  alert('Certificate download will be implemented soon!')
+                  // Redirect to certificates page
+                  window.location.href = '/student/certificates'
                 }}
               >
                 <Award className="h-4 w-4 mr-1" />
-                Download Certificate
+                View Certificate
               </Button>
             )}
           </div>

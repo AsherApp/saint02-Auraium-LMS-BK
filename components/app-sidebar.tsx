@@ -23,7 +23,8 @@ import {
   Calendar,
   HelpCircle,
   GraduationCap,
-  CreditCard
+  CreditCard,
+  Award
 } from "lucide-react"
 
 export function AppSidebar() {
@@ -261,6 +262,12 @@ const studentItems = [
             href: "/student/notes",
             icon: StickyNote,
             description: "Personal notes"
+          },
+          {
+            title: "Certificates",
+            href: "/student/certificates",
+            icon: Award,
+            description: "Course certificates"
           }
         ]
       },
