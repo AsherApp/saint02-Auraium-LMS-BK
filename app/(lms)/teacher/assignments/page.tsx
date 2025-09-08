@@ -336,7 +336,7 @@ export default function TeacherAssignmentsPage() {
 
   // Fetch all submissions for the teacher's courses
   const fetchSubmissions = async () => {
-    if (!user?.email || !assignments || assignments.length === 0) {
+    if (!user?.email || !Array.isArray(assignments) || assignments.length === 0) {
       console.log('Cannot fetch submissions: missing user email or no assignments')
       return
     }
@@ -345,7 +345,7 @@ export default function TeacherAssignmentsPage() {
     try {
       const allSubmissions: SubmissionWithAssignment[] = []
       
-      console.log(`Fetching submissions for ${assignments.length} assignments`)
+      console.log(`Fetching submissions for ${Array.isArray(assignments) ? assignments.length : 0} assignments`)
       
       // Fetch submissions for each assignment
       for (const assignment of assignments) {
@@ -396,7 +396,7 @@ export default function TeacherAssignmentsPage() {
 
   // Fetch submissions when assignments change or tab changes to submissions
   useEffect(() => {
-    if (activeTab === "submissions" && assignments.length > 0 && !submissionsLoading) {
+    if (activeTab === "submissions" && Array.isArray(assignments) && assignments.length > 0 && !submissionsLoading) {
       fetchSubmissions()
     }
   }, [activeTab, assignments.length])
@@ -546,7 +546,7 @@ export default function TeacherAssignmentsPage() {
                 id: 'assignments', 
                 label: 'Assignments', 
                 icon: <FileText className="h-4 w-4" />, 
-                badge: assignments.length 
+                badge: Array.isArray(assignments) ? assignments.length : 0
               },
               { 
                 id: 'submissions', 
@@ -584,32 +584,32 @@ export default function TeacherAssignmentsPage() {
                 </div>
                 <FluidTabs
                   tabs={[
-                    { id: 'all', label: 'All', badge: assignments.length },
+                    { id: 'all', label: 'All', badge: Array.isArray(assignments) ? assignments.length : 0 },
                     { 
                       id: 'pending', 
                       label: 'Pending', 
-                      badge: assignments.filter(a => {
+                      badge: Array.isArray(assignments) ? assignments.filter(a => {
                         const pendingCount = a.stats?.pending_grading || 0
                         return pendingCount > 0
-                      }).length 
+                      }).length : 0
                     },
                     { 
                       id: 'graded', 
                       label: 'Graded', 
-                      badge: assignments.filter(a => {
+                      badge: Array.isArray(assignments) ? assignments.filter(a => {
                         const totalSubmissions = a.stats?.total_submissions || 0
                         const pendingCount = a.stats?.pending_grading || 0
                         return totalSubmissions > 0 && pendingCount === 0
-                      }).length 
+                      }).length : 0
                     },
                     { 
                       id: 'overdue', 
                       label: 'Overdue', 
-                      badge: assignments.filter(a => {
+                      badge: Array.isArray(assignments) ? assignments.filter(a => {
                         const now = new Date().getTime()
                         const dueAt = a.due_at ? new Date(a.due_at).getTime() : null
                         return dueAt && dueAt < now
-                      }).length 
+                      }).length : 0
                     }
                   ]}
                   activeTab={filterType}
@@ -631,15 +631,15 @@ export default function TeacherAssignmentsPage() {
                 <div className="text-center">
                   <FileText className="h-12 w-12 text-slate-400 mx-auto mb-4" />
                   <h3 className="text-xl font-semibold text-white mb-2">
-                    {assignments.length === 0 ? "No assignments yet" : "No assignments found"}
+                    {!Array.isArray(assignments) || assignments.length === 0 ? "No assignments yet" : "No assignments found"}
                   </h3>
                   <p className="text-slate-400 mb-4">
-                    {assignments.length === 0 
+                    {!Array.isArray(assignments) || assignments.length === 0 
                       ? "Create your first assignment to get started" 
                       : "Try adjusting your search or filter criteria"
                     }
                   </p>
-                  {assignments.length === 0 && (
+                  {(!Array.isArray(assignments) || assignments.length === 0) && (
                     <Button 
                       onClick={() => setShowCreateDialog(true)}
                       className="bg-blue-600/80 hover:bg-blue-600 text-white transition-all duration-200 hover:scale-105 hover:shadow-lg"
@@ -875,28 +875,28 @@ export default function TeacherAssignmentsPage() {
       <StaggeredAnimationWrapper delay={0.4} stagger={0.1}>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <GlassCard className="p-4 text-center hover:bg-white/5 transition-all duration-300 hover:scale-105">
-            <div className="text-2xl font-bold text-white">{assignments.length}</div>
+            <div className="text-2xl font-bold text-white">{Array.isArray(assignments) ? assignments.length : 0}</div>
             <div className="text-sm text-slate-400">Total Assignments</div>
           </GlassCard>
           <GlassCard className="p-4 text-center hover:bg-white/5 transition-all duration-300 hover:scale-105">
             <div className="text-2xl font-bold text-orange-400">
-              {assignments.reduce((sum, a) => sum + (a.stats?.pending_grading || 0), 0)}
+              {Array.isArray(assignments) ? assignments.reduce((sum, a) => sum + (a.stats?.pending_grading || 0), 0) : 0}
             </div>
             <div className="text-sm text-slate-400">Pending Grading</div>
           </GlassCard>
           <GlassCard className="p-4 text-center hover:bg-white/5 transition-all duration-300 hover:scale-105">
             <div className="text-2xl font-bold text-green-400">
-              {assignments.reduce((sum, a) => sum + (a.stats?.total_submissions || 0), 0)}
+              {Array.isArray(assignments) ? assignments.reduce((sum, a) => sum + (a.stats?.total_submissions || 0), 0) : 0}
             </div>
             <div className="text-sm text-slate-400">Total Submissions</div>
           </GlassCard>
           <GlassCard className="p-4 text-center hover:bg-white/5 transition-all duration-300 hover:scale-105">
             <div className="text-2xl font-bold text-blue-400">
-              {assignments.filter(a => {
+              {Array.isArray(assignments) ? assignments.filter(a => {
                 const now = new Date().getTime()
                 const dueAt = a.due_at ? new Date(a.due_at).getTime() : null
                 return dueAt && dueAt < now
-              }).length}
+              }).length : 0}
             </div>
             <div className="text-sm text-slate-400">Overdue</div>
           </GlassCard>
