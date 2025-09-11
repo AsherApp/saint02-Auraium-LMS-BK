@@ -12,7 +12,11 @@
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": false,
     "allowImportingTsExtensions": false,
-    "noEmit": false
+    "noEmit": false,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules"]
