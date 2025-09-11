@@ -66,7 +66,7 @@ router.get('/debug/enrollments', requireAuth, asyncHandler(async (req, res) => {
   res.json({ enrollments })
 }))
 
-// Get all students for the authenticated teacher (for adding to live sessions, etc.)
+// Get students for the authenticated teacher (for adding to live sessions, etc.)
 router.get('/me', requireAuth, asyncHandler(async (req, res) => {
   const userEmail = (req as any).user?.email
   const userRole = (req as any).user?.role
@@ -77,6 +77,7 @@ router.get('/me', requireAuth, asyncHandler(async (req, res) => {
   }
   
   try {
+    // Only return students who are enrolled in courses owned by this teacher
     const { data: students, error } = await supabaseAdmin
       .from('students')
       .select(`
@@ -85,8 +86,13 @@ router.get('/me', requireAuth, asyncHandler(async (req, res) => {
         email,
         student_code,
         profile_picture_url,
-        created_at
+        created_at,
+        enrollments!inner(
+          course_id,
+          courses!inner(teacher_email)
+        )
       `)
+      .eq('enrollments.courses.teacher_email', userEmail)
       .order('name', { ascending: true })
 
     if (error) {
@@ -94,7 +100,12 @@ router.get('/me', requireAuth, asyncHandler(async (req, res) => {
       return res.status(500).json({ error: 'Failed to fetch students' })
     }
 
-    res.json({ items: students || [] })
+    // Remove duplicates and return unique students
+    const uniqueStudents = (students || []).filter((student: any, index: number, self: any[]) => 
+      index === self.findIndex((s: any) => s.email === student.email)
+    )
+
+    res.json({ items: uniqueStudents })
   } catch (err) {
     console.error('Error in get students route:', err)
     res.status(500).json({ error: 'Internal server error' })
