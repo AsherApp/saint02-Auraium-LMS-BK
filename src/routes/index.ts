@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { router as announcementRoutes } from './announcement.routes.js'
 import { router as courseRoutes } from './courses.routes.js'
-import assignmentRoutes from './assignments/index.js'
+import assignmentRoutes from './assignments/index'
 import storageRoutes from './storage.routes.js'
 import { router as billingRoutes } from './billing.routes.js'
 import inviteRoutes from './invites.routes.js'
@@ -30,7 +30,7 @@ import { router as certificateRoutes } from './certificates.routes.js'
 import { router as bulkCoursesRoutes } from './bulk-courses.routes.js'
 import { router as messagesRoutes } from './messages.routes.js'
 import recordingsRoutes from './recordings.routes.js'
-import passwordResetRoutes from './password-reset.routes.js'
+import passwordResetRoutes from './password-reset.routes'
 
 export const router = Router()
 
