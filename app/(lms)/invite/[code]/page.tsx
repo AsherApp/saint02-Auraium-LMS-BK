@@ -174,27 +174,18 @@ export default function InvitePage() {
       // Store student data and token for auto-login
       setStudentData(response.student)
       
-      // If we have a token, auto-login the student
+      // Store the auth token and user data if available
       if (response.token && response.user) {
-        // Store the auth token and user data
         localStorage.setItem('auth-token', response.token)
         localStorage.setItem('user', JSON.stringify(response.user))
         
         // Update auth store
         setUser(response.user)
-        
-        toast({
-          title: "Welcome!",
-          description: `Successfully registered and logged in as ${response.user.name}`,
-        })
-        
-        setShowRegistration(false)
-        router.push('/student/dashboard')
-      } else {
-        // Fallback to welcome modal if no token
+      }
+      
+      // Always show welcome modal with student code and instructions
       setShowRegistration(false)
       setShowWelcome(true)
-      }
     } catch (err: any) {
       toast({ title: "Error", description: err.message || "Failed to create account", variant: "destructive" })
     } finally {
@@ -732,31 +723,21 @@ export default function InvitePage() {
             <div className="flex justify-end space-x-2 pt-4">
               <Button 
                 onClick={async () => {
-                  try {
-                    // Auto-login the student
-                    const user = await studentSignIn(studentData.student_code, formData.password)
-                    setUser(user)
-                    
-                    toast({
-                      title: "Welcome!",
-                      description: `Successfully logged in as ${user.name}`,
-                    })
-                    
-                    setShowWelcome(false)
+                  setShowWelcome(false)
+                  
+                  // Check if user is already logged in
+                  const currentUser = localStorage.getItem('user')
+                  if (currentUser) {
+                    // Already logged in, go to dashboard
                     router.push('/student/dashboard')
-                  } catch (error: any) {
-                    toast({
-                      title: "Login Error",
-                      description: "Please go to login page and sign in manually",
-                      variant: "destructive"
-                    })
-                    setShowWelcome(false)
+                  } else {
+                    // Not logged in, redirect to login page
                     router.push('/login')
                   }
                 }}
                 className="bg-blue-600/80 hover:bg-blue-600"
               >
-                Go to Dashboard
+                Proceed to Dashboard
               </Button>
             </div>
           </div>
