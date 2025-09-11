@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { router as announcementRoutes } from './announcement.routes.js'
 import { router as courseRoutes } from './courses.routes.js'
-import assignmentRoutes from './assignments.routes.js'
+import assignmentRoutes from './assignments/index.js'
 import storageRoutes from './storage.routes.js'
 import { router as billingRoutes } from './billing.routes.js'
 import inviteRoutes from './invites.routes.js'
@@ -30,6 +30,7 @@ import { router as certificateRoutes } from './certificates.routes.js'
 import { router as bulkCoursesRoutes } from './bulk-courses.routes.js'
 import { router as messagesRoutes } from './messages.routes.js'
 import recordingsRoutes from './recordings.routes.js'
+import passwordResetRoutes from './password-reset.routes.js'
 
 export const router = Router()
 
@@ -64,3 +65,4 @@ router.use('/certificates', certificateRoutes)
 router.use('/bulk-courses', bulkCoursesRoutes)
 router.use('/messages', messagesRoutes)
 router.use('/recordings', recordingsRoutes)
+router.use('/password-reset', passwordResetRoutes)

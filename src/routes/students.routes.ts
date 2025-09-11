@@ -113,88 +113,46 @@ router.get('/me/profile', requireAuth, asyncHandler(async (req, res) => {
   
   const { data, error } = await supabaseAdmin
     .from('students')
-    .select('email, name, student_code, status, created_at, profile_picture_url')
+    .select('id, email, first_name, last_name, student_code, status, created_at, profile_picture_url')
     .eq('email', userEmail.toLowerCase())
     .single()
   
   if (error) return res.status(404).json({ error: 'Student not found' })
   
-  res.json(data)
+  // Combine first_name and last_name into name for backward compatibility
+  const response = {
+    ...data,
+    name: `${data.first_name || ''} ${data.last_name || ''}`.trim() || data.email
+  }
+  
+  res.json(response)
 }))
 
-// Update current student's own profile (secure - no email in URL)
-router.put('/me/profile', requireAuth, asyncHandler(async (req, res) => {
-  const userEmail = (req as any).user?.email
-  const userRole = (req as any).user?.role
-  
-  // Only students can update their own profile
-  if (userRole !== 'student') {
-    return res.status(403).json({ error: 'Access denied - Students only' })
-  }
-  
-  const updateData = req.body
-  
-  // Update student profile
-  const { data, error } = await supabaseAdmin
-    .from('students')
-    .update(updateData)
-    .eq('email', userEmail.toLowerCase())
-    .select()
-    .single()
-  
-  if (error) {
-    console.error('Error updating student profile:', error)
-    return res.status(500).json({ error: error.message })
-  }
-  
-  res.json(data)
-}))
-
-// Update current student's own profile (secure - no email in URL)
-router.put('/me/profile', requireAuth, asyncHandler(async (req, res) => {
-  const userEmail = (req as any).user?.email
-  const userRole = (req as any).user?.role
-  
-  // Only students can update their own profile
-  if (userRole !== 'student') {
-    return res.status(403).json({ error: 'Access denied - Students only' })
-  }
-  
-  const updateData = req.body
-  
-  // Update student profile
-  const { data, error } = await supabaseAdmin
-    .from('students')
-    .update(updateData)
-    .eq('email', userEmail.toLowerCase())
-    .select()
-    .single()
-  
-  if (error) {
-    console.error('Error updating student profile:', error)
-    return res.status(500).json({ error: error.message })
-  }
-  
-  res.json(data)
-}))
-
-// Get student profile by email (for teachers accessing their students)
-router.get('/:email/profile', requireAuth, asyncHandler(async (req, res) => {
-  const { email } = req.params
+// Get student profile by ID (for teachers accessing their students)
+router.get('/:id/profile', requireAuth, asyncHandler(async (req, res) => {
+  const { id } = req.params
   const userEmail = (req as any).user?.email
   const userRole = (req as any).user?.role
   
   // Check if user has access to this student's data
-  if (userRole === 'student' && userEmail !== email) {
-    return res.status(403).json({ error: 'Access denied - Students can only access their own profile' })
+  if (userRole === 'student') {
+    const { data: student } = await supabaseAdmin
+      .from('students')
+      .select('email')
+      .eq('id', id)
+      .single()
+    
+    if (!student || student.email !== userEmail) {
+      return res.status(403).json({ error: 'Access denied - Students can only access their own profile' })
+    }
   }
   
-  // For teachers, check if they have any students with this email
+  // For teachers, check if they have any students with this ID
   if (userRole === 'teacher') {
     const { data: enrollment } = await supabaseAdmin
       .from('enrollments')
       .select('id')
-      .eq('student_email', email)
+      .eq('student_id', id)
       .eq('courses.teacher_email', userEmail)
       .single()
     
@@ -205,13 +163,19 @@ router.get('/:email/profile', requireAuth, asyncHandler(async (req, res) => {
   
   const { data, error } = await supabaseAdmin
     .from('students')
-    .select('email, name, student_code, status, created_at, profile_picture_url')
-    .eq('email', email.toLowerCase())
+    .select('id, email, first_name, last_name, student_code, status, created_at, profile_picture_url')
+    .eq('id', id)
     .single()
   
   if (error) return res.status(404).json({ error: 'Student not found' })
   
-  res.json(data)
+  // Combine first_name and last_name into name for backward compatibility
+  const response = {
+    ...data,
+    name: `${data.first_name || ''} ${data.last_name || ''}`.trim() || data.email
+  }
+  
+  res.json(response)
 }))
 
 // Get student by student code (GDPR compliant)
@@ -343,15 +307,23 @@ router.get('/me/courses', requireAuth, asyncHandler(async (req, res) => {
   res.json({ items: enrollments })
 }))
 
-// Get student enrollments by email (for teachers accessing their students)
-router.get('/:email/enrollments', requireAuth, asyncHandler(async (req, res) => {
-  const { email } = req.params
+// Get student enrollments by ID (for teachers accessing their students)
+router.get('/:id/enrollments', requireAuth, asyncHandler(async (req, res) => {
+  const { id } = req.params
   const userEmail = (req as any).user?.email
   const userRole = (req as any).user?.role
   
   // Check if user has access to this student's data
-  if (userRole === 'student' && userEmail !== email) {
-    return res.status(403).json({ error: 'Access denied' })
+  if (userRole === 'student') {
+    const { data: student } = await supabaseAdmin
+      .from('students')
+      .select('email')
+      .eq('id', id)
+      .single()
+    
+    if (!student || student.email !== userEmail) {
+      return res.status(403).json({ error: 'Access denied' })
+    }
   }
   
   // Get student enrollments
@@ -367,7 +339,7 @@ router.get('/:email/enrollments', requireAuth, asyncHandler(async (req, res) => 
         teacher_email
       )
     `)
-    .eq('student_email', email.toLowerCase())
+    .eq('student_id', id)
     .order('enrolled_at', { ascending: false })
   
   if (error) return res.status(500).json({ error: error.message })
@@ -675,31 +647,44 @@ router.get('/consolidated', requireAuth, asyncHandler(async (req, res) => {
 }))
 
 // Get a specific student
-router.get('/:email', requireAuth, asyncHandler(async (req, res) => {
-  const { email } = req.params
+router.get('/:id', requireAuth, asyncHandler(async (req, res) => {
+  const { id } = req.params
   
   const { data, error } = await supabaseAdmin
     .from('students')
     .select('*')
-    .eq('email', email)
+    .eq('id', id)
     .single()
   
   if (error) return res.status(404).json({ error: 'not_found' })
-  res.json(data)
+  
+  // Combine first_name and last_name into name for backward compatibility
+  const response = {
+    ...data,
+    name: `${data.first_name || ''} ${data.last_name || ''}`.trim() || data.email
+  }
+  
+  res.json(response)
 }))
 
 // Create or update a student
 router.post('/', requireAuth, asyncHandler(async (req, res) => {
-  const { email, name, status = 'active' } = req.body || {}
+  const { email, first_name, last_name, name, status = 'active' } = req.body || {}
   
-  if (!email || !name) {
+  if (!email || (!first_name && !last_name && !name)) {
     return res.status(400).json({ error: 'missing_fields' })
   }
   
-  // Generate student code from name
-  const nameParts = name.trim().split(' ')
-  const firstName = nameParts[0] || ''
-  const lastName = nameParts[nameParts.length - 1] || ''
+  // Handle both name formats for backward compatibility
+  let firstName = first_name
+  let lastName = last_name
+  
+  if (name && !first_name && !last_name) {
+    const nameParts = name.trim().split(' ')
+    firstName = nameParts[0] || ''
+    lastName = nameParts[nameParts.length - 1] || ''
+  }
+  
   const studentCode = generateStudentCode(firstName, lastName)
   
   // Check if student already exists
@@ -713,7 +698,12 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
     // Update existing student
     const { data, error } = await supabaseAdmin
       .from('students')
-      .update({ name, status, student_code: studentCode })
+      .update({ 
+        first_name: firstName, 
+        last_name: lastName, 
+        status, 
+        student_code: studentCode 
+      })
       .eq('email', email)
       .select()
       .single()
@@ -722,18 +712,21 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
     
     // Return with signup info if no password is set
     const needsPassword = !existingStudent.password_hash
-    res.json({
+    const response = {
       ...data,
+      name: `${data.first_name || ''} ${data.last_name || ''}`.trim() || data.email,
       needsPassword,
       signupUrl: needsPassword ? `/register-student?code=${studentCode}&email=${email}` : null
-    })
+    }
+    res.json(response)
   } else {
     // Create new student
     const { data, error } = await supabaseAdmin
       .from('students')
       .insert({ 
         email, 
-        name, 
+        first_name: firstName, 
+        last_name: lastName, 
         status, 
         student_code: studentCode,
         created_at: new Date().toISOString()
@@ -744,22 +737,25 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
     if (error) return res.status(500).json({ error: error.message })
     
     // Return with signup info for new student
-    res.json({
+    const response = {
       ...data,
+      name: `${data.first_name || ''} ${data.last_name || ''}`.trim() || data.email,
       needsPassword: true,
       signupUrl: `/register-student?code=${studentCode}&email=${email}`,
       studentCode
-    })
+    }
+    res.json(response)
   }
 }))
 
 // Update student status
-router.put('/:email', requireAuth, asyncHandler(async (req, res) => {
-  const { email } = req.params
-  const { name, status, password } = req.body || {}
+router.put('/:id', requireAuth, asyncHandler(async (req, res) => {
+  const { id } = req.params
+  const { first_name, last_name, status, password } = req.body || {}
   
   const updateData: any = {}
-  if (name !== undefined) updateData.name = name
+  if (first_name !== undefined) updateData.first_name = first_name
+  if (last_name !== undefined) updateData.last_name = last_name
   if (status !== undefined) updateData.status = status
   
   // Handle password update
@@ -772,30 +768,37 @@ router.put('/:email', requireAuth, asyncHandler(async (req, res) => {
   const { data, error } = await supabaseAdmin
     .from('students')
     .update(updateData)
-    .eq('email', email)
+    .eq('id', id)
     .select()
     .single()
   
   if (error) return res.status(500).json({ error: error.message })
-  res.json(data)
+  
+  // Combine first_name and last_name into name for backward compatibility
+  const response = {
+    ...data,
+    name: `${data.first_name || ''} ${data.last_name || ''}`.trim() || data.email
+  }
+  
+  res.json(response)
 }))
 
 // Delete a student
-router.delete('/:email', requireAuth, asyncHandler(async (req, res) => {
-  const { email } = req.params
+router.delete('/:id', requireAuth, asyncHandler(async (req, res) => {
+  const { id } = req.params
   
   const { error } = await supabaseAdmin
     .from('students')
     .delete()
-    .eq('email', email)
+    .eq('id', id)
   
   if (error) return res.status(500).json({ error: error.message })
   res.json({ ok: true })
 }))
 
 // Enroll a student in a course
-router.post('/:email/enroll', requireAuth, asyncHandler(async (req, res) => {
-  const { email } = req.params
+router.post('/:id/enroll', requireAuth, asyncHandler(async (req, res) => {
+  const { id } = req.params
   const { course_id } = req.body || {}
   
   if (!course_id) {
@@ -806,7 +809,7 @@ router.post('/:email/enroll', requireAuth, asyncHandler(async (req, res) => {
   const { data: student } = await supabaseAdmin
     .from('students')
     .select('*')
-    .eq('email', email)
+    .eq('id', id)
     .single()
   
   if (!student) {
@@ -818,7 +821,7 @@ router.post('/:email/enroll', requireAuth, asyncHandler(async (req, res) => {
     .from('enrollments')
     .select('*')
     .eq('course_id', course_id)
-    .eq('student_email', email)
+    .eq('student_id', id)
     .single()
   
   if (existingEnrollment) {
@@ -830,7 +833,8 @@ router.post('/:email/enroll', requireAuth, asyncHandler(async (req, res) => {
     .from('enrollments')
     .insert({ 
       course_id, 
-      student_email: email,
+      student_id: student.id,
+      student_email: student.email,
       enrolled_at: new Date().toISOString(),
       status: 'active',
       progress_percentage: 0
@@ -878,14 +882,22 @@ router.get('/me/courses', requireAuth, asyncHandler(async (req, res) => {
 }))
 
 // Get student's enrolled courses (for teachers accessing their students)
-router.get('/:email/courses', requireAuth, asyncHandler(async (req, res) => {
-  const { email } = req.params
+router.get('/:id/courses', requireAuth, asyncHandler(async (req, res) => {
+  const { id } = req.params
   const userEmail = (req as any).user?.email
   const userRole = (req as any).user?.role
   
   // Check if user has access to this student's data
-  if (userRole === 'student' && userEmail !== email) {
-    return res.status(403).json({ error: 'Access denied' })
+  if (userRole === 'student') {
+    const { data: student } = await supabaseAdmin
+      .from('students')
+      .select('email')
+      .eq('id', id)
+      .single()
+    
+    if (!student || student.email !== userEmail) {
+      return res.status(403).json({ error: 'Access denied' })
+    }
   }
   
   // For teachers, check if they have any students with this email
@@ -893,7 +905,7 @@ router.get('/:email/courses', requireAuth, asyncHandler(async (req, res) => {
     const { data: enrollment } = await supabaseAdmin
       .from('enrollments')
       .select('id')
-      .eq('student_email', email)
+      .eq('student_id', id)
       .eq('courses.teacher_email', userEmail)
       .single()
     
@@ -918,15 +930,15 @@ router.get('/:email/courses', requireAuth, asyncHandler(async (req, res) => {
         course_mode
       )
     `)
-    .eq('student_email', email)
+    .eq('student_id', id)
   
   if (error) return res.status(500).json({ error: error.message })
   res.json({ items: data || [] })
 }))
 
 // Get student's assignments with submissions and grades
-router.get('/:email/assignments', requireAuth, asyncHandler(async (req, res) => {
-  const { email } = req.params
+router.get('/:id/assignments', requireAuth, asyncHandler(async (req, res) => {
+  const { id } = req.params
   
   // Get student submissions with assignment and course details
   const { data, error } = await supabaseAdmin
@@ -945,7 +957,7 @@ router.get('/:email/assignments', requireAuth, asyncHandler(async (req, res) => 
         )
       )
     `)
-    .eq('student_email', email)
+    .eq('student_id', id)
     .order('submitted_at', { ascending: false })
   
   if (error) {
@@ -956,14 +968,14 @@ router.get('/:email/assignments', requireAuth, asyncHandler(async (req, res) => 
 }))
 
 // Get student's activities (study sessions, logins, etc.)
-router.get('/:email/activities', requireAuth, asyncHandler(async (req, res) => {
-  const { email } = req.params
+router.get('/:id/activities', requireAuth, asyncHandler(async (req, res) => {
+  const { id } = req.params
   
   // Get real activities from database
   const { data: activities, error } = await supabaseAdmin
     .from('student_activities')
     .select('*')
-    .eq('student_email', email)
+    .eq('student_id', id)
     .order('created_at', { ascending: false })
     .limit(50)
   
@@ -986,14 +998,14 @@ router.get('/:email/activities', requireAuth, asyncHandler(async (req, res) => {
 }))
 
 // Get detailed course-specific information for a student
-router.get('/:email/course/:courseId/details', requireAuth, asyncHandler(async (req, res) => {
-  const { email, courseId } = req.params
+router.get('/:id/course/:courseId/details', requireAuth, asyncHandler(async (req, res) => {
+  const { id, courseId } = req.params
   
   // Get student info
   const { data: student, error: studentError } = await supabaseAdmin
     .from('students')
     .select('*')
-    .eq('email', email)
+    .eq('id', id)
     .single()
   
   if (studentError) return res.status(404).json({ error: 'student_not_found' })
@@ -1012,7 +1024,7 @@ router.get('/:email/course/:courseId/details', requireAuth, asyncHandler(async (
     .from('enrollments')
     .select('*')
     .eq('course_id', courseId)
-    .eq('student_email', email)
+    .eq('student_id', id)
     .single()
   
   if (enrollmentError) return res.status(404).json({ error: 'enrollment_not_found' })
@@ -1039,7 +1051,7 @@ router.get('/:email/course/:courseId/details', requireAuth, asyncHandler(async (
   const { data: grades, error: gradesError } = await supabaseAdmin
     .from('student_grades')
     .select('*')
-    .eq('student_email', email)
+    .eq('student_id', id)
     .eq('course_id', courseId)
     .order('created_at', { ascending: false })
   
@@ -1049,7 +1061,7 @@ router.get('/:email/course/:courseId/details', requireAuth, asyncHandler(async (
   const { data: activities, error: activitiesError } = await supabaseAdmin
     .from('student_activities')
     .select('*')
-    .eq('student_email', email)
+    .eq('student_id', id)
     .eq('course_id', courseId)
     .order('created_at', { ascending: false })
     .limit(10)
@@ -1166,14 +1178,22 @@ router.get('/:email/course/:courseId/details', requireAuth, asyncHandler(async (
 }))
 
 // Get student poll participation data
-router.get('/:email/poll-participation', requireAuth, asyncHandler(async (req, res) => {
-  const { email } = req.params
+router.get('/:id/poll-participation', requireAuth, asyncHandler(async (req, res) => {
+  const { id } = req.params
   const userEmail = (req as any).user?.email
   const userRole = (req as any).user?.role
   
   // Check if user has access to this student's data
-  if (userRole === 'student' && userEmail !== email) {
-    return res.status(403).json({ error: 'Access denied' })
+  if (userRole === 'student') {
+    const { data: student } = await supabaseAdmin
+      .from('students')
+      .select('email')
+      .eq('id', id)
+      .single()
+    
+    if (!student || student.email !== userEmail) {
+      return res.status(403).json({ error: 'Access denied' })
+    }
   }
   
   try {
@@ -1181,7 +1201,7 @@ router.get('/:email/poll-participation', requireAuth, asyncHandler(async (req, r
     const { data: pollActivities, error } = await supabaseAdmin
       .from('student_activities')
       .select('*')
-      .eq('student_email', email.toLowerCase())
+      .eq('student_id', id)
       .eq('activity_type', 'poll_response')
       .order('created_at', { ascending: false })
     
@@ -1205,14 +1225,22 @@ router.get('/:email/poll-participation', requireAuth, asyncHandler(async (req, r
 }))
 
 // Get student discussion participation data
-router.get('/:email/discussion-participation', requireAuth, asyncHandler(async (req, res) => {
-  const { email } = req.params
+router.get('/:id/discussion-participation', requireAuth, asyncHandler(async (req, res) => {
+  const { id } = req.params
   const userEmail = (req as any).user?.email
   const userRole = (req as any).user?.role
   
   // Check if user has access to this student's data
-  if (userRole === 'student' && userEmail !== email) {
-    return res.status(403).json({ error: 'Access denied' })
+  if (userRole === 'student') {
+    const { data: student } = await supabaseAdmin
+      .from('students')
+      .select('email')
+      .eq('id', id)
+      .single()
+    
+    if (!student || student.email !== userEmail) {
+      return res.status(403).json({ error: 'Access denied' })
+    }
   }
   
   try {
@@ -1220,7 +1248,7 @@ router.get('/:email/discussion-participation', requireAuth, asyncHandler(async (
     const { data: discussionActivities, error } = await supabaseAdmin
       .from('student_activities')
       .select('*')
-      .eq('student_email', email.toLowerCase())
+      .eq('student_id', id)
       .eq('activity_type', 'discussion_reply')
       .order('created_at', { ascending: false })
     
@@ -1244,14 +1272,22 @@ router.get('/:email/discussion-participation', requireAuth, asyncHandler(async (
 }))
 
 // Get student study time data
-router.get('/:email/study-time', requireAuth, asyncHandler(async (req, res) => {
-  const { email } = req.params
+router.get('/:id/study-time', requireAuth, asyncHandler(async (req, res) => {
+  const { id } = req.params
   const userEmail = (req as any).user?.email
   const userRole = (req as any).user?.role
   
   // Check if user has access to this student's data
-  if (userRole === 'student' && userEmail !== email) {
-    return res.status(403).json({ error: 'Access denied' })
+  if (userRole === 'student') {
+    const { data: student } = await supabaseAdmin
+      .from('students')
+      .select('email')
+      .eq('id', id)
+      .single()
+    
+    if (!student || student.email !== userEmail) {
+      return res.status(403).json({ error: 'Access denied' })
+    }
   }
   
   try {
@@ -1259,7 +1295,7 @@ router.get('/:email/study-time', requireAuth, asyncHandler(async (req, res) => {
     const { data: progressData, error } = await supabaseAdmin
       .from('student_progress')
       .select('time_spent_seconds')
-      .eq('student_email', email.toLowerCase())
+      .eq('student_id', id)
     
     if (error) throw error
     

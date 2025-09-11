@@ -108,6 +108,10 @@ router.post('/schedule', requireAuth, asyncHandler(async (req, res) => {
 
 // Create a new live session
 router.post('/', requireAuth, asyncHandler(async (req, res) => {
+  console.log('=== LIVE SESSION CREATION ROUTE CALLED ===')
+  console.log('Request body:', JSON.stringify(req.body, null, 2))
+  console.log('Teacher email:', (req as any).user?.email)
+  
   const { course_id, module_id, title, description, start_at, session_type, duration_minutes } = req.body
   const teacher_email = (req as any).user?.email
   
@@ -117,6 +121,25 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
   
   if (!title || !start_at || !session_type) {
     return res.status(400).json({ error: 'missing_required_fields' })
+  }
+
+  // Check for duplicate session creation (same title, start time, and teacher)
+  const sessionStartTime = new Date(start_at)
+  const { data: existingSession } = await supabaseAdmin
+    .from('live_sessions')
+    .select('id, title, start_time')
+    .eq('teacher_email', teacher_email)
+    .eq('title', title)
+    .eq('start_time', sessionStartTime.toISOString())
+    .maybeSingle()
+
+  if (existingSession) {
+    console.log('Duplicate session detected:', existingSession)
+    return res.status(409).json({ 
+      error: 'duplicate_session',
+      message: 'A session with the same title and start time already exists',
+      existing_session_id: existingSession.id
+    })
   }
 
   // Validate based on session type
@@ -161,8 +184,7 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
 
   // Calculate end time based on settings or provided duration
   const sessionDuration = duration_minutes || liveClassSettings.default_session_duration
-  const startTime = new Date(start_at)
-  const endTime = new Date(startTime.getTime() + (sessionDuration * 60 * 1000))
+  const endTime = new Date(sessionStartTime.getTime() + (sessionDuration * 60 * 1000))
 
   const { data, error } = await supabaseAdmin
     .from('live_sessions')
@@ -171,7 +193,7 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
       module_id: module_id || null,
       title,
       description,
-      start_time: startTime.toISOString(),
+      start_time: sessionStartTime.toISOString(),
       end_at: endTime.toISOString(),
       duration_minutes: sessionDuration,
       teacher_email,
@@ -188,6 +210,8 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
     .single()
 
   if (error) return res.status(500).json({ error: error.message })
+
+  console.log('Live session created successfully:', data.id, data.title)
 
   // Send live session notifications to enrolled students
   try {
@@ -218,7 +242,7 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
             session_title: title,
             course_title: courseData?.title,
             course_id: course_id,
-            start_time: startTime.toISOString(),
+            start_time: sessionStartTime.toISOString(),
             end_time: endTime.toISOString(),
             duration_minutes: sessionDuration,
             session_type: session_type,

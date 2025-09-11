@@ -339,7 +339,7 @@ router.post('/:id/enroll', requireAuth, asyncHandler(async (req, res) => {
     return res.status(401).json({ error: 'Teacher email not found in request' })
   }
   
-  const { student_email } = req.body || {}
+  const { student_email, student_id } = req.body || {}
   if (!student_email) return res.status(400).json({ error: 'missing_student' })
   
   // First verify the course belongs to this teacher
@@ -354,13 +354,50 @@ router.post('/:id/enroll', requireAuth, asyncHandler(async (req, res) => {
     return res.status(404).json({ error: 'Course not found or access denied' })
   }
   
+  // Get student_id if not provided
+  let finalStudentId = student_id
+  if (!finalStudentId) {
+    const { data: student, error: studentError } = await supabaseAdmin
+      .from('students')
+      .select('id')
+      .eq('email', student_email)
+      .single()
+    
+    if (studentError || !student) {
+      return res.status(404).json({ error: 'Student not found' })
+    }
+    finalStudentId = student.id
+  }
+  
+  // Check if already enrolled
+  const { data: existingEnrollment } = await supabaseAdmin
+    .from('enrollments')
+    .select('id')
+    .eq('course_id', req.params.id)
+    .eq('student_id', finalStudentId)
+    .single()
+  
+  if (existingEnrollment) {
+    return res.status(400).json({ error: 'Student already enrolled' })
+  }
+  
   // enforce free tier cap by teacher
   const { data: t } = await supabaseAdmin.from('teachers').select('max_students_allowed').eq('email', teacherEmail).single()
   const { count } = await supabaseAdmin.from('enrollments').select('*', { count: 'exact', head: true }).eq('course_id', req.params.id)
   const maxAllowed = t?.max_students_allowed ?? env.FREE_STUDENTS_LIMIT
   if ((count || 0) >= maxAllowed) return res.status(402).json({ error: 'limit_reached' })
   
-  const { error } = await supabaseAdmin.from('enrollments').insert({ course_id: req.params.id, student_email })
+  const { error } = await supabaseAdmin.from('enrollments').insert({ 
+    course_id: req.params.id, 
+    student_email,
+    student_id: finalStudentId,
+    status: 'active',
+    enrolled_at: new Date().toISOString(),
+    progress: { completed_lessons: [], completed_assignments: [] },
+    progress_percentage: 0,
+    last_activity: new Date().toISOString(),
+    completion_percentage: 0
+  })
   if (error) return res.status(500).json({ error: error.message })
   res.json({ ok: true })
 }))
