@@ -440,6 +440,7 @@ router.post('/student/register', asyncHandler(async (req, res) => {
       .from('enrollments')
       .insert({
         course_id: invite.course_id,
+        student_id: student.id,
         student_email: email.toLowerCase(),
         enrolled_at: new Date().toISOString()
       })
