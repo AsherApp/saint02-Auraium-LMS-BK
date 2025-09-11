@@ -51,7 +51,7 @@ export function AnimationWrapper({
 
 // Staggered animation wrapper for lists
 interface StaggeredAnimationWrapperProps {
-  children: React.ReactNode[]
+  children: React.ReactNode | React.ReactNode[]
   className?: string
   staggerDelay?: number
   animation?: "fade-in" | "fade-in-delay" | "fade-in-delay-2" | "fade-in-delay-3" | "fade-in-delay-4"
@@ -65,9 +65,12 @@ export function StaggeredAnimationWrapper({
   animation = "fade-in",
   duration = "normal"
 }: StaggeredAnimationWrapperProps) {
+  // Convert children to array if it's not already an array
+  const childrenArray = Array.isArray(children) ? children : [children]
+  
   return (
     <div className={className}>
-      {children.map((child, index) => (
+      {childrenArray.map((child, index) => (
         <AnimationWrapper
           key={index}
           delay={index * staggerDelay}
