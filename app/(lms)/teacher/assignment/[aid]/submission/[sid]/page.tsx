@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { AssignmentProAPI, type Assignment, type Submission } from "@/services/assignment-pro/api"
+import { useAssignment, useAssignmentSubmissions } from "@/services/assignments/hook"
+import { type Assignment, type Submission } from "@/services/assignments/api"
 import { http } from "@/services/http"
 import { 
   ArrowLeft, 
@@ -23,6 +24,11 @@ import {
   Send
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { FileList } from "@/components/shared/file-list"
+import { QuizViewer } from "@/components/assignment/quiz-viewer"
+import { CodeViewer } from "@/components/shared/code-viewer"
+import { PeerReviewViewer } from "@/components/shared/peer-review-viewer"
+import { FileUploadViewer } from "@/components/shared/file-upload-viewer"
 
 export default function TeacherSubmissionDetailPage() {
   const params = useParams()
@@ -33,7 +39,8 @@ export default function TeacherSubmissionDetailPage() {
   const assignmentId = params.aid as string
   const submissionId = params.sid as string
   
-  const [assignment, setAssignment] = useState<Assignment | null>(null)
+  const { assignment } = useAssignment(params.aid as string)
+  const { submissions } = useAssignmentSubmissions(params.aid as string)
   const [submission, setSubmission] = useState<Submission | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -44,59 +51,35 @@ export default function TeacherSubmissionDetailPage() {
   const [feedback, setFeedback] = useState("")
   const [rubricScores, setRubricScores] = useState<any>({})
 
+  // Find the specific submission from the submissions array
   useEffect(() => {
-    const fetchData = async () => {
-      console.log('Route params:', params)
-      console.log('Extracted IDs:', { assignmentId, submissionId })
-      
-      if (!assignmentId || !submissionId) {
-        console.error('Missing parameters:', { assignmentId, submissionId })
-        setError('Missing assignment or submission ID')
+    if (submissions && submissionId) {
+      const foundSubmission = submissions.find(s => s.id === submissionId)
+      if (foundSubmission) {
+        setSubmission(foundSubmission)
+        setGrade(foundSubmission.grade || 0)
+        setFeedback(foundSubmission.feedback || "")
+        setRubricScores(foundSubmission.rubric_scores || {})
         setLoading(false)
-        return
-      }
-      
-      setLoading(true)
-      setError(null)
-      
-      try {
-        console.log('Fetching assignment:', assignmentId)
-        console.log('Fetching submission:', submissionId)
-        
-        // Fetch assignment details
-        const assignmentData = await AssignmentProAPI.getAssignment(assignmentId)
-        setAssignment(assignmentData)
-        
-        // Fetch submission details
-        const submissionData = await AssignmentProAPI.getSubmission(submissionId)
-        setSubmission(submissionData)
-        
-        // Set initial grading values
-        if (submissionData) {
-          setGrade(submissionData.grade || 0)
-          setFeedback(submissionData.feedback || "")
-          setRubricScores(submissionData.rubricScores || {})
-        }
-      } catch (err: any) {
-        console.error('Failed to fetch data:', err)
-        setError(err.message || 'Failed to load submission')
-      } finally {
+      } else {
+        setError('Submission not found')
         setLoading(false)
       }
     }
-
-    fetchData()
-  }, [assignmentId, submissionId])
+  }, [submissions, submissionId])
 
   const handleGradeSubmission = async () => {
     if (!submission || !assignment) return
     
     setGrading(true)
     try {
-      await AssignmentProAPI.gradeSubmission(submission.id, {
-        grade,
-        feedback,
-        rubricScores
+      await http(`/api/submissions/${submission.id}/grade`, {
+        method: 'POST',
+        body: {
+          grade,
+          feedback,
+          rubric_scores: Object.entries(rubricScores).map(([criterionId, score]) => ({ criterion_id: criterionId, score }))
+        }
       })
       
       toast({
@@ -104,13 +87,47 @@ export default function TeacherSubmissionDetailPage() {
         description: `Grade: ${grade}/${assignment.points}`,
       })
       
-      // Refresh submission data
-      const updatedSubmission = await AssignmentProAPI.getSubmission(submissionId)
-      setSubmission(updatedSubmission)
+      // Refresh submission data by finding it again in the submissions array
+      const updatedSubmission = submissions.find(s => s.id === submissionId)
+      if (updatedSubmission) {
+        setSubmission(updatedSubmission)
+      }
     } catch (error: any) {
       console.error('Failed to grade submission:', error)
       toast({
         title: "Failed to grade submission",
+        description: error.message || "Please try again",
+        variant: "destructive"
+      })
+    } finally {
+      setGrading(false)
+    }
+  }
+
+  const handleReturnSubmission = async () => {
+    if (!submission || !assignment) return
+    
+    setGrading(true)
+    try {
+      await http(`/api/submissions/${submission.id}/return`, {
+        method: 'POST',
+        body: { feedback }
+      })
+      
+      toast({
+        title: "Submission returned for resubmission",
+        description: "Student will be notified to make changes",
+      })
+      
+      // Refresh submission data by finding it again in the submissions array
+      const updatedSubmission = submissions.find(s => s.id === submissionId)
+      if (updatedSubmission) {
+        setSubmission(updatedSubmission)
+      }
+    } catch (error: any) {
+      console.error('Failed to return submission:', error)
+      toast({
+        title: "Failed to return submission",
         description: error.message || "Please try again",
         variant: "destructive"
       })
@@ -140,6 +157,13 @@ export default function TeacherSubmissionDetailPage() {
           <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
             <Clock className="h-3 w-3 mr-1" />
             Draft
+          </Badge>
+        )
+      case 'returned':
+        return (
+          <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30">
+            <AlertTriangle className="h-3 w-3 mr-1" />
+            Returned for Resubmission
           </Badge>
         )
       default:
@@ -278,14 +302,87 @@ export default function TeacherSubmissionDetailPage() {
                   </div>
                 )}
                 
-                {submission.content.quiz && (
+                {submission.content.quiz && assignment.settings.quiz_questions && (
                   <div>
-                    <h4 className="font-medium text-white mb-2">Quiz Answers</h4>
+                    <h4 className="font-medium text-white mb-2">Quiz Response</h4>
+                    <QuizViewer
+                      questions={assignment.settings.quiz_questions}
+                      submission={submission.content.quiz}
+                      showResults={true}
+                      isTeacherView={true}
+                    />
+                  </div>
+                )}
+                
+                {submission.content.code_submission && (
+                  <CodeViewer
+                    code={submission.content.code_submission}
+                    language="javascript"
+                    filename="submission.js"
+                    repositoryUrl={submission.content.repository_url}
+                    demoUrl={submission.content.demo_url}
+                    readOnly={true}
+                    showHeader={true}
+                  />
+                )}
+
+                {submission.content.quiz && assignment.settings.quiz_questions && (
+                  <QuizViewer
+                    questions={assignment.settings.quiz_questions}
+                    submission={submission.content.quiz}
+                    showAnswers={true}
+                    isReadOnly={true}
+                    totalPoints={assignment.points}
+                    earnedPoints={submission.grade || 0}
+                    submittedAt={submission.submitted_at}
+                    gradedAt={submission.graded_at}
+                    feedback={submission.feedback}
+                  />
+                )}
+
+                {submission.content.peer_review && (
+                  <PeerReviewViewer
+                    submission={submission.content.peer_review}
+                    readOnly={true}
+                    showHeader={true}
+                  />
+                )}
+
+                {submission.content.file_upload && (
+                  <FileUploadViewer
+                    files={submission.content.file_upload}
+                    readOnly={true}
+                    showHeader={true}
+                  />
+                )}
+
+                {submission.content.presentation && (
+                  <div>
+                    <h4 className="font-medium text-white mb-2">Presentation Notes</h4>
                     <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-                      <pre className="text-slate-300 text-sm overflow-auto">
-                        {JSON.stringify(submission.content.quiz, null, 2)}
-                      </pre>
+                      <div 
+                        className="text-slate-300 whitespace-pre-wrap prose prose-invert max-w-none"
+                        dangerouslySetInnerHTML={{ __html: submission.content.presentation }}
+                      />
                     </div>
+                  </div>
+                )}
+
+                {submission.content.files && submission.content.files.length > 0 && (
+                  <div>
+                    <h4 className="font-medium text-white mb-2">Uploaded Files</h4>
+                    <FileList
+                      files={submission.content.files.map((file: any, index: number) => ({
+                        id: file.id || `file-${index}`,
+                        name: file.name || `File ${index + 1}`,
+                        url: file.url || '#',
+                        type: file.type || 'application/octet-stream',
+                        size: file.size || 0,
+                        uploadedAt: file.uploadedAt || new Date().toISOString()
+                      }))}
+                      showDownload={true}
+                      showViewer={true}
+                    />
                   </div>
                 )}
               </div>
@@ -372,29 +469,54 @@ export default function TeacherSubmissionDetailPage() {
                 </div>
               )}
 
-              {/* Submit Grade Button */}
-              <Button
-                onClick={handleGradeSubmission}
-                disabled={grading}
-                className="w-full bg-blue-600/80 hover:bg-blue-600 text-white"
-              >
-                {grading ? (
-                  <>
-                    <Clock className="h-4 w-4 mr-2 animate-spin" />
-                    Grading...
-                  </>
-                ) : submission.status === 'graded' ? (
-                  <>
-                    <Save className="h-4 w-4 mr-2" />
-                    Update Grade
-                  </>
-                ) : (
-                  <>
-                    <Send className="h-4 w-4 mr-2" />
-                    Submit Grade
-                  </>
+              {/* Action Buttons */}
+              <div className="space-y-3">
+                {/* Submit Grade Button */}
+                <Button
+                  onClick={handleGradeSubmission}
+                  disabled={grading}
+                  className="w-full bg-blue-600/80 hover:bg-blue-600 text-white"
+                >
+                  {grading ? (
+                    <>
+                      <Clock className="h-4 w-4 mr-2 animate-spin" />
+                      Grading...
+                    </>
+                  ) : submission.status === 'graded' ? (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />
+                      Update Grade
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4 mr-2" />
+                      Submit Grade
+                    </>
+                  )}
+                </Button>
+
+                {/* Request Resubmission Button */}
+                {submission.status === 'submitted' && (
+                  <Button
+                    onClick={handleReturnSubmission}
+                    disabled={grading || !feedback.trim()}
+                    variant="outline"
+                    className="w-full border-orange-500/50 text-orange-400 hover:bg-orange-500/10"
+                  >
+                    {grading ? (
+                      <>
+                        <Clock className="h-4 w-4 mr-2 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <AlertTriangle className="h-4 w-4 mr-2" />
+                        Request Resubmission
+                      </>
+                    )}
+                  </Button>
                 )}
-              </Button>
+              </div>
             </div>
           </GlassCard>
 

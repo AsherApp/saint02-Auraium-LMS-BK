@@ -12,9 +12,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Progress } from "@/components/ui/progress"
-import { AssignmentProAPI, type Assignment, type Submission, type RubricCriteria } from "@/services/assignment-pro/api"
+import { AssignmentAPI, type Assignment, type Submission } from "@/services/assignments/api"
 import { DocumentViewer } from "@/components/shared/document-viewer"
 import { PresentationViewer } from "@/components/shared/presentation-viewer"
+import { CodeViewer } from "@/components/shared/code-viewer"
+import { QuizViewer } from "@/components/assignment/quiz-viewer"
+import { PeerReviewViewer } from "@/components/shared/peer-review-viewer"
+import { FileUploadViewer } from "@/components/shared/file-upload-viewer"
 import { 
   Save, 
   Send, 
@@ -37,7 +41,8 @@ import {
   Clock,
   BarChart3,
   Presentation,
-  RefreshCw
+  RefreshCw,
+  AlertTriangle
 } from "lucide-react"
 
 interface GradingInterfaceProps {
@@ -58,7 +63,7 @@ export function GradingInterface({ assignment, onClose }: GradingInterfaceProps)
   const [rubricScores, setRubricScores] = useState<Record<string, number>>({})
   
   // Filters and sorting
-  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "graded" | "needs_review">("all")
+  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "graded" | "needs_review" | "returned">("all")
   const [sortBy, setSortBy] = useState<"name" | "submitted_at" | "grade">("submitted_at")
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc")
   
@@ -75,7 +80,7 @@ export function GradingInterface({ assignment, onClose }: GradingInterfaceProps)
   useEffect(() => {
     const fetchSubmissions = async () => {
       try {
-        const submissionData = await AssignmentProAPI.listAssignmentSubmissions(assignment.id)
+        const submissionData = await AssignmentAPI.listAssignmentSubmissions(assignment.id)
         console.log('Fetched submissions:', submissionData)
         setSubmissions(submissionData)
       } catch (error) {
@@ -99,6 +104,8 @@ export function GradingInterface({ assignment, onClose }: GradingInterfaceProps)
           return submission.grade !== null
         case "needs_review":
           return submission.status === "submitted" && submission.grade === null
+        case "returned":
+          return submission.status === "returned"
         default:
           return true
       }
@@ -122,7 +129,7 @@ export function GradingInterface({ assignment, onClose }: GradingInterfaceProps)
   const handleGradeSubmission = async (submissionId: string) => {
     setSaving(true)
     try {
-      const updatedSubmission = await AssignmentProAPI.gradeSubmission(submissionId, {
+      const updatedSubmission = await AssignmentAPI.gradeSubmission(submissionId, {
         grade,
         feedback,
         rubric_scores: Object.entries(rubricScores).map(([criterionId, score]) => ({ criterion_id: criterionId, score }))
@@ -140,11 +147,28 @@ export function GradingInterface({ assignment, onClose }: GradingInterfaceProps)
     }
   }
 
+  const handleReturnSubmission = async (submissionId: string) => {
+    setSaving(true)
+    try {
+      const updatedSubmission = await AssignmentAPI.returnSubmission(submissionId, feedback)
+      setSubmissions(prev => prev.map(s => s.id === submissionId ? updatedSubmission : s))
+      // Move to next ungraded submission
+      const nextUngraded = filteredSubmissions.find(s => !s.grade && s.id !== submissionId)
+      if (nextUngraded) {
+        selectSubmission(nextUngraded)
+      }
+    } catch (error) {
+      console.error("Failed to return submission:", error)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const handleBulkGrading = async () => {
     setSaving(true)
     try {
       const updates = Array.from(selectedSubmissions).map(id => 
-        AssignmentProAPI.gradeSubmission(id, {
+        AssignmentAPI.gradeSubmission(id, {
           grade: bulkGrade,
           feedback: bulkFeedback,
           rubric_scores: []
@@ -274,6 +298,7 @@ export function GradingInterface({ assignment, onClose }: GradingInterfaceProps)
                     <SelectItem value="pending">Pending</SelectItem>
                     <SelectItem value="graded">Graded</SelectItem>
                     <SelectItem value="needs_review">Needs Review</SelectItem>
+                    <SelectItem value="returned">Returned for Resubmission</SelectItem>
                   </SelectContent>
                 </Select>
                 
@@ -311,15 +336,18 @@ export function GradingInterface({ assignment, onClose }: GradingInterfaceProps)
           {/* Submissions */}
           <div className="space-y-2 max-h-[600px] overflow-y-auto">
             {filteredSubmissions.map((submission) => (
-              <GlassCard 
+              <div
                 key={submission.id}
-                className={`p-4 cursor-pointer transition-colors ${
-                  currentSubmission?.id === submission.id 
-                    ? 'bg-blue-600/20 border-blue-500/50' 
-                    : 'hover:bg-white/10'
-                }`}
+                className="cursor-pointer"
                 onClick={() => selectSubmission(submission)}
               >
+                <GlassCard 
+                  className={`p-4 transition-colors ${
+                    currentSubmission?.id === submission.id 
+                      ? 'bg-blue-600/20 border-blue-500/50' 
+                      : 'hover:bg-white/10'
+                  }`}
+                >
                 <div className="flex items-start gap-3">
                   <Checkbox
                     checked={selectedSubmissions.has(submission.id)}
@@ -341,26 +369,41 @@ export function GradingInterface({ assignment, onClose }: GradingInterfaceProps)
                     </div>
                     
                     <div className="flex items-center justify-between">
-                      {submission.grade !== null ? (
-                        <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
-                          <Award className="h-3 w-3 mr-1" />
-                          {submission.grade}/{assignment.points}
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="border-orange-500/30 text-orange-400">
-                          Pending
-                        </Badge>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {submission.grade !== null ? (
+                          <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                            <Award className="h-3 w-3 mr-1" />
+                            {submission.grade}/{assignment.points}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="border-orange-500/30 text-orange-400">
+                            Pending
+                          </Badge>
+                        )}
+                        
+                        {submission.attachments && submission.attachments.length > 0 && (
+                          <Badge variant="outline" className="border-slate-500 text-slate-300">
+                            {submission.attachments.length} files
+                          </Badge>
+                        )}
+                      </div>
                       
-                      {submission.attachments && submission.attachments.length > 0 && (
-                        <Badge variant="outline" className="border-slate-500 text-slate-300">
-                          {submission.attachments.length} files
-                        </Badge>
-                      )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          window.open(`/teacher/assignment/${assignment.id}/submission/${submission.id}`, '_blank')
+                        }}
+                        className="text-slate-400 hover:text-white hover:bg-white/10 p-1"
+                      >
+                        <Eye className="h-3 w-3" />
+                      </Button>
                     </div>
                   </div>
                 </div>
               </GlassCard>
+              </div>
             ))}
             
             {filteredSubmissions.length === 0 && (
@@ -397,6 +440,15 @@ export function GradingInterface({ assignment, onClose }: GradingInterfaceProps)
                         Pending Grade
                       </Badge>
                     )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => window.open(`/teacher/assignment/${assignment.id}/submission/${currentSubmission.id}`, '_blank')}
+                      className="border-white/20 text-white hover:bg-white/10"
+                    >
+                      <Eye className="h-4 w-4 mr-1" />
+                      View Full
+                    </Button>
                   </div>
                 </div>
               </GlassCard>
@@ -473,36 +525,67 @@ export function GradingInterface({ assignment, onClose }: GradingInterfaceProps)
 
                     {/* Code Submission */}
                     {assignment.type === "code_submission" && (currentSubmission.content as any).code_submission && (
-                      <div className="bg-white/5 rounded-lg p-4 mb-4">
-                        <h5 className="text-white font-medium mb-2">Code Submission</h5>
-                        <div className="bg-slate-900 rounded-lg p-4">
-                          <pre className="text-green-400 font-mono text-sm whitespace-pre-wrap">
-                            {(currentSubmission.content as any).code_submission}
-                          </pre>
-                        </div>
+                      <div className="mb-4">
+                        <CodeViewer
+                          code={(currentSubmission.content as any).code_submission}
+                          language="javascript"
+                          filename="submission.js"
+                          repositoryUrl={(currentSubmission.content as any).repository_url}
+                          demoUrl={(currentSubmission.content as any).demo_url}
+                          readOnly={true}
+                          showHeader={true}
+                        />
+                      </div>
+                    )}
+
+                    {/* Quiz Submission */}
+                    {assignment.type === "quiz" && (currentSubmission.content as any).quiz && assignment.settings.quiz_questions && (
+                      <div className="mb-4">
+                        <QuizViewer
+                          questions={assignment.settings.quiz_questions}
+                          submission={(currentSubmission.content as any).quiz}
+                          showAnswers={true}
+                          isReadOnly={true}
+                          totalPoints={assignment.points}
+                          earnedPoints={currentSubmission.grade || 0}
+                          submittedAt={currentSubmission.submitted_at || undefined}
+                          gradedAt={currentSubmission.graded_at || undefined}
+                          feedback={currentSubmission.feedback || undefined}
+                        />
+                      </div>
+                    )}
+
+                    {/* Peer Review Submission */}
+                    {assignment.type === "peer_review" && (currentSubmission.content as any).peer_review && (
+                      <div className="mb-4">
+                        <PeerReviewViewer
+                          submission={(currentSubmission.content as any).peer_review}
+                          readOnly={true}
+                          showHeader={true}
+                        />
                       </div>
                     )}
 
                     {/* File Upload Content */}
                     {assignment.type === "file_upload" && (currentSubmission.content as any).file_upload && (
-                      <div className="bg-white/5 rounded-lg p-4 mb-4">
-                        <h5 className="text-white font-medium mb-2">Uploaded Files</h5>
-                        <div className="text-white">
-                          {Array.isArray((currentSubmission.content as any).file_upload) 
-                            ? (currentSubmission.content as any).file_upload.join(', ')
-                            : (currentSubmission.content as any).file_upload
-                          }
-                        </div>
+                      <div className="mb-4">
+                        <FileUploadViewer
+                          files={(currentSubmission.content as any).file_upload}
+                          readOnly={true}
+                          showHeader={true}
+                        />
                       </div>
                     )}
 
                     {/* No Content Message */}
                     {!currentSubmission.content.essay && 
-                                           !(currentSubmission.content as any).project &&
+                      !(currentSubmission.content as any).project &&
                       !(currentSubmission.content as any).discussion &&
                       !(currentSubmission.content as any).presentation &&
                       !(currentSubmission.content as any).code_submission &&
-                      !(currentSubmission.content as any).file_upload && 
+                      !(currentSubmission.content as any).file_upload &&
+                      !(currentSubmission.content as any).quiz &&
+                      !(currentSubmission.content as any).peer_review &&
                      (!currentSubmission.attachments || currentSubmission.attachments.length === 0) && (
                       <div className="bg-white/5 rounded-lg p-4 mb-4">
                         <div className="text-slate-400 text-center py-8">
@@ -625,6 +708,22 @@ export function GradingInterface({ assignment, onClose }: GradingInterfaceProps)
                           )}
                           Save Grade
                         </Button>
+                        
+                        {currentSubmission.status === 'submitted' && (
+                          <Button
+                            onClick={() => handleReturnSubmission(currentSubmission.id)}
+                            disabled={saving || !feedback.trim()}
+                            variant="outline"
+                            className="border-orange-500/50 text-orange-400 hover:bg-orange-500/10"
+                          >
+                            {saving ? (
+                              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <AlertTriangle className="h-4 w-4 mr-2" />
+                            )}
+                            Request Resubmission
+                          </Button>
+                        )}
                         
                         <Button
                           variant="outline"

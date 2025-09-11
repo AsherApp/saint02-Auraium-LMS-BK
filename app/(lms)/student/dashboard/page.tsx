@@ -82,7 +82,7 @@ export default function StudentDashboardPage() {
         const hasPublicCourses = enrolledCourses.some((course: any) => {
           const courseMode = course.course?.course_mode
           console.log('Student Dashboard - Course:', course.course?.title, 'Mode:', courseMode)
-          return courseMode === 'public' || courseMode === 'full'
+          return courseMode === 'public'
         })
         
         console.log('Student Dashboard - Has public courses:', hasPublicCourses)
@@ -99,7 +99,7 @@ export default function StudentDashboardPage() {
         
         // Filter courses to show only public courses if in public mode
         const filteredCourses = hasPublicCourses 
-          ? enrolledCourses.filter((course: any) => course.course?.course_mode === 'public' || course.course?.course_mode === 'full')
+          ? enrolledCourses.filter((course: any) => course.course?.course_mode === 'public')
           : enrolledCourses
         
         setEnrolledCourses(filteredCourses)
@@ -148,24 +148,11 @@ export default function StudentDashboardPage() {
             setAnnouncements([])
           }
         } else {
-          // In public mode, only get announcements for public courses
+          // In public mode, get announcements for enrolled courses
           try {
-            console.log('Student Dashboard - Fetching announcements for public courses...')
-            const announcementPromises = filteredCourses.map(async (course: any) => {
-              try {
-                const announcementsResponse = await http<any>(`/api/announcements?course_id=${course.course_id}`)
-                return (announcementsResponse.items || []).map((announcement: any) => ({
-                  ...announcement,
-                  course_title: course.course?.title || "Unknown Course"
-                }))
-              } catch (err) {
-                console.error(`Failed to fetch announcements for course ${course.course_id}:`, err)
-                return []
-              }
-            })
-            
-            const allAnnouncements = await Promise.all(announcementPromises)
-            setAnnouncements(allAnnouncements.flat())
+            console.log('Student Dashboard - Fetching announcements for enrolled courses...')
+            const announcementsResponse = await http<any>(`/api/announcements/student`)
+            setAnnouncements(announcementsResponse.items || [])
           } catch (err) {
             console.error('Failed to fetch announcements:', err)
             setAnnouncements([])

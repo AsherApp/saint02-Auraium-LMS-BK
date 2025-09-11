@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { useCourseStore } from "@/store/course-store"
 import { useAuthStore } from "@/store/auth-store"
-import { AssignmentProAPI, type Assignment, type Submission } from "@/services/assignment-pro/api"
+import { AssignmentAPI, type Assignment, type Submission } from "@/services/assignments/api"
 import { DocumentViewer } from "@/components/shared/document-viewer"
 import { PresentationViewer } from "@/components/shared/presentation-viewer"
 import { 

@@ -48,6 +48,11 @@ export default function TeacherLiveClass() {
   })
 
   const handleCreateSession = async () => {
+    if (loading) {
+      console.log('Session creation already in progress, ignoring duplicate call')
+      return
+    }
+    
     if (!user?.email || !newSession.title || !newSession.start_at) {
       toast({ title: "Please fill in all required fields", variant: "destructive" })
       return
@@ -64,6 +69,7 @@ export default function TeacherLiveClass() {
     }
     
     try {
+      console.log('Creating live session:', newSession.title)
       await createSession({
         course_id: newSession.course_id || undefined,
         module_id: newSession.module_id || undefined,
@@ -85,6 +91,7 @@ export default function TeacherLiveClass() {
       })
       setSelectedCourseModules([])
     } catch (err: any) {
+      console.error('Failed to create live session:', err)
       toast({ 
         title: "Failed to create live session", 
         description: err.message, 

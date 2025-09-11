@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
   try {
-    const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'https://auraiumlmsbk.up.railway.app'
+    const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:4000/api'
     const authHeader = request.headers.get('authorization')
     
     if (!authHeader) {
@@ -24,32 +24,19 @@ export async function GET(request: NextRequest) {
 
     const assignments = await response.json()
     
-    // Transform backend format to frontend format
-    const transformedAssignments = assignments.map((assignment: any) => ({
-      id: assignment.id,
-      course_id: assignment.courseId,
-      title: assignment.title,
-      description: assignment.description,
-      type: assignment.type,
-      due_at: assignment.dueAt,
-      points: assignment.points,
-      submission_count: assignment.submissionCount || 0,
-      created_at: assignment.createdAt,
-      updated_at: assignment.updatedAt
-    }))
-
-    return NextResponse.json({ items: transformedAssignments })
+    // Return assignments directly as they now match our frontend format
+    return NextResponse.json(assignments)
   } catch (error) {
     console.error('Error fetching assignments:', error)
     
     // Return empty array if API fails
-    return NextResponse.json({ items: [] })
+    return NextResponse.json([])
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'https://auraiumlmsbk.up.railway.app'
+    const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:4000/api'
     const body = await request.json()
     const authHeader = request.headers.get('authorization')
     

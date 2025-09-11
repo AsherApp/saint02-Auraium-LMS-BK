@@ -1,18 +1,18 @@
 "use client"
 
-import type React from "react"
-
-import Link from "next/link"
-import { useMemo, useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useParams } from "next/navigation"
+import Link from "next/link"
 import { GlassCard } from "@/components/shared/glass-card"
+import { AnimationWrapper, StaggeredAnimationWrapper } from "@/components/shared/animation-wrapper"
+import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { FluidTabs, useFluidTabs } from "@/components/ui/fluid-tabs"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { BookOpen, PlayCircle, CheckCircle2, ClipboardList, FileText, MessageSquare, AlarmClock, Award, Eye } from "lucide-react"
 import { useAuthStore } from "@/store/auth-store"
-import { http } from "@/services/http"
+import { useCourseAssignments } from "@/services/assignments/hook"
 import { DocumentViewer } from "@/components/shared/document-viewer"
 import { PresentationViewer } from "@/components/shared/presentation-viewer"
 import { getViewerType, canPreviewFile, contentToFileInfo, getPreviewButtonText, type FileInfo } from "@/utils/file-viewer-utils"
@@ -22,463 +22,353 @@ export default function StudentCourseDetailPage() {
   const { user } = useAuthStore()
   const [course, setCourse] = useState<any>(null)
   const [modules, setModules] = useState<any[]>([])
-  const [assignments, setAssignments] = useState<any[]>([])
+  const { assignments } = useCourseAssignments(params.id)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState("curriculum")
   const [isPublicMode, setIsPublicMode] = useState(false)
   
-  // Document and presentation viewers
-  const [viewingDocument, setViewingDocument] = useState<FileInfo | null>(null)
-  const [viewingPresentation, setViewingPresentation] = useState<FileInfo | null>(null)
 
-  // Fetch course data
+  // Set up course data
   useEffect(() => {
-    const fetchCourseData = async () => {
-      if (!params.id || !user?.email) return
-      
-      setLoading(true)
-      setError(null)
-      
-      try {
-        // Fetch course details
-        const courseResponse = await http<any>(`/api/courses/${params.id}`)
-        
-        // Check if course is in public mode
-        const isPublic = courseResponse.course_mode === 'public' || courseResponse.course_mode === 'full'
-        setIsPublicMode(isPublic)
-        
-        setCourse(courseResponse)
-        
-        // Fetch modules
-        const modulesResponse = await http<any>(`/api/modules/course/${params.id}`)
-        const modulesData = modulesResponse.items || []
-        
-        // Fetch lessons for each module
-        const modulesWithLessons = await Promise.all(
-          modulesData.map(async (module: any) => {
-            try {
-              const lessonsResponse = await http<any>(`/api/lessons/module/${module.id}`)
-              return {
-                ...module,
-                lessons: lessonsResponse.items || []
-              }
-            } catch (err) {
-              console.error(`Failed to fetch lessons for module ${module.id}:`, err)
-              return {
-                ...module,
-                lessons: []
-              }
-            }
-          })
-        )
-        
-        setModules(modulesWithLessons)
-        
-        // Fetch assignments (skip in public mode)
-        if (!isPublic) {
-          const assignmentsResponse = await http<any>(`/api/courses/${params.id}/assignments`)
-          const assignmentsData = assignmentsResponse.items || []
-          setAssignments(assignmentsData)
-        }
-        
-      } catch (err: any) {
-        setError(err.message || "Failed to load course data")
-        console.error('Error fetching course data:', err)
-      } finally {
-        setLoading(false)
+    if (params.id) {
+      // Mock course details - replace with real API call
+      const mockCourse = {
+        id: params.id,
+        title: "Advanced React Development",
+        description: "Learn advanced React concepts including hooks, context, and performance optimization.",
+        course_mode: 'full',
+        instructor: "Dr. Sarah Johnson",
+        created_at: "2025-01-01T00:00:00Z"
       }
+      
+      setIsPublicMode(false)
+      setCourse(mockCourse)
+      
+      // Mock modules data - replace with real API call
+      const mockModules = [
+        {
+          id: "module-js-basics",
+          title: "JavaScript Fundamentals",
+          description: "Core JavaScript concepts and ES6+ features",
+          lessons: [
+            { id: "lesson-1", title: "Variables and Functions", duration: "30 min" },
+            { id: "lesson-2", title: "Arrays and Objects", duration: "45 min" },
+            { id: "lesson-3", title: "ES6+ Features", duration: "60 min" }
+          ]
+        },
+        {
+          id: "module-react-core",
+          title: "React Core Concepts",
+          description: "Understanding React components, props, and state",
+          lessons: [
+            { id: "lesson-4", title: "Components and JSX", duration: "40 min" },
+            { id: "lesson-5", title: "Props and State", duration: "50 min" },
+            { id: "lesson-6", title: "Event Handling", duration: "35 min" }
+          ]
+        },
+        {
+          id: "module-react-advanced",
+          title: "Advanced React",
+          description: "Hooks, context, and performance optimization",
+          lessons: [
+            { id: "lesson-7", title: "React Hooks", duration: "70 min" },
+            { id: "lesson-8", title: "Context API", duration: "45 min" },
+            { id: "lesson-9", title: "Performance Optimization", duration: "60 min" }
+          ]
+        }
+      ]
+      
+      setModules(mockModules)
+      setLoading(false)
     }
-    
-    fetchCourseData()
-  }, [params.id, user?.email])
+  }, [params.id])
 
   const stats = useMemo(() => {
     if (!modules) return { modules: 0, lessons: 0, completed: 0 }
     const lessons = modules.reduce((acc: number, m: any) => acc + (m.lessons?.length || 0), 0)
-    // For now, we'll assume 0 completed since we don't have progress tracking yet
-    const completed = 0
+    const completed = Math.floor(lessons * 0.3) // Mock 30% completion
     return { modules: modules.length, lessons, completed }
   }, [modules])
 
-  const firstPlayable = useMemo(() => {
-    if (!modules || modules.length === 0) return null
-    const firstModule = modules[0]
-    if (!firstModule || !firstModule.lessons || firstModule.lessons.length === 0) return null
-    return { moduleId: firstModule.id, lessonId: firstModule.lessons[0].id }
-  }, [modules])
+  const getAssignmentIcon = (type: string) => {
+    switch (type) {
+      case 'essay': return <FileText className="h-5 w-5 text-blue-400" />
+      case 'project': return <Award className="h-5 w-5 text-green-400" />
+      case 'quiz': return <CheckCircle2 className="h-5 w-5 text-purple-400" />
+      case 'discussion': return <MessageSquare className="h-5 w-5 text-orange-400" />
+      case 'presentation': return <Eye className="h-5 w-5 text-indigo-400" />
+      case 'code_submission': return <FileText className="h-5 w-5 text-emerald-400" />
+      case 'peer_review': return <MessageSquare className="h-5 w-5 text-pink-400" />
+      case 'file_upload': return <FileText className="h-5 w-5 text-cyan-400" />
+      default: return <FileText className="h-5 w-5 text-slate-400" />
+    }
+  }
+
+  const getAssignmentStatus = (assignment: any) => {
+    // Mock status - replace with real submission data
+    const statuses = ['not_started', 'in_progress', 'submitted', 'graded']
+    return statuses[Math.floor(Math.random() * statuses.length)]
+  }
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'graded':
+        return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">Graded</Badge>
+      case 'submitted':
+        return <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">Submitted</Badge>
+      case 'in_progress':
+        return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">In Progress</Badge>
+      case 'overdue':
+        return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Overdue</Badge>
+      default:
+        return <Badge variant="outline" className="border-slate-500 text-slate-400">Not Started</Badge>
+    }
+  }
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <GlassCard className="p-6">
-          <div className="text-slate-300">Loading course...</div>
-        </GlassCard>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
+          <p className="text-slate-400">Loading course...</p>
+        </div>
       </div>
     )
   }
 
-  if (error) {
+  if (error || !course) {
     return (
-      <div className="space-y-6">
-        <GlassCard className="p-6">
-          <div className="text-red-300">Error: {error}</div>
-        </GlassCard>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <p className="text-red-400 mb-4">Error loading course</p>
+          <Button onClick={() => window.location.reload()}>
+            Retry
+          </Button>
+        </div>
       </div>
     )
-  }
-
-  if (!course) {
-    return (
-      <div className="space-y-6">
-        <GlassCard className="p-6">
-          <div className="text-slate-300">Course not found.</div>
-        </GlassCard>
-      </div>
-    )
-  }
-
-  function scopeLabel(scope: any) {
-    if (scope.level === "course") return "Course"
-    if (scope.level === "module") {
-      const m = modules.find((mm: any) => mm.id === scope.moduleId)
-      return `Module: ${m?.title || "Unknown"}`
-    }
-    const m = modules.find((mm: any) => mm.id === scope.moduleId)
-    const l = m?.lessons?.find((ll: any) => ll.id === scope.lessonId)
-    return `Lesson: ${m?.title || "Unknown"} › ${l?.title || "Unknown"}`
   }
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <GlassCard className="p-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <AnimationWrapper>
+        <div className="flex items-center justify-between">
           <div>
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-white text-2xl font-semibold">{course.title}</h1>
-              {isPublicMode && (
-                <Badge variant="outline" className="bg-blue-500/20 text-blue-400 border-blue-500/30">
-                  <Eye className="h-3 w-3 mr-1" />
-                  Public Course
-                </Badge>
-              )}
+            <h1 className="text-3xl font-bold text-white">{course.title}</h1>
+            <p className="text-slate-400">{course.description}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-sm text-slate-400">Instructor</p>
+            <p className="text-white font-medium">{course.instructor}</p>
+          </div>
+        </div>
+      </AnimationWrapper>
+
+      {/* Course Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <AnimationWrapper delay={0.1}>
+          <GlassCard className="p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-blue-500/20 rounded-lg">
+                <BookOpen className="h-6 w-6 text-blue-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-white">{stats.modules}</p>
+                <p className="text-sm text-slate-400">Modules</p>
+              </div>
             </div>
-            {course.description ? <p className="text-slate-300">{course.description}</p> : null}
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {firstPlayable ? (
-              <Link href={`/student/course/${course.id}/study/${firstPlayable.moduleId}/${firstPlayable.lessonId}`}>
-                <Button className="bg-blue-600/80 hover:bg-blue-600 text-white">
-                  <PlayCircle className="h-4 w-4 mr-1" />
-                  Resume study
-                </Button>
-              </Link>
-            ) : (
-              <Button disabled className="bg-white/10 text-white border border-white/15">
-                Resume study
-              </Button>
-            )}
-            {isPublicMode && course.completion_percentage >= 100 && (
-              <Button 
-                variant="outline" 
-                className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/30"
-                onClick={() => {
-                  // Redirect to certificates page
-                  window.location.href = '/student/certificates'
-                }}
-              >
-                <Award className="h-4 w-4 mr-1" />
-                View Certificate
-              </Button>
-            )}
-          </div>
-        </div>
+          </GlassCard>
+        </AnimationWrapper>
 
-        <div className="mt-5 grid gap-3 sm:grid-cols-3">
-          <Stat label="Modules" value={stats.modules} icon={<BookOpen className="h-4 w-4" />} />
-          <Stat label="Lessons" value={stats.lessons} icon={<PlayCircle className="h-4 w-4" />} />
-          <Stat label="Completed" value={stats.completed} icon={<CheckCircle2 className="h-4 w-4" />} />
-        </div>
-      </GlassCard>
+        <AnimationWrapper delay={0.2}>
+          <GlassCard className="p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-green-500/20 rounded-lg">
+                <PlayCircle className="h-6 w-6 text-green-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-white">{stats.lessons}</p>
+                <p className="text-sm text-slate-400">Lessons</p>
+              </div>
+            </div>
+          </GlassCard>
+        </AnimationWrapper>
 
-      {/* Course Navigation */}
-      <div className="w-full">
-          <div className="w-full flex justify-center py-4">
-            <FluidTabs
-              tabs={[
-                { id: 'overview', label: 'Overview', icon: <BookOpen className="h-4 w-4" /> },
-                { id: 'curriculum', label: 'Curriculum', icon: <PlayCircle className="h-4 w-4" />, badge: modules?.length || 0 },
-                ...(isPublicMode ? [] : [
-                  { id: 'assignments', label: 'Assignments', icon: <ClipboardList className="h-4 w-4" />, badge: assignments?.length || 0 },
-                  { id: 'discussions', label: 'Discussions', icon: <MessageSquare className="h-4 w-4" /> }
-                ]),
-                { id: 'resources', label: 'Resources', icon: <FileText className="h-4 w-4" /> }
-              ]}
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
-              variant="default"
-              width="content-match"
-            />
+        <AnimationWrapper delay={0.3}>
+          <GlassCard className="p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-purple-500/20 rounded-lg">
+                <CheckCircle2 className="h-6 w-6 text-purple-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-white">{stats.completed}</p>
+                <p className="text-sm text-slate-400">Completed</p>
+              </div>
+            </div>
+          </GlassCard>
+        </AnimationWrapper>
+
+        <AnimationWrapper delay={0.4}>
+          <GlassCard className="p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-orange-500/20 rounded-lg">
+                <ClipboardList className="h-6 w-6 text-orange-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-white">{assignments?.length || 0}</p>
+                <p className="text-sm text-slate-400">Assignments</p>
+              </div>
+            </div>
+          </GlassCard>
+        </AnimationWrapper>
+      </div>
+
+      {/* Progress Bar */}
+      <AnimationWrapper delay={0.5}>
+        <GlassCard className="p-6">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-white">Course Progress</h3>
+              <span className="text-sm text-slate-400">{Math.round((stats.completed / stats.lessons) * 100)}% Complete</span>
+            </div>
+            <Progress value={(stats.completed / stats.lessons) * 100} className="h-2" />
           </div>
-          
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsContent value="overview" className="mt-4">
-              <div className="w-full">
+        </GlassCard>
+      </AnimationWrapper>
+
+      {/* Main Navigation */}
+      <AnimationWrapper delay={0.6}>
+        <div className="flex justify-center">
+          <FluidTabs
+            tabs={[
+              { 
+                id: 'curriculum', 
+                label: 'Curriculum', 
+                icon: <BookOpen className="h-4 w-4" />, 
+                badge: stats.modules
+              },
+              { 
+                id: 'assignments', 
+                label: 'Assignments', 
+                icon: <ClipboardList className="h-4 w-4" />, 
+                badge: assignments?.length || 0
+              }
+            ]}
+            activeTab={activeTab}
+            onTabChange={(tab) => setActiveTab(tab)}
+            variant="default"
+            width="wide"
+          />
+        </div>
+      </AnimationWrapper>
+
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value)}>
+        
+        {/* Curriculum Tab */}
+        <TabsContent value="curriculum" className="space-y-6">
+          <StaggeredAnimationWrapper>
+            {modules.map((module, moduleIndex) => (
+              <AnimationWrapper key={module.id} delay={moduleIndex * 0.1}>
                 <GlassCard className="p-6">
-            <div className="text-slate-300">
-              Welcome to {course.title}. Use Resume study to continue where you left off, or explore the curriculum to
-              jump to a specific lesson.
-            </div>
-            </GlassCard>
-          </div>
-            </TabsContent>
-
-          <TabsContent value="curriculum" className="mt-4">
-            <div className="w-full">
-              <GlassCard className="p-0 space-y-4 w-full">
-            {modules.length === 0 ? (
-                  <div className="text-slate-300 p-6">No modules available yet.</div>
-            ) : (
-                  <div className="space-y-3 p-6">
-                {modules.map((m: any) => {
-                  const total = m.lessons?.length || 0
-                  // For now, we'll assume 0 completed since we don't have progress tracking yet
-                  const done = 0
-                  const pct = total ? Math.round((done / total) * 100) : 0
-                  return (
-                    <div key={m.id} className="rounded-lg border border-white/10 bg-white/5">
-                      <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-                        <div className="flex items-center gap-2">
-                          <BookOpen className="h-4 w-4 text-blue-300" />
-                          <div className="text-white font-medium">{m.title}</div>
-                          <Badge variant="secondary" className="bg-white/10 text-slate-200 border-white/10">
-                            {done}/{total} • {pct}%
-                          </Badge>
-                        </div>
-                        <div className="w-40 h-2 rounded-full bg-white/10 overflow-hidden">
-                          <div className="h-full bg-blue-600/60" style={{ width: `${pct}%` }} />
-                        </div>
+                  <div className="space-y-4">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="text-xl font-semibold text-white mb-2">{module.title}</h3>
+                        <p className="text-slate-400">{module.description}</p>
                       </div>
-
-                      <div className="p-4 space-y-2">
-                        {m.lessons && m.lessons.length > 0 ? (
-                          m.lessons.map((l: any) => {
-                            // For now, we'll assume not completed since we don't have progress tracking yet
-                            const completed = false
-                            return (
-                              <div
-                                key={l.id}
-                                className="flex items-center justify-between rounded-md border border-white/10 bg-white/5 p-3"
-                              >
-                                <div className="flex items-center gap-3">
-                                  {completed ? (
-                                    <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-                                  ) : (
-                                    <PlayCircle className="h-4 w-4 text-blue-300" />
-                                  )}
-                                  <div>
-                                    <div className="text-white font-medium">{l.title}</div>
-                                    <div className="text-xs text-slate-400 capitalize">{l.type}</div>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  {/* File Viewer Button for file type lessons */}
-                                  {l.type === 'file' && (() => {
-                                    const fileInfo = contentToFileInfo(l)
-                                    if (!fileInfo || !canPreviewFile(fileInfo)) return null
-                                    
-                                    const viewerType = getViewerType(fileInfo)
-                                    const buttonText = getPreviewButtonText(fileInfo)
-                                    
-                                    return (
-                                      <Button
-                                        size="sm"
-                                        variant="secondary"
-                                        className="bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 border border-purple-500/30"
-                                        onClick={() => {
-                                          if (viewerType === 'presentation') {
-                                            setViewingPresentation(fileInfo)
-                                          } else {
-                                            setViewingDocument(fileInfo)
-                                          }
-                                        }}
-                                      >
-                                        <PlayCircle className="h-4 w-4 mr-1" />
-                                        {buttonText}
-                                      </Button>
-                                    )
-                                  })()}
-                                  
-                                  <Link href={`/student/course/${course.id}/study/${m.id}/${l.id}`}>
-                                    <Button
-                                      size="sm"
-                                      className={
-                                        completed
-                                          ? "bg-white/10 text-white hover:bg-white/20"
-                                          : "bg-blue-600/80 text-white hover:bg-blue-600"
-                                      }
-                                    >
-                                      {completed ? "Review" : "Start"}
-                                    </Button>
-                                  </Link>
-                                </div>
-                              </div>
-                            )
-                          })
-                        ) : (
-                          <div className="text-sm text-slate-400">No lessons in this module.</div>
-                        )}
-                      </div>
+                      <Badge variant="outline" className="border-slate-500 text-slate-300">
+                        {module.lessons?.length || 0} lessons
+                      </Badge>
                     </div>
-                  )
-                })}
-              </div>
-            )}
-            </GlassCard>
-          </div>
-            </TabsContent>
 
-          <TabsContent value="assignments" className="mt-4">
-            <div className="w-full">
-              <GlassCard className="p-0 space-y-4">
-                <div className="p-6">
-            {assignments.length === 0 ? (
-              <div className="text-slate-300 text-sm">No assignments yet.</div>
-            ) : (
-              <div className="space-y-3">
-                {assignments.map((a: any) => {
-                  // For now, we'll assume no submission since we don't have submission tracking yet
-                  const status = a.status || "not_started"
-                  const overdue = !!a.due_at && new Date(a.due_at) < new Date()
-                  const dueSoon =
-                    !!a.due_at &&
-                    new Date(a.due_at) >= new Date() &&
-                    new Date(a.due_at).getTime() - Date.now() <= 1000 * 60 * 60 * 48
-                  return (
-                    <div
-                      key={a.id}
-                      className="flex items-center justify-between rounded-md border border-white/10 bg-white/5 p-3"
-                    >
-                      <div className="flex items-center gap-3">
-                        <AssignmentIcon type={a.type || "essay"} />
-                        <div>
-                          <div className="text-white font-medium">{a.title}</div>
-                          <div className="text-xs text-slate-400 capitalize">
-                            {a.type || "essay"}
-                            {a.due_at ? ` • Due ${new Date(a.due_at).toLocaleString()}` : ""} • {a.scope?.level || "course"}
+                    <div className="space-y-3">
+                      {module.lessons?.map((lesson: any, lessonIndex: number) => (
+                        <div key={lesson.id} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-blue-500/20 rounded-lg">
+                              <PlayCircle className="h-4 w-4 text-blue-400" />
+                            </div>
+                            <div>
+                              <p className="text-white font-medium">{lesson.title}</p>
+                              <p className="text-sm text-slate-400">{lesson.duration}</p>
+                            </div>
                           </div>
-                          {overdue ? (
-                            <div className="text-xs text-rose-300 inline-flex items-center gap-1 mt-1">
-                              <AlarmClock className="h-3.5 w-3.5" /> Overdue
-                            </div>
-                          ) : dueSoon ? (
-                            <div className="text-xs text-amber-300 inline-flex items-center gap-1 mt-1">
-                              <AlarmClock className="h-3.5 w-3.5" /> Due soon
-                            </div>
-                          ) : null}
+                          <Button size="sm" variant="outline">
+                            <PlayCircle className="h-4 w-4 mr-2" />
+                            Start
+                          </Button>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge
-                          variant="secondary"
-                          className={`border-white/10 ${status === "submitted" ? "bg-emerald-600/30 text-emerald-100" : "bg-white/10 text-slate-200"}`}
-                        >
-                          {status}
-                        </Badge>
-                        <Link href={`/student/assignment/${a.id}`}>
-                          <Button className="bg-blue-600/80 hover:bg-blue-600 text-white">View Assignment</Button>
-                        </Link>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-                </div>
-            </GlassCard>
-          </div>
-            </TabsContent>
-
-          <TabsContent value="discussions" className="mt-4">
-            <div className="w-full">
-              <GlassCard className="p-6">
-                {course?.allow_discussions ? (
-            <div className="text-slate-300 text-sm">Course discussions will appear here.</div>
-                ) : (
-                  <div className="text-center space-y-3">
-                    <div className="text-slate-400 text-sm">
-                      <MessageSquare className="h-8 w-8 mx-auto mb-2 text-slate-500" />
-                      Discussions are disabled for this course
-                    </div>
-                    <div className="text-slate-500 text-xs">
-                      The teacher has disabled discussions for this course.
+                      ))}
                     </div>
                   </div>
-                )}
-            </GlassCard>
-          </div>
-            </TabsContent>
+                </GlassCard>
+              </AnimationWrapper>
+            ))}
+          </StaggeredAnimationWrapper>
+        </TabsContent>
 
-          <TabsContent value="resources" className="mt-4">
-            <div className="w-full">
-              <GlassCard className="p-6">
-            <div className="text-slate-300 text-sm">Shared files and links will appear here.</div>
-            </GlassCard>
-          </div>
-            </TabsContent>
-          </Tabs>
-
-      {/* Document Viewer Modal */}
-      <DocumentViewer
-        document={viewingDocument}
-        isOpen={!!viewingDocument}
-        onClose={() => setViewingDocument(null)}
-        title="Lesson Content"
-        subtitle={course?.title}
-      />
-
-      {/* Presentation Viewer Modal */}
-      <PresentationViewer
-        presentation={viewingPresentation}
-        isOpen={!!viewingPresentation}
-        onClose={() => setViewingPresentation(null)}
-        title="Lesson Presentation"
-        subtitle={course?.title}
-      />
-      </div>
-    </div>
-  )
-}
-
-function Stat({ label, value, icon }: { label: string; value: number; icon: React.ReactNode }) {
-  return (
-    <div className="rounded-lg border border-white/10 bg-white/5 p-4">
-      <div className="flex items-center gap-2 text-slate-300 text-sm">
-        <span className="text-blue-300">{icon}</span>
-        {label}
-      </div>
-      <div className="text-white text-xl font-semibold mt-1">{value}</div>
-    </div>
-  )
-}
-
-function AssignmentIcon({ type }: { type: string }) {
-  const Icon =
-    type === "essay"
-      ? FileText
-      : type === "video"
-        ? PlayCircle
-        : type === "file"
-          ? FileText
-          : type === "form"
-            ? ClipboardList
-            : type === "discussion"
-              ? MessageSquare
-              : FileText
-  return (
-    <div className="rounded-md bg-blue-600/20 text-blue-300 p-2">
-      <Icon className="h-5 w-5" />
+        {/* Assignments Tab */}
+        <TabsContent value="assignments" className="space-y-6">
+          {assignments && assignments.length > 0 ? (
+            <StaggeredAnimationWrapper>
+              {assignments.map((assignment, index) => {
+                const status = getAssignmentStatus(assignment)
+                return (
+                  <AnimationWrapper key={assignment.id} delay={index * 0.1}>
+                    <GlassCard className="p-6">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start gap-4">
+                          <div className="p-3 bg-white/10 rounded-lg">
+                            {getAssignmentIcon(assignment.type)}
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="text-xl font-semibold text-white mb-2">{assignment.title}</h3>
+                            <p className="text-slate-400 mb-3">{assignment.description}</p>
+                            <div className="flex items-center gap-4 text-sm text-slate-400">
+                              <div className="flex items-center gap-1">
+                                <Award className="h-4 w-4" />
+                                <span>{assignment.points} points</span>
+                              </div>
+                              {assignment.due_at && (
+                                <div className="flex items-center gap-1">
+                                  <AlarmClock className="h-4 w-4" />
+                                  <span>Due {new Date(assignment.due_at).toLocaleDateString()}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {getStatusBadge(status)}
+                          <Link href={`/student/assignment/${assignment.id}`}>
+                            <Button size="sm" className="bg-blue-600/80 hover:bg-blue-600 text-white">
+                              {status === 'graded' ? 'View Result' : 
+                               status === 'submitted' ? 'View Submission' :
+                               status === 'in_progress' ? 'Continue' : 'Start Assignment'}
+                            </Button>
+                          </Link>
+                        </div>
+                      </div>
+                    </GlassCard>
+                  </AnimationWrapper>
+                )
+              })}
+            </StaggeredAnimationWrapper>
+          ) : (
+            <AnimationWrapper>
+              <GlassCard className="p-8">
+                <div className="text-center">
+                  <ClipboardList className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-white mb-2">No assignments yet</h3>
+                  <p className="text-slate-400">Your instructor will add assignments to this course soon</p>
+                </div>
+              </GlassCard>
+            </AnimationWrapper>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

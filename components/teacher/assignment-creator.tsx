@@ -12,7 +12,19 @@ import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { FluidTabs } from "@/components/ui/fluid-tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { AssignmentProAPI, type Assignment, type AssignmentType, type RubricCriteria } from "@/services/assignment-pro/api"
+import { AssignmentAPI, type Assignment, type AssignmentType } from "@/services/assignments/api"
+
+type RubricCriteria = {
+  id: string
+  name: string
+  description: string
+  maxPoints: number
+  levels: Array<{
+    level: number
+    description: string
+    points: number
+  }>
+}
 import { http } from "@/services/http"
 import { useAuthStore } from "@/store/auth-store"
 import { notificationService } from "@/services/notification-service"
@@ -56,7 +68,7 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
   const [description, setDescription] = useState("")
   const [instructions, setInstructions] = useState("")
   const [courseId, setCourseId] = useState("")
-  const [type, setType] = useState<AssignmentType>("essay")
+  const [type, setType] = useState<"essay" | "file_upload" | "quiz" | "project" | "discussion" | "presentation" | "code_submission" | "peer_review">("essay")
   const [scopeLevel, setScopeLevel] = useState<"course" | "module" | "lesson">(scope?.level || "course")
   const [moduleId, setModuleId] = useState(scope?.moduleId || "")
   const [lessonId, setLessonId] = useState(scope?.lessonId || "")
@@ -174,7 +186,7 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
     setLoading(true)
     
     try {
-      const assignmentData: Omit<Assignment, 'id' | 'created_at' | 'updated_at'> = {
+      const assignmentData = {
         course_id: courseId,
         title: title.trim(),
         description: description.trim() || "",
@@ -213,8 +225,8 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
         // If onSave is provided, use it (for course detail page)
         onSave(assignmentData)
       } else {
-        // Otherwise use the API directly (for assignment page)
-        await AssignmentProAPI.createAssignment(assignmentData)
+        // Otherwise use the mock API directly (for assignment page)
+        await AssignmentAPI.createAssignment(assignmentData)
         // Don't reload the page - let the parent component handle refresh
       }
       
@@ -231,14 +243,14 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
   }
 
   return (
-    <div className="space-y-6 w-full max-w-none">
+    <div className="space-y-6 w-full">
       <div className="w-full">
         <FluidTabs
           tabs={[
-            { id: 'basic', label: 'Basic', icon: <FileText className="h-4 w-4" /> },
+            { id: 'basic', label: 'Basic Info', icon: <FileText className="h-4 w-4" /> },
             { id: 'content', label: 'Content', icon: <BookOpen className="h-4 w-4" /> },
             { id: 'grading', label: 'Grading', icon: <Star className="h-4 w-4" /> },
-            { id: 'rubric', label: 'Rubric', icon: <FileText className="h-4 w-4" /> },
+            { id: 'rubric', label: 'Rubric', icon: <ClipboardList className="h-4 w-4" /> },
             { id: 'settings', label: 'Settings', icon: <Settings className="h-4 w-4" /> }
           ]}
           activeTab={activeTab}
@@ -250,11 +262,11 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
 
-        <form onSubmit={handleSubmit} className="w-full max-w-none">
-          <TabsContent value="basic" className="space-y-6 w-full max-w-none mt-6">
-            <Card className="bg-white/5 border-white/10 w-full max-w-none">
-              <CardHeader>
-                <CardTitle className="text-white">Assignment Details</CardTitle>
+        <form onSubmit={handleSubmit} className="w-full">
+          <TabsContent value="basic" className="space-y-6 w-full mt-6">
+            <Card className="bg-white/5 border-white/10 w-full">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-white text-lg">Assignment Details</CardTitle>
                 <CardDescription className="text-slate-400">
                   Basic information about your assignment
                 </CardDescription>
@@ -338,7 +350,7 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
                           <SelectValue placeholder="Select module" />
                         </SelectTrigger>
                         <SelectContent className="bg-slate-900/95 text-white border-white/20 backdrop-blur-md">
-                          {(selectedCourse?.modules || []).map((module) => (
+                          {(selectedCourse?.modules || []).map((module: any) => (
                             <SelectItem key={module.id} value={module.id} className="hover:bg-white/10">
                               {module.title}
                             </SelectItem>
@@ -356,13 +368,12 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
                           </SelectTrigger>
                           <SelectContent className="bg-slate-900/95 text-white border-white/20 backdrop-blur-md">
                             {(selectedCourse?.modules
-                              ?.find(m => m.id === moduleId)?.lessons || [])
-                              .map((lesson) => (
+                              ?.find((m: any) => m.id === moduleId)?.lessons || [])
+                              .map((lesson: any) => (
                                 <SelectItem key={lesson.id} value={lesson.id} className="hover:bg-white/10">
                                   {lesson.title}
                                 </SelectItem>
                               ))}
-                            }
                           </SelectContent>
                         </Select>
                       </div>
@@ -531,76 +542,6 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
               </Card>
             )}
 
-            {type === "video" && (
-              <Card className="bg-white/5 border-white/10 w-full max-w-none">
-                <CardHeader>
-                  <CardTitle className="text-white">Video Assignment Setup</CardTitle>
-                  <CardDescription className="text-slate-400">
-                    Configure requirements for student video submissions
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label className="text-white">Video Instructions</Label>
-                    <Textarea
-                      value={videoInstructions}
-                      onChange={(e) => setVideoInstructions(e.target.value)}
-                      placeholder="Explain what students should record, topics to cover, etc..."
-                      className="bg-white/5 border-white/10 text-white placeholder-slate-400 min-h-24"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-white">Max Duration (minutes)</Label>
-                      <Input
-                        type="number"
-                        min="1"
-                        max="60"
-                        value={videoRequirements.maxDuration}
-                        onChange={(e) => setVideoRequirements({
-                          ...videoRequirements,
-                          maxDuration: parseInt(e.target.value) || 10
-                        })}
-                        className="bg-white/5 border-white/10 text-white"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <h4 className="text-lg font-medium text-white">Submission Options</h4>
-                    
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label className="text-white">Allow Webcam Recording</Label>
-                        <p className="text-sm text-slate-400">Students can record directly in their browser</p>
-                      </div>
-                      <Switch
-                        checked={videoRequirements.allowWebcam}
-                        onCheckedChange={(checked) => setVideoRequirements({
-                          ...videoRequirements,
-                          allowWebcam: checked
-                        })}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label className="text-white">Allow File Upload</Label>
-                        <p className="text-sm text-slate-400">Students can upload pre-recorded videos</p>
-                      </div>
-                      <Switch
-                        checked={videoRequirements.allowUpload}
-                        onCheckedChange={(checked) => setVideoRequirements({
-                          ...videoRequirements,
-                          allowUpload: checked
-                        })}
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
 
             {type === "presentation" && (
               <Card className="bg-white/5 border-white/10 w-full max-w-none">
@@ -1018,19 +959,19 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
           </TabsContent>
 
           {/* Form Actions */}
-          <div className="flex justify-end gap-3 pt-6 border-t border-white/10">
+          <div className="flex justify-end gap-3 pt-6 mt-6 border-t border-white/10">
             <Button
               type="button"
               variant="ghost"
               onClick={onCancel || onClose}
-              className="text-slate-300 hover:text-white hover:bg-white/10"
+              className="text-slate-300 hover:text-white hover:bg-white/10 px-6"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={loading || !title.trim() || !courseId || !instructions.trim()}
-              className="bg-blue-600/80 hover:bg-blue-600 text-white disabled:opacity-50"
+              className="bg-blue-600/80 hover:bg-blue-600 text-white disabled:opacity-50 px-6"
             >
               {loading ? "Creating..." : "Create Assignment"}
             </Button>

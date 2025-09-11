@@ -439,6 +439,7 @@ export default function TeacherCourseDetailPage() {
     }
 
     try {
+      console.log('Creating live session from course page:', newLiveSession.title)
       await createSession({
         course_id: course.id,
         module_id: newLiveSession.module_id || undefined,
@@ -458,6 +459,7 @@ export default function TeacherCourseDetailPage() {
         module_id: ""
       })
     } catch (err: any) {
+      console.error('Failed to create live session from course page:', err)
       toast({ 
         title: "Failed to create live session", 
         description: err.message, 
@@ -641,9 +643,10 @@ export default function TeacherCourseDetailPage() {
                               <ListPlus className="h-4 w-4 mr-1" /> Add Assignment
                             </Button>
                           </DialogTrigger>
-                          <DialogContent className="bg-white/10 border-white/20 backdrop-blur text-white max-w-[99vw] w-[99vw] max-h-[95vh] overflow-y-auto">
-                              <DialogHeader>
-                              <DialogTitle>New Assignment (Module)</DialogTitle>
+                          <DialogContent className="bg-white/10 border-white/20 backdrop-blur text-white max-w-6xl w-[95vw] max-h-[95vh] overflow-y-auto">
+                              <DialogHeader className="pb-4">
+                              <DialogTitle className="text-xl font-semibold text-white">New Assignment (Module)</DialogTitle>
+                              <p className="text-slate-400 text-sm">Create a new assignment for this module</p>
                             </DialogHeader>
                             <AssignmentCreator
                               scope={{ level: "module", moduleId: m.id }}
@@ -730,10 +733,10 @@ export default function TeacherCourseDetailPage() {
                                     <ListPlus className="h-4 w-4 mr-1" /> Add Assignment
                                   </Button>
                                 </DialogTrigger>
-                                <DialogContent className="bg-white/10 border-white/20 backdrop-blur text-white max-w-[99vw] w-[99vw] max-h-[95vh] overflow-y-auto">
-                                  <DialogHeader>
-                                    <DialogTitle>New Assignment (Lesson)</DialogTitle>
-                                    <DialogDescription>Create a new assignment for this specific lesson.</DialogDescription>
+                                <DialogContent className="bg-white/10 border-white/20 backdrop-blur text-white max-w-6xl w-[95vw] max-h-[95vh] overflow-y-auto">
+                                  <DialogHeader className="pb-4">
+                                    <DialogTitle className="text-xl font-semibold text-white">New Assignment (Lesson)</DialogTitle>
+                                    <p className="text-slate-400 text-sm">Create a new assignment for this specific lesson</p>
                                   </DialogHeader>
                                   <AssignmentCreator
                                     scope={{ level: "lesson", moduleId: m.id, lessonId: l.id }}

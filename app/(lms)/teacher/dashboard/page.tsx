@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useAuthStore } from "@/store/auth-store"
 import { useCourseStore } from "@/store/course-store"
 import { useCoursesFn } from "@/services/courses/hook"
-import { useAssignmentsFn } from "@/services/assignments/hook"
+import { useAssignments } from "@/services/assignments/hook"
 import { http } from "@/services/http"
 import { getUserDisplayName } from "@/utils/name-utils"
 import { GlassCard } from "@/components/shared/glass-card"
@@ -47,7 +47,7 @@ export default function TeacherDashboard() {
   const { courses, loading: coursesLoading } = useCoursesFn()
   // Type assertion to ensure we're working with API courses that have enrollment_count
   const apiCourses = courses as any[]
-  const { items: assignments, loading: assignmentsLoading } = useAssignmentsFn()
+  const { assignments, loading: assignmentsLoading } = useAssignments()
   const { courses: localCourses, seedIfEmpty } = useCourseStore()
 
   // Real statistics calculated from actual data

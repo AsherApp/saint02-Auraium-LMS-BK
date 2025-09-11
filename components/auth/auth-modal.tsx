@@ -11,6 +11,7 @@ import { useAuthFn } from "@/services/auth/hook"
 import { cn } from "@/lib/utils"
 import { GraduationCap, User, ArrowRight, Loader2 } from "lucide-react"
 import { BillingSignupFlow } from "./billing-signup-flow"
+import { ForgotPasswordModal } from "./forgot-password-modal"
 
 type Props = {
   label?: string
@@ -46,6 +47,7 @@ export function AuthModal({ label = "Login", className, asPlainButton = false }:
   const [studentCode, setStudentCode] = useState("")
   const [showBillingFlow, setShowBillingFlow] = useState(false)
   const [registeredTeacher, setRegisteredTeacher] = useState<{ name: string; email: string } | null>(null)
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
 
 
   const resetForm = () => {
@@ -422,6 +424,17 @@ export function AuthModal({ label = "Login", className, asPlainButton = false }:
                 </button>
               </p>
               
+              {/* Forgot Password Link - Only show in login mode */}
+              {mode === "login" && (
+                <div className="mt-3 text-center">
+                  <button
+                    onClick={() => setShowForgotPassword(true)}
+                    className="text-xs text-slate-400 hover:text-blue-400 underline transition-colors"
+                  >
+                    Forgot your password?
+                  </button>
+                </div>
+              )}
 
             </div>
           </div>
@@ -442,6 +455,13 @@ export function AuthModal({ label = "Login", className, asPlainButton = false }:
           teacherName={registeredTeacher.name}
         />
       )}
+
+      {/* Forgot Password Modal */}
+      <ForgotPasswordModal
+        isOpen={showForgotPassword}
+        onClose={() => setShowForgotPassword(false)}
+        userType={role}
+      />
     </Dialog>
   )
 } 

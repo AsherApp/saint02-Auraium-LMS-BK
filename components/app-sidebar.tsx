@@ -34,7 +34,7 @@ export function AppSidebar() {
   if (!user) return null
 
   // Check if student is in public mode (simplified environment)
-  const isPublicMode = user.role === 'student' && (user.course_mode === 'public' || user.course_mode === 'full')
+  const isPublicMode = user.role === 'student' && user.course_mode === 'public'
 
 const teacherItems = [
     {

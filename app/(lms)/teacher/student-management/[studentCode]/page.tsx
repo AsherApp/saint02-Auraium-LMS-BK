@@ -188,7 +188,7 @@ export default function StudentDetailPage() {
         setStudent(studentResponse)
         
         // Get enrollments
-        const enrollmentsResponse = await http<{ items: Enrollment[] }>(`/api/students/${studentResponse.email}/enrollments`)
+        const enrollmentsResponse = await http<{ items: Enrollment[] }>(`/api/students/${studentResponse.id}/enrollments`)
         setEnrollments(enrollmentsResponse.items || [])
         
         // Get progress for each course
@@ -216,7 +216,7 @@ export default function StudentDetailPage() {
         
         // Fetch assignments
         try {
-          const assignmentsResponse = await http<{ items: Assignment[] }>(`/api/students/${studentResponse.email}/assignments`)
+          const assignmentsResponse = await http<{ items: Assignment[] }>(`/api/students/${studentResponse.id}/assignments`)
           setAssignments(assignmentsResponse.items || [])
         } catch (err) {
           console.log('Assignments API not available yet')
@@ -225,7 +225,7 @@ export default function StudentDetailPage() {
         
         // Fetch activities
         try {
-          const activitiesResponse = await http<{ items: Activity[] }>(`/api/students/${studentResponse.email}/activities`)
+          const activitiesResponse = await http<{ items: Activity[] }>(`/api/students/${studentResponse.id}/activities`)
           setActivities(activitiesResponse.items || [])
         } catch (err) {
           console.log('Activities API not available yet')
@@ -246,7 +246,7 @@ export default function StudentDetailPage() {
     if (!student) return
     
     try {
-      await http(`/api/students/${student.email}`, {
+      await http(`/api/students/${student.id}`, {
         method: 'PUT',
         body: { status: 'suspended' }
       })
@@ -263,7 +263,7 @@ export default function StudentDetailPage() {
     if (!student) return
     
     try {
-      await http(`/api/students/${student.email}`, {
+      await http(`/api/students/${student.id}`, {
         method: 'PUT',
         body: { status: 'active' }
       })
@@ -279,7 +279,7 @@ export default function StudentDetailPage() {
     if (!student) return
     
     try {
-      await http(`/api/students/${student.email}`, {
+      await http(`/api/students/${student.id}`, {
         method: 'DELETE'
       })
       

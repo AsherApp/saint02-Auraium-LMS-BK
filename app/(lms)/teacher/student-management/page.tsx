@@ -216,50 +216,42 @@ export default function TeacherStudentManagement() {
     }
 
     try {
-      // Create student
-      const studentResponse = await http<any>('/api/students', {
+      // Create invite instead of direct student creation (like course detail page)
+      const inviteResponse = await http<any>('/api/invites', {
         method: 'POST',
         body: {
-          email: newStudent.email,
-          name: newStudent.name,
-          status: 'active'
+          student_email: newStudent.email,
+          student_name: newStudent.name,
+          course_id: newStudent.course_id
         }
       })
 
-      // Enroll student in course
-      await http(`/api/students/${newStudent.email}/enroll`, {
-        method: 'POST',
-        body: { course_id: newStudent.course_id }
+      // Show success message with invite link (using the correct invite page)
+      const inviteUrl = `${window.location.origin}/invite/${inviteResponse.code}`
+      setSignupInfo({
+        studentCode: inviteResponse.code,
+        signupUrl: inviteUrl,
+        email: newStudent.email
       })
-
-      // Show success message with signup information
-      if (studentResponse.needsPassword) {
-        const signupUrl = `${window.location.origin}${studentResponse.signupUrl}`
-        setSignupInfo({
-          studentCode: studentResponse.studentCode,
-          signupUrl,
-          email: newStudent.email
-        })
-        toast({ 
-          title: "Student added successfully!", 
-          description: "Please share the signup information with the student.",
-          duration: 5000
-        })
-      } else {
-        toast({ title: "Student added successfully" })
-        setAddStudentOpen(false)
-        setNewStudent({ email: "", name: "", course_id: "" })
-        // Refresh students list
-        window.location.reload()
-      }
+      
+      toast({ 
+        title: "Student invited successfully!", 
+        description: "Please share the invite link with the student.",
+        duration: 5000
+      })
+      
+      setAddStudentOpen(false)
+      setNewStudent({ email: "", name: "", course_id: "" })
+      // Refresh students list
+      window.location.reload()
     } catch (err: any) {
-      toast({ title: "Failed to add student", description: err.message, variant: "destructive" })
+      toast({ title: "Failed to invite student", description: err.message, variant: "destructive" })
     }
   }
 
-  const handleSuspendStudent = async (email: string) => {
+  const handleSuspendStudent = async (student: ConsolidatedStudent) => {
     try {
-      await http(`/api/students/${email}`, {
+      await http(`/api/students/${student.id}`, {
         method: 'PUT',
         body: { status: 'suspended' }
       })
@@ -272,13 +264,13 @@ export default function TeacherStudentManagement() {
     }
   }
 
-  const handleDeleteStudent = async (email: string) => {
-    if (!confirm(`Are you sure you want to delete ${email}? This action cannot be undone.`)) {
+  const handleDeleteStudent = async (student: ConsolidatedStudent) => {
+    if (!confirm(`Are you sure you want to delete ${student.name} (${student.email})? This action cannot be undone.`)) {
       return
     }
 
     try {
-      await http(`/api/students/${email}`, {
+      await http(`/api/students/${student.id}`, {
         method: 'DELETE'
       })
       
@@ -657,7 +649,7 @@ export default function TeacherStudentManagement() {
                           variant="ghost" 
                           size="sm" 
                           className="h-8 w-8 p-0"
-                          onClick={() => handleSuspendStudent(student.email)}
+                          onClick={() => handleSuspendStudent(student)}
                         >
                           <UserX className="h-4 w-4" />
                         </Button>
@@ -665,7 +657,7 @@ export default function TeacherStudentManagement() {
                           variant="ghost" 
                           size="sm" 
                           className="h-8 w-8 p-0"
-                          onClick={() => handleDeleteStudent(student.email)}
+                          onClick={() => handleDeleteStudent(student)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

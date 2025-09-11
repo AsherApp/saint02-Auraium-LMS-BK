@@ -192,8 +192,8 @@ export default function InvitePage() {
         router.push('/student/dashboard')
       } else {
         // Fallback to welcome modal if no token
-        setShowRegistration(false)
-        setShowWelcome(true)
+      setShowRegistration(false)
+      setShowWelcome(true)
       }
     } catch (err: any) {
       toast({ title: "Error", description: err.message || "Failed to create account", variant: "destructive" })
@@ -330,64 +330,64 @@ export default function InvitePage() {
           
           <div className="space-y-6">
             {/* Basic Information */}
-            <div className="space-y-4">
+          <div className="space-y-4">
               <h3 className="text-lg font-semibold text-white border-b border-white/20 pb-2">Basic Information</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="firstName">First Name *</Label>
-                  <Input
-                    id="firstName"
-                    value={formData.firstName}
-                    onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
-                    className="bg-white/5 border-white/10 text-white"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="lastName">Last Name *</Label>
-                  <Input
-                    id="lastName"
-                    value={formData.lastName}
-                    onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
-                    className="bg-white/5 border-white/10 text-white"
-                    required
-                  />
-                </div>
-              </div>
-              
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email *</Label>
+                  <Label htmlFor="firstName">First Name *</Label>
                 <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                  id="firstName"
+                  value={formData.firstName}
+                  onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
                   className="bg-white/5 border-white/10 text-white"
-                  required
+                    required
                 />
               </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password *</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={formData.password}
-                    onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                    className="bg-white/5 border-white/10 text-white"
-                    placeholder="At least 6 characters"
+              <div className="space-y-2">
+                  <Label htmlFor="lastName">Last Name *</Label>
+                <Input
+                  id="lastName"
+                  value={formData.lastName}
+                  onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
+                  className="bg-white/5 border-white/10 text-white"
                     required
-                  />
-                </div>
-                <div className="space-y-2">
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+                <Label htmlFor="email">Email *</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                className="bg-white/5 border-white/10 text-white"
+                  required
+              />
+            </div>
+            
+              <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+                  <Label htmlFor="password">Password *</Label>
+              <Input
+                id="password"
+                type="password"
+                value={formData.password}
+                onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                className="bg-white/5 border-white/10 text-white"
+                placeholder="At least 6 characters"
+                    required
+              />
+            </div>
+            <div className="space-y-2">
                   <Label htmlFor="confirmPassword">Confirm Password *</Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    value={formData.confirmPassword}
-                    onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                    className="bg-white/5 border-white/10 text-white"
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={formData.confirmPassword}
+                onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                className="bg-white/5 border-white/10 text-white"
                     required
                   />
                 </div>

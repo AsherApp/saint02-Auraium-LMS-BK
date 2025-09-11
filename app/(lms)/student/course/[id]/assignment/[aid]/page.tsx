@@ -10,7 +10,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { useAuthStore } from "@/store/auth-store"
-import { AssignmentProAPI, type Assignment, type Submission } from "@/services/assignment-pro/api"
+import { useAssignment, useMySubmission } from "@/services/assignments/hook"
+import { type Assignment, type Submission } from "@/services/assignments/api"
 import { RichTextEditor } from "@/components/shared/rich-text-editor"
 import { 
   ArrowLeft, 
@@ -55,23 +56,32 @@ export default function StudentAssignmentWorkspacePage() {
   const { user } = useAuthStore()
   const assignmentId = params.aid as string
   
-  const [assignment, setAssignment] = useState<Assignment | null>(null)
-  const [submission, setSubmission] = useState<Submission | null>(null)
-  const [loading, setLoading] = useState(true)
+  const { assignment, loading, error } = useAssignment(assignmentId)
+  const { submission, createSubmission, updateSubmission } = useMySubmission(assignmentId)
   const [saving, setSaving] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [timeSpent, setTimeSpent] = useState(0)
   
   // Submission content based on assignment type
   const [content, setContent] = useState<{
-    essay?: string
-    file_upload?: File[]
-    quiz?: Record<string, number | number[]>
-    project?: string
-    discussion?: string
-    presentation?: string
-    code_submission?: string
-  }>({})
+    essay: string
+    file_upload: File[]
+    quiz: Record<string, number | number[]>
+    project: string
+    discussion: string
+    presentation: string
+    code_submission: string
+    peer_review: string
+  }>({
+    essay: '',
+    project: '',
+    discussion: '',
+    presentation: '',
+    code_submission: '',
+    peer_review: '',
+    quiz: {},
+    file_upload: []
+  })
 
   // Quiz state
   const [quizAnswers, setQuizAnswers] = useState<Record<string, number | number[]>>({})
@@ -92,47 +102,32 @@ export default function StudentAssignmentWorkspacePage() {
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null)
   const [timerActive, setTimerActive] = useState(false)
 
+  // Initialize content from existing submission
   useEffect(() => {
-    const fetchAssignment = async () => {
-      try {
-        const [assignmentData, submissionData] = await Promise.all([
-          AssignmentProAPI.getAssignment(assignmentId),
-          AssignmentProAPI.getSubmission(assignmentId, user?.email || '')
-        ])
-        
-        setAssignment(assignmentData)
-        if (submissionData) {
-          setSubmission(submissionData)
-          // Initialize content from existing submission
-          if (submissionData.content) {
-            setContent(submissionData.content)
-            if (submissionData.content.quiz) {
-              setQuizAnswers(submissionData.content.quiz)
-            }
-          }
-        }
-
-        // Initialize timer if assignment has time limit
-        if (assignmentData.time_limit_minutes && !submissionData?.status) {
-          setTimeRemaining(assignmentData.time_limit_minutes * 60) // Convert to seconds
-          setTimerActive(true)
-        }
-      } catch (err: any) {
-        setError(err.message || 'Failed to load assignment')
-      } finally {
-        setLoading(false)
+    if (submission?.content) {
+      setContent({
+        essay: submission.content.essay || '',
+        file_upload: submission.content.file_upload || [],
+        quiz: submission.content.quiz_answers || {},
+        project: submission.content.project_description || '',
+        discussion: submission.content.discussion_posts?.join('\n') || '',
+        presentation: submission.content.presentation_slides?.join('\n') || '',
+        code_submission: submission.content.code?.content || '',
+        peer_review: submission.content.peer_review || ''
+      })
+      if (submission.content.quiz_answers) {
+        setQuizAnswers(submission.content.quiz_answers)
       }
     }
+  }, [submission])
 
-    if (assignmentId && user?.email) {
-      fetchAssignment()
-      
-      // Set up polling for grade updates every 30 seconds
-      const interval = setInterval(fetchAssignment, 30000)
-      
-      return () => clearInterval(interval)
+  // Initialize timer if assignment has time limit
+  useEffect(() => {
+    if (assignment?.time_limit_minutes && !submission?.status) {
+      setTimeRemaining(assignment.time_limit_minutes * 60) // Convert to seconds
+      setTimerActive(true)
     }
-  }, [assignmentId, user?.email])
+  }, [assignment, submission])
 
   // Auto-save effect
   useEffect(() => {
@@ -181,17 +176,15 @@ export default function StudentAssignmentWorkspacePage() {
     setIsAutoSaving(true)
     try {
       const submissionData = {
-        assignment_id: assignmentId,
-        student_email: user.email,
         content,
-        status: 'draft'
+        status: 'draft' as const,
+        timeSpentMinutes: timeSpent
       }
       
       if (submission) {
-        await AssignmentProAPI.updateSubmission(submission.id, submissionData)
+        await updateSubmission(submission.id, submissionData)
       } else {
-        const newSubmission = await AssignmentProAPI.createSubmission(submissionData)
-        setSubmission(newSubmission)
+        await createSubmission(submissionData)
       }
       setLastSaved(new Date())
     } catch (err: any) {
@@ -207,17 +200,15 @@ export default function StudentAssignmentWorkspacePage() {
     setSaving(true)
     try {
       const submissionData = {
-        assignment_id: assignmentId,
-        student_email: user.email,
         content,
-        status: 'draft'
+        status: 'draft' as const,
+        timeSpentMinutes: timeSpent
       }
       
       if (submission) {
-        await AssignmentProAPI.updateSubmission(submission.id, submissionData)
+        await updateSubmission(submission.id, submissionData)
       } else {
-        const newSubmission = await AssignmentProAPI.createSubmission(submissionData)
-        setSubmission(newSubmission)
+        await createSubmission(submissionData)
       }
       setLastSaved(new Date())
     } catch (err: any) {
@@ -233,18 +224,15 @@ export default function StudentAssignmentWorkspacePage() {
     setSubmitting(true)
     try {
       const submissionData = {
-        assignment_id: assignmentId,
-        student_email: user.email,
         content,
-        status: 'submitted'
+        status: 'submitted' as const,
+        timeSpentMinutes: timeSpent
       }
       
       if (submission) {
-        await AssignmentProAPI.updateSubmission(submission.id, submissionData)
-        setSubmission({ ...submission, status: 'submitted' })
+        await updateSubmission(submission.id, submissionData)
       } else {
-        const newSubmission = await AssignmentProAPI.createSubmission(submissionData)
-        setSubmission(newSubmission)
+        await createSubmission(submissionData)
       }
     } catch (err: any) {
       console.error('Failed to submit:', err)
@@ -288,7 +276,7 @@ export default function StudentAssignmentWorkspacePage() {
     if (!assignment?.settings?.quiz_questions) return
     
     const results: Record<string, boolean> = {}
-    assignment.settings.quiz_questions.forEach(question => {
+        assignment.settings.quiz_questions?.forEach((question: any) => {
       if (question.type === 'multi-select') {
         const studentAnswer = (quizAnswers[question.id] as number[]) || []
         const correctAnswer = question.correctIndexes || []
@@ -346,6 +334,9 @@ export default function StudentAssignmentWorkspacePage() {
     return `${minutes}:${secs.toString().padStart(2, '0')}`
   }
 
+  // Check if assignment is read-only (submitted or graded, but not returned for resubmission)
+  const isReadOnly = submission?.status === 'submitted' || submission?.status === 'graded'
+
   const renderContentEditor = () => {
     if (!assignment) return null
 
@@ -353,44 +344,55 @@ export default function StudentAssignmentWorkspacePage() {
       case 'essay':
         return (
           <div className="space-y-4">
-            <Label className="text-white">Your Essay</Label>
-            <RichTextEditor
-              value={content.essay || ''}
-              onChange={(value) => setContent({ ...content, essay: value })}
-              placeholder="Write your essay here..."
-              className="min-h-[400px]"
-            />
+            <Label className="text-white">{isReadOnly ? 'Your Submitted Essay' : 'Your Essay'}</Label>
+            {isReadOnly ? (
+              <div className="min-h-[400px] bg-slate-900/50 border border-slate-700 rounded-lg p-4">
+                <div 
+                  className="text-slate-300 whitespace-pre-wrap prose prose-invert max-w-none"
+                  dangerouslySetInnerHTML={{ __html: content.essay || 'No essay content available' }}
+                />
+              </div>
+            ) : (
+              <RichTextEditor
+                value={content.essay}
+                onChange={(value) => setContent({ ...content, essay: value })}
+                placeholder="Write your essay here..."
+                className="min-h-[400px]"
+              />
+            )}
           </div>
         )
       
       case 'file_upload':
         return (
           <div className="space-y-4">
-            <Label className="text-white">Upload Files</Label>
+            <Label className="text-white">{isReadOnly ? 'Submitted Files' : 'Upload Files'}</Label>
             
-            {/* File Upload Area */}
-            <div className="border-2 border-dashed border-white/20 rounded-lg p-8 text-center hover:border-white/30 transition-colors">
-              <Upload className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-              <p className="text-slate-300 mb-2 text-lg">Drag and drop files here or click to browse</p>
-              <p className="text-slate-400 mb-4 text-sm">Supported formats: PDF, DOC, DOCX, TXT, JPG, PNG, ZIP, RAR</p>
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                onChange={(e) => handleFileUpload(e.target.files)}
-                className="hidden"
-                accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif,.zip,.rar"
-              />
-              <Button 
-                variant="outline" 
-                size="lg"
-                onClick={() => fileInputRef.current?.click()}
-                className="bg-white/10 hover:bg-white/20 text-white border-white/20"
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                Choose Files
-              </Button>
-            </div>
+            {!isReadOnly && (
+              /* File Upload Area */
+              <div className="border-2 border-dashed border-white/20 rounded-lg p-8 text-center hover:border-white/30 transition-colors">
+                <Upload className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                <p className="text-slate-300 mb-2 text-lg">Drag and drop files here or click to browse</p>
+                <p className="text-slate-400 mb-4 text-sm">Supported formats: PDF, DOC, DOCX, TXT, JPG, PNG, ZIP, RAR</p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  onChange={(e) => handleFileUpload(e.target.files)}
+                  className="hidden"
+                  accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif,.zip,.rar"
+                />
+                <Button 
+                  variant="outline" 
+                  size="lg"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="bg-white/10 hover:bg-white/20 text-white border-white/20"
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Choose Files
+                </Button>
+              </div>
+            )}
 
             {/* Uploaded Files List */}
             {content.file_upload && content.file_upload.length > 0 && (
@@ -408,14 +410,25 @@ export default function StudentAssignmentWorkspacePage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeFile(index)}
-                          className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {!isReadOnly && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeFile(index)}
+                            className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {isReadOnly && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-blue-400 hover:text-blue-300 hover:bg-blue-400/10"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   )
@@ -426,7 +439,7 @@ export default function StudentAssignmentWorkspacePage() {
         )
       
       case 'quiz':
-        if (!assignment.settings?.quiz_questions) {
+        if (!assignment?.settings?.quiz_questions) {
           return (
             <div className="text-center py-8">
               <HelpCircle className="h-12 w-12 text-slate-400 mx-auto mb-4" />
@@ -438,11 +451,11 @@ export default function StudentAssignmentWorkspacePage() {
         return (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <Label className="text-white text-lg">Quiz Questions</Label>
-              {!quizSubmitted && (
+              <Label className="text-white text-lg">{isReadOnly ? 'Quiz Results' : 'Quiz Questions'}</Label>
+              {!quizSubmitted && !isReadOnly && (
                 <Button
                   onClick={submitQuiz}
-                  disabled={Object.keys(quizAnswers).length < assignment.settings.quiz_questions.length}
+                  disabled={Object.keys(quizAnswers).length < (assignment?.settings?.quiz_questions?.length || 0)}
                   className=""
                 >
                   <CheckCircle2 className="h-4 w-4 mr-2" />
@@ -452,7 +465,7 @@ export default function StudentAssignmentWorkspacePage() {
             </div>
 
             <div className="space-y-6">
-              {assignment.settings.quiz_questions.map((question, index) => {
+              {assignment?.settings?.quiz_questions?.map((question: any, index: number) => {
                 const studentAnswer = quizAnswers[question.id]
                 const isCorrect = quizSubmitted ? quizResults[question.id] : undefined
                 
@@ -471,9 +484,9 @@ export default function StudentAssignmentWorkspacePage() {
                     </div>
 
                     <div className="space-y-3">
-                      {question.options?.map((option, optionIndex) => {
+                      {question.options?.map((option: any, optionIndex: number) => {
                         const isSelected = question.type === 'multi-select'
-                          ? (studentAnswer as number[])?.includes(optionIndex)
+                          ? (studentAnswer as number[])?.includes(optionIndex) || false
                           : studentAnswer === optionIndex
                         
                         return (
@@ -483,7 +496,7 @@ export default function StudentAssignmentWorkspacePage() {
                               name={`question-${question.id}`}
                               checked={isSelected}
                               onChange={() => handleQuizAnswer(question.id, optionIndex, question.type === 'multi-select')}
-                              disabled={quizSubmitted}
+                              disabled={quizSubmitted || isReadOnly}
                               className="text-blue-500"
                             />
                             <span className={`flex-1 ${
@@ -560,61 +573,115 @@ export default function StudentAssignmentWorkspacePage() {
       case 'project':
         return (
           <div className="space-y-4">
-            <Label className="text-white">Project Description</Label>
-            <RichTextEditor
-              value={content.project || ''}
-              onChange={(value) => setContent({ ...content, project: value })}
-              placeholder="Describe your project..."
-              className="min-h-[400px]"
-            />
+            <Label className="text-white">{isReadOnly ? 'Your Submitted Project' : 'Project Description'}</Label>
+            {isReadOnly ? (
+              <div className="min-h-[400px] bg-slate-900/50 border border-slate-700 rounded-lg p-4">
+                <div 
+                  className="text-slate-300 whitespace-pre-wrap prose prose-invert max-w-none"
+                  dangerouslySetInnerHTML={{ __html: content.project || 'No project description available' }}
+                />
+              </div>
+            ) : (
+              <RichTextEditor
+                value={content.project}
+                onChange={(value) => setContent({ ...content, project: value })}
+                placeholder="Describe your project..."
+                className="min-h-[400px]"
+              />
+            )}
           </div>
         )
       
       case 'discussion':
         return (
           <div className="space-y-4">
-            <Label className="text-white">Your Response</Label>
-            <RichTextEditor
-              value={content.discussion || ''}
-              onChange={(value) => setContent({ ...content, discussion: value })}
-              placeholder="Share your thoughts on the discussion topic..."
-              className="min-h-[400px]"
-            />
+            <Label className="text-white">{isReadOnly ? 'Your Submitted Response' : 'Your Response'}</Label>
+            {isReadOnly ? (
+              <div className="min-h-[400px] bg-slate-900/50 border border-slate-700 rounded-lg p-4">
+                <div 
+                  className="text-slate-300 whitespace-pre-wrap prose prose-invert max-w-none"
+                  dangerouslySetInnerHTML={{ __html: content.discussion || 'No discussion response available' }}
+                />
+              </div>
+            ) : (
+              <RichTextEditor
+                value={content.discussion}
+                onChange={(value) => setContent({ ...content, discussion: value })}
+                placeholder="Share your thoughts on the discussion topic..."
+                className="min-h-[400px]"
+              />
+            )}
           </div>
         )
       
       case 'presentation':
         return (
           <div className="space-y-4">
-            <Label className="text-white">Presentation Notes</Label>
-            <RichTextEditor
-              value={content.presentation || ''}
-              onChange={(value) => setContent({ ...content, presentation: value })}
-              placeholder="Add your presentation notes or description..."
-              className="min-h-[400px]"
-            />
+            <Label className="text-white">{isReadOnly ? 'Your Submitted Presentation' : 'Presentation Notes'}</Label>
+            {isReadOnly ? (
+              <div className="min-h-[400px] bg-slate-900/50 border border-slate-700 rounded-lg p-4">
+                <div 
+                  className="text-slate-300 whitespace-pre-wrap prose prose-invert max-w-none"
+                  dangerouslySetInnerHTML={{ __html: content.presentation || 'No presentation notes available' }}
+                />
+              </div>
+            ) : (
+              <RichTextEditor
+                value={content.presentation}
+                onChange={(value) => setContent({ ...content, presentation: value })}
+                placeholder="Add your presentation notes or description..."
+                className="min-h-[400px]"
+              />
+            )}
           </div>
         )
       
       case 'code_submission':
         return (
           <div className="space-y-4">
-            <Label className="text-white">Your Code</Label>
+            <Label className="text-white">{isReadOnly ? 'Your Submitted Code' : 'Your Code'}</Label>
             <div className="relative">
               <Textarea
-                value={content.code_submission || ''}
+                value={content.code_submission}
                 onChange={(e) => setContent({ ...content, code_submission: e.target.value })}
                 placeholder="Write your code here..."
+                disabled={isReadOnly}
                 className="min-h-[500px] bg-slate-900 border-white/10 text-green-400 font-mono text-sm leading-relaxed"
                 style={{ fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace' }}
               />
               <div className="absolute top-2 right-2">
                 <Badge variant="secondary" className="bg-slate-800/80 text-slate-300 border-slate-700">
                   <Code className="h-3 w-3 mr-1" />
-                  Code Editor
+                  {isReadOnly ? 'Code Viewer' : 'Code Editor'}
                 </Badge>
               </div>
             </div>
+          </div>
+        )
+      
+      case 'peer_review':
+        return (
+          <div className="space-y-4">
+            <Label className="text-white">{isReadOnly ? 'Your Submitted Peer Review' : 'Peer Review'}</Label>
+            {isReadOnly ? (
+              <div className="min-h-[400px] bg-slate-900/50 border border-slate-700 rounded-lg p-4">
+                <div className="text-slate-300 whitespace-pre-wrap">
+                  {content.peer_review || 'No peer review content available'}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-sm text-slate-400">Review Criteria</Label>
+                  <Textarea
+                    value={content.peer_review}
+                    onChange={(e) => setContent({ ...content, peer_review: e.target.value })}
+                    placeholder="Provide your peer review feedback here..."
+                    className="min-h-[300px] bg-slate-900 border-white/10 text-slate-300"
+                  />
+                </div>
+              </div>
+            )}
           </div>
         )
       
@@ -671,11 +738,36 @@ export default function StudentAssignmentWorkspacePage() {
       case 'discussion': return MessageSquare
       case 'presentation': return Presentation
       case 'code_submission': return Code
+      case 'peer_review': return Users
       default: return FileText
     }
   }
 
   const AssignmentIcon = getAssignmentIcon(assignment.type)
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
+          <p className="text-slate-400">Loading assignment...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !assignment) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <p className="text-red-400 mb-4">Error loading assignment</p>
+          <Button onClick={() => router.back()}>
+            Go Back
+          </Button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="w-full space-y-6">
@@ -714,21 +806,27 @@ export default function StudentAssignmentWorkspacePage() {
           
           {/* Submission status */}
           {submission?.status === 'submitted' && (
-            <Badge className="bg-green-600/20 text-green-300 border-green-600/30">
+            <Badge className="bg-blue-600/20 text-blue-300 border-blue-600/30">
               <CheckCircle className="h-3 w-3 mr-1" />
               Submitted
             </Badge>
           )}
           {submission?.status === 'graded' && (
-            <Badge className="bg-blue-600/20 text-blue-300 border-blue-600/30">
+            <Badge className="bg-green-600/20 text-green-300 border-green-600/30">
               <Award className="h-3 w-3 mr-1" />
               Graded
             </Badge>
           )}
-          {!submission && (
+          {submission?.status === 'draft' && (
             <Badge className="bg-yellow-600/20 text-yellow-300 border-yellow-600/30">
               <Clock className="h-3 w-3 mr-1" />
               In Progress
+            </Badge>
+          )}
+          {!submission && (
+            <Badge className="bg-slate-600/20 text-slate-300 border-slate-600/30">
+              <FileText className="h-3 w-3 mr-1" />
+              Not Started
             </Badge>
           )}
         </div>
@@ -785,8 +883,17 @@ export default function StudentAssignmentWorkspacePage() {
           <GlassCard className="p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                <Edit className="h-5 w-5 text-blue-400" />
-                Your Work
+                {isReadOnly ? (
+                  <>
+                    <Eye className="h-5 w-5 text-blue-400" />
+                    Your Submission
+                  </>
+                ) : (
+                  <>
+                    <Edit className="h-5 w-5 text-blue-400" />
+                    Your Work
+                  </>
+                )}
               </h3>
               {/* Word/Character count for text-based assignments */}
               {(assignment.type === 'essay' || assignment.type === 'project' || assignment.type === 'discussion' || assignment.type === 'presentation') && (
@@ -818,24 +925,80 @@ export default function StudentAssignmentWorkspacePage() {
               Actions
             </h3>
             <div className="space-y-3">
-              <Button 
-                onClick={handleSave} 
-                disabled={saving}
-                variant="outline" 
-                className="w-full bg-white/10 hover:bg-white/20 text-white border-white/20"
-              >
-                <Save className="h-4 w-4 mr-2" />
-                {saving ? 'Saving...' : 'Save Draft'}
-              </Button>
+              {!isReadOnly && (
+                <>
+                  <Button 
+                    onClick={handleSave} 
+                    disabled={saving}
+                    variant="outline" 
+                    className="w-full bg-white/10 hover:bg-white/20 text-white border-white/20"
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    {saving ? 'Saving...' : 'Save Draft'}
+                  </Button>
+                  
+                  <Button 
+                    onClick={handleSubmit} 
+                    disabled={submitting || submission?.status === 'submitted'}
+                    className="w-full"
+                  >
+                    <Send className="h-4 w-4 mr-2" />
+                    {submitting ? 'Submitting...' : submission?.status === 'submitted' ? 'Already Submitted' : 'Submit Assignment'}
+                  </Button>
+                </>
+              )}
               
-              <Button 
-                onClick={handleSubmit} 
-                disabled={submitting || submission?.status === 'submitted'}
-                className="w-full"
-              >
-                <Send className="h-4 w-4 mr-2" />
-                {submitting ? 'Submitting...' : submission?.status === 'submitted' ? 'Already Submitted' : 'Submit Assignment'}
-              </Button>
+              {isReadOnly && submission?.status === 'graded' && (
+                <div className="text-center p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <Award className="h-5 w-5 text-green-400" />
+                    <span className="text-green-400 font-bold text-lg">
+                      {submission.grade}/{assignment.points}
+                    </span>
+                  </div>
+                  <div className="text-green-400 text-sm">
+                    {(((submission.grade || 0) / assignment.points) * 100).toFixed(1)}%
+                  </div>
+                  {submission.feedback && (
+                    <div className="mt-3 text-slate-300 text-sm">
+                      <p className="font-medium">Feedback:</p>
+                      <p className="mt-1">{submission.feedback}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {isReadOnly && submission?.status === 'submitted' && (
+                <div className="text-center p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <CheckCircle className="h-5 w-5 text-blue-400" />
+                    <span className="text-blue-400 font-medium">Assignment Submitted</span>
+                  </div>
+                  <p className="text-slate-300 text-sm">
+                    Your assignment has been submitted and is awaiting grading.
+                  </p>
+                </div>
+              )}
+              
+              {submission?.status === 'returned' && (
+                <div className="text-center p-4 bg-orange-500/10 border border-orange-500/20 rounded-lg">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <AlertTriangle className="h-5 w-5 text-orange-400" />
+                    <span className="text-orange-400 font-medium">Resubmission Required</span>
+                  </div>
+                  <p className="text-slate-300 text-sm mb-3">
+                    Your teacher has requested changes to your assignment.
+                  </p>
+                  {submission.feedback && (
+                    <div className="mt-3 text-slate-300 text-sm text-left">
+                      <p className="font-medium text-orange-400 mb-2">Teacher Feedback:</p>
+                      <div className="bg-slate-800/50 p-3 rounded-lg border border-orange-500/20">
+                        <p className="whitespace-pre-wrap">{submission.feedback}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </GlassCard>
 
@@ -900,11 +1063,11 @@ export default function StudentAssignmentWorkspacePage() {
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-slate-400">Questions Answered</span>
                   <span className="text-white">
-                    {Object.keys(quizAnswers).length} / {assignment.settings.quiz_questions.length}
+                    {Object.keys(quizAnswers).length} / {assignment?.settings?.quiz_questions?.length || 0}
                   </span>
                 </div>
                 <Progress 
-                  value={(Object.keys(quizAnswers).length / assignment.settings.quiz_questions.length) * 100} 
+                  value={(Object.keys(quizAnswers).length / (assignment?.settings?.quiz_questions?.length || 1)) * 100} 
                   className="h-2"
                 />
                 {quizSubmitted && (

@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { useAuthStore } from "@/store/auth-store"
 import { useToast } from "@/hooks/use-toast"
 import { teacherSignIn, studentSignIn, createStudentLoginCode } from "@/services/auth/api"
+import { ForgotPasswordModal } from "./forgot-password-modal"
 import { http } from "@/services/http"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -37,6 +38,8 @@ export function LoginForm() {
   const [studentPassword, setStudentPassword] = useState("")
   const [showStudentPassword, setShowStudentPassword] = useState(false)
   const [studentLoading, setStudentLoading] = useState(false)
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
+  const [forgotPasswordUserType, setForgotPasswordUserType] = useState<"teacher" | "student">("teacher")
   
   const { setUser } = useAuthStore()
   const router = useRouter()
@@ -89,6 +92,7 @@ export function LoginForm() {
   }
 
   return (
+    <>
     <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "teacher" | "student")} className="w-full">
       <TabsList className="grid w-full grid-cols-2 bg-white/10">
         <TabsTrigger value="teacher" className="data-[state=active]:bg-white/20">
@@ -169,7 +173,7 @@ export function LoginForm() {
                 )}
               </Button>
               
-              <div className="text-center">
+              <div className="text-center space-y-2">
                 <p className="text-slate-400 text-sm">
                   Don't have an account?{' '}
                   <Link
@@ -178,6 +182,17 @@ export function LoginForm() {
                   >
                     Register as Teacher
                   </Link>
+                </p>
+                <p className="text-slate-400 text-sm">
+                  <button
+                    onClick={() => {
+                      setForgotPasswordUserType("teacher")
+                      setShowForgotPassword(true)
+                    }}
+                    className="text-blue-400 hover:text-blue-300 underline"
+                  >
+                    Forgot your password?
+                  </button>
                 </p>
               </div>
             </form>
@@ -257,15 +272,34 @@ export function LoginForm() {
               </Button>
             </form>
             
-            <div className="mt-4 text-center">
+            <div className="mt-4 text-center space-y-2">
               <p className="text-slate-400 text-sm">
                 Students need an invite link from their teacher to register.{' '}
                 <span className="text-blue-400">Contact your teacher for an invitation.</span>
+              </p>
+              <p className="text-slate-400 text-sm">
+                <button
+                  onClick={() => {
+                    setForgotPasswordUserType("student")
+                    setShowForgotPassword(true)
+                  }}
+                  className="text-blue-400 hover:text-blue-300 underline"
+                >
+                  Forgot your password?
+                </button>
               </p>
             </div>
           </CardContent>
         </Card>
       </TabsContent>
     </Tabs>
+
+    {/* Forgot Password Modal */}
+    <ForgotPasswordModal
+      isOpen={showForgotPassword}
+      onClose={() => setShowForgotPassword(false)}
+      userType={forgotPasswordUserType}
+    />
+  </>
   )
 }
