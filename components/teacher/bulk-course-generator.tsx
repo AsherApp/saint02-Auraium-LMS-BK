@@ -297,7 +297,7 @@ export function BulkCourseGenerator() {
         </Button>
       </DialogTrigger>
       
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white/10 backdrop-blur-md border-white/20 shadow-glass">
+      <DialogContent size="xl" className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white/10 backdrop-blur-md border-white/20 shadow-glass">
         <DialogHeader>
           <DialogTitle>Bulk Course Generator</DialogTitle>
           <DialogDescription>

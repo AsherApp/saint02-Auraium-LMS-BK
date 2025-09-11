@@ -643,7 +643,7 @@ export default function TeacherCourseDetailPage() {
                               <ListPlus className="h-4 w-4 mr-1" /> Add Assignment
                             </Button>
                           </DialogTrigger>
-                          <DialogContent className="bg-white/10 border-white/20 backdrop-blur text-white max-w-6xl w-[95vw] max-h-[95vh] overflow-y-auto">
+                          <DialogContent size="full" className="bg-white/10 border-white/20 backdrop-blur text-white max-w-[1200px] w-[95vw] max-h-[95vh] overflow-y-auto">
                               <DialogHeader className="pb-4">
                               <DialogTitle className="text-xl font-semibold text-white">New Assignment (Module)</DialogTitle>
                               <p className="text-slate-400 text-sm">Create a new assignment for this module</p>
@@ -733,7 +733,7 @@ export default function TeacherCourseDetailPage() {
                                     <ListPlus className="h-4 w-4 mr-1" /> Add Assignment
                                   </Button>
                                 </DialogTrigger>
-                                <DialogContent className="bg-white/10 border-white/20 backdrop-blur text-white max-w-6xl w-[95vw] max-h-[95vh] overflow-y-auto">
+                                <DialogContent size="full" className="bg-white/10 border-white/20 backdrop-blur text-white max-w-[700px] w-[95vw] max-h-[100vh] overflow-y-auto">
                                   <DialogHeader className="pb-4">
                                     <DialogTitle className="text-xl font-semibold text-white">New Assignment (Lesson)</DialogTitle>
                                     <p className="text-slate-400 text-sm">Create a new assignment for this specific lesson</p>

@@ -96,14 +96,14 @@ export default function TeacherAssignmentsPage() {
             <h1 className="text-3xl font-bold text-white">Assignments</h1>
             <p className="text-slate-400">Manage and track all your course assignments</p>
           </div>
-          <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+          <Dialog  open={showCreateDialog} onOpenChange={setShowCreateDialog}>
             <DialogTrigger asChild>
               <Button className="bg-blue-600/80 hover:bg-blue-600 text-white transition-all duration-200 hover:scale-105">
                 <Plus className="h-4 w-4 mr-2" />
                 Create Assignment
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-white/10 border-white/20 backdrop-blur text-white max-w-6xl w-[95vw] max-h-[95vh] overflow-y-auto">
+            <DialogContent className="bg-white/10 border-white/20 backdrop-blur text-white sm:max-w-[1200px] w-[95vw] max-h-[95vh] overflow-y-auto">
               <DialogHeader className="pb-4">
                 <DialogTitle className="text-xl font-semibold text-white">Create New Assignment</DialogTitle>
                 <p className="text-slate-400 text-sm">Create a new assignment for your students</p>

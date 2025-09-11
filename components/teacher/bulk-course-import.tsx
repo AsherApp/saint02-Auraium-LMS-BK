@@ -263,7 +263,7 @@ export function BulkCourseImport({ onCoursesCreated }: BulkCourseImportProps) {
         </Button>
       </DialogTrigger>
       
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white/10 backdrop-blur-md border-white/20 shadow-glass">
+      <DialogContent  size="xl" className="max-w-[900px] max-h-[90vh] overflow-y-auto bg-white/10 backdrop-blur-md border-white/20 shadow-glass">
         <DialogHeader>
           <DialogTitle className="text-white text-xl font-bold">Bulk Course Import</DialogTitle>
           <DialogDescription className="text-slate-300">
