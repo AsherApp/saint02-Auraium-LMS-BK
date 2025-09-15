@@ -29,7 +29,6 @@ import {
   Clock,
   Target,
   Award,
-  Download,
   ExternalLink
 } from "lucide-react"
 
@@ -618,22 +617,6 @@ export function CleanStudyArea({ courseId, title = "Study Area" }: CleanStudyAre
                       Open in New Tab
                     </Button>
                   )}
-                  
-                  <Button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      const link = document.createElement('a')
-                      link.href = fileUrl
-                      link.download = fileName
-                      link.click()
-                    }}
-                    variant="outline"
-                    size="sm"
-                    className="text-slate-400 hover:text-slate-300 border-slate-400 hover:border-slate-300"
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Download
-                  </Button>
                 </div>
               </div>
             </div>
@@ -981,7 +964,7 @@ export function CleanStudyArea({ courseId, title = "Study Area" }: CleanStudyAre
         )}
       </div>
 
-      {/* Enhanced Viewers */}
+      {/* Enhanced Viewers - View Only (No Download) */}
       <DocumentViewer
         document={currentDocument}
         isOpen={documentViewerOpen}
@@ -991,6 +974,7 @@ export function CleanStudyArea({ courseId, title = "Study Area" }: CleanStudyAre
         }}
         title="Document Viewer"
         subtitle={currentDocument?.name}
+        allowDownload={false}
       />
       
       <PresentationViewer
@@ -1002,6 +986,7 @@ export function CleanStudyArea({ courseId, title = "Study Area" }: CleanStudyAre
         }}
         title="Presentation Viewer"
         subtitle={currentPresentation?.name}
+        allowDownload={false}
       />
 
       {/* Congratulatory Balloon */}

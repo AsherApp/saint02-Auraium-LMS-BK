@@ -37,6 +37,7 @@ interface PresentationViewerProps {
   onClose: () => void
   title?: string
   subtitle?: string
+  allowDownload?: boolean
 }
 
 export function PresentationViewer({ 
@@ -44,7 +45,8 @@ export function PresentationViewer({
   isOpen, 
   onClose, 
   title = "Presentation Viewer",
-  subtitle 
+  subtitle,
+  allowDownload = true
 }: PresentationViewerProps) {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [currentSlide, setCurrentSlide] = useState(1)
@@ -238,14 +240,16 @@ export function PresentationViewer({
               <ExternalLink className="h-4 w-4" />
             </Button>
             
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleDownload}
-              className="text-slate-400 hover:text-white hover:bg-white/10"
-            >
-              <Download className="h-4 w-4" />
-            </Button>
+            {allowDownload && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleDownload}
+                className="text-slate-400 hover:text-white hover:bg-white/10"
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
 
@@ -278,10 +282,12 @@ export function PresentationViewer({
                   This presentation format requires external viewing for full functionality.
                 </p>
                 <div className="flex gap-2">
-                  <Button onClick={handleDownload} className="bg-purple-600/80 hover:bg-purple-600">
-                    <Download className="h-4 w-4 mr-2" />
-                    Download
-                  </Button>
+                  {allowDownload && (
+                    <Button onClick={handleDownload} className="bg-purple-600/80 hover:bg-purple-600">
+                      <Download className="h-4 w-4 mr-2" />
+                      Download
+                    </Button>
+                  )}
                   <Button 
                     variant="outline" 
                     onClick={handleExternalOpen}

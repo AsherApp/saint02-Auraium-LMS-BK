@@ -31,6 +31,7 @@ interface DocumentViewerProps {
   onClose: () => void
   title?: string
   subtitle?: string
+  allowDownload?: boolean
 }
 
 export function DocumentViewer({ 
@@ -38,7 +39,8 @@ export function DocumentViewer({
   isOpen, 
   onClose, 
   title = "Document Viewer",
-  subtitle 
+  subtitle,
+  allowDownload = true
 }: DocumentViewerProps) {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [zoom, setZoom] = useState(100)
@@ -166,14 +168,16 @@ export function DocumentViewer({
               <ExternalLink className="h-4 w-4" />
             </Button>
             
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleDownload}
-              className="text-slate-400 hover:text-white hover:bg-white/10"
-            >
-              <Download className="h-4 w-4" />
-            </Button>
+            {allowDownload && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleDownload}
+                className="text-slate-400 hover:text-white hover:bg-white/10"
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
 
@@ -228,14 +232,16 @@ export function DocumentViewer({
                     <ExternalLink className="h-4 w-4 mr-2" />
                     Open in Browser
                   </Button>
-                  <Button
-                    variant="outline"
-                    onClick={handleDownload}
-                    className="text-green-400 hover:text-green-300 border-green-400 hover:border-green-300"
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Download
-                  </Button>
+                  {allowDownload && (
+                    <Button
+                      variant="outline"
+                      onClick={handleDownload}
+                      className="text-green-400 hover:text-green-300 border-green-400 hover:border-green-300"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Download
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>
@@ -248,10 +254,12 @@ export function DocumentViewer({
                   This file type cannot be previewed in the browser.
                 </p>
                 <div className="flex gap-2">
-                  <Button onClick={handleDownload} className="bg-blue-600/80 hover:bg-blue-600">
-                    <Download className="h-4 w-4 mr-2" />
-                    Download
-                  </Button>
+                  {allowDownload && (
+                    <Button onClick={handleDownload} className="bg-blue-600/80 hover:bg-blue-600">
+                      <Download className="h-4 w-4 mr-2" />
+                      Download
+                    </Button>
+                  )}
                   <Button 
                     variant="outline" 
                     onClick={handleExternalOpen}
