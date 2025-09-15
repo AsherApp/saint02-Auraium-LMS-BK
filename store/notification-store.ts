@@ -25,6 +25,7 @@ interface NotificationState {
   
   // Actions
   addNotification: (notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => void
+  addNotificationSilent: (notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => void
   markAsRead: (id: string) => void
   markAllAsRead: () => void
   removeNotification: (id: string) => void
@@ -72,6 +73,25 @@ export const useNotificationStore = create<NotificationState>()(
             })
           })
         }
+      },
+
+      addNotificationSilent: (notification) => {
+        const newNotification: Notification = {
+          ...notification,
+          id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          timestamp: new Date(),
+          read: false
+        }
+
+        set((state) => {
+          const updatedNotifications = [newNotification, ...state.notifications].slice(0, 100) // Keep only last 100
+          return {
+            notifications: updatedNotifications,
+            unreadCount: updatedNotifications.filter(n => !n.read).length
+          }
+        })
+
+        // No toast notification for silent additions
       },
 
       markAsRead: (id) => {

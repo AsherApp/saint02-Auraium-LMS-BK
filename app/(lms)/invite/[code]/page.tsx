@@ -77,6 +77,7 @@ export default function InvitePage() {
   const [registrationLoading, setRegistrationLoading] = useState(false)
   const [showWelcome, setShowWelcome] = useState(false)
   const [studentData, setStudentData] = useState<any>(null)
+  const [isNewAccount, setIsNewAccount] = useState(false)
 
   // Fetch invite data
   useEffect(() => {
@@ -183,7 +184,8 @@ export default function InvitePage() {
         setUser(response.user)
       }
       
-      // Always show welcome modal with student code and instructions
+      // Mark as new account creation and show welcome modal
+      setIsNewAccount(true)
       setShowRegistration(false)
       setShowWelcome(true)
     } catch (err: any) {
@@ -673,8 +675,8 @@ export default function InvitePage() {
         </DialogContent>
       </Dialog>
 
-      {/* Welcome Modal */}
-      <Dialog open={showWelcome} onOpenChange={setShowWelcome}>
+      {/* Welcome Modal - Only show for new account creation */}
+      <Dialog open={showWelcome && isNewAccount} onOpenChange={setShowWelcome}>
         <DialogContent className="bg-white/10 border-white/20 backdrop-blur text-white max-w-md">
           <DialogHeader>
             <DialogTitle className="text-center">Welcome to Your Learning Journey! 🎉</DialogTitle>

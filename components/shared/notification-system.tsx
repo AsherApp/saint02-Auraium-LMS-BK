@@ -14,7 +14,7 @@ interface Notification {
   id: string
   title: string
   message: string
-  type: 'success' | 'error' | 'info' | 'warning' | 'announcement' | 'assignment' | 'course' | 'live' | 'grade' | 'deadline' | 'enrollment'
+  type: 'success' | 'error' | 'info' | 'warning' | 'announcement' | 'assignment' | 'course' | 'live' | 'grade' | 'deadline' | 'enrollment' | 'module_completed' | 'course_completed' | 'quiz_available' | 'live_session' | 'message' | 'system'
   timestamp: string
   read: boolean
   courseTitle?: string
@@ -32,7 +32,8 @@ export function NotificationSystem() {
     markAsRead, 
     markAllAsRead, 
     removeNotification,
-    addNotification
+    addNotification,
+    addNotificationSilent
   } = useNotificationStore()
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
@@ -46,26 +47,39 @@ export function NotificationSystem() {
       const response = await http<{ items: Notification[] }>(`/api/notifications/me`)
       const fetchedNotifications = response.items || []
       
-      // Transform API data to match our interface
-      const transformedNotifications = fetchedNotifications.map((notification: any) => ({
-        id: notification.id,
-        title: notification.title,
-        message: notification.message,
-        type: notification.type || 'info',
-        timestamp: notification.created_at || notification.timestamp,
-        read: notification.read || false,
-        courseTitle: notification.course_title,
-        courseId: notification.course_id,
-        metadata: notification.metadata
-      }))
+      // Transform API data to match our interface and filter out inappropriate notifications
+      const transformedNotifications = fetchedNotifications
+        .filter((notification: any) => {
+          // Filter out old signup notifications that shouldn't be shown repeatedly
+          const isOldSignup = notification.type === 'signup' || notification.type === 'teacher_signup'
+          const isOld = notification.created_at && new Date(notification.created_at) < new Date(Date.now() - 24 * 60 * 60 * 1000) // Older than 24 hours
+          
+          // Don't show old signup notifications
+          if (isOldSignup && isOld) {
+            return false
+          }
+          
+          return true
+        })
+        .map((notification: any) => ({
+          id: notification.id,
+          title: notification.title,
+          message: notification.message,
+          type: notification.type || 'info',
+          timestamp: notification.created_at || notification.timestamp,
+          read: notification.read || false,
+          courseTitle: notification.course_title,
+          courseId: notification.course_id,
+          metadata: notification.metadata
+        }))
       
-      // Add notifications to store
+      // Add notifications to store (without showing toast for old notifications)
       transformedNotifications.forEach(notification => {
         // Check if notification already exists to avoid duplicates
         const exists = notifications.some(n => n.id === notification.id)
         if (!exists) {
-          // Add to store using the store's addNotification method
-          addNotification({
+          // Add to store silently (these are old notifications from database)
+          addNotificationSilent({
             type: notification.type as any,
             title: notification.title,
             message: notification.message,
@@ -154,6 +168,7 @@ export function NotificationSystem() {
       case 'course':
         return <BookOpen className="h-4 w-4 text-blue-400" />
       case 'live':
+      case 'live_session':
         return <Activity className="h-4 w-4 text-green-400" />
       case 'grade':
         return <CheckCircle className="h-4 w-4 text-green-400" />
@@ -161,6 +176,16 @@ export function NotificationSystem() {
         return <AlertCircle className="h-4 w-4 text-red-400" />
       case 'enrollment':
         return <Users className="h-4 w-4 text-blue-400" />
+      case 'module_completed':
+        return <CheckCircle className="h-4 w-4 text-green-500" />
+      case 'course_completed':
+        return <CheckCircle className="h-4 w-4 text-green-600" />
+      case 'quiz_available':
+        return <BookOpen className="h-4 w-4 text-blue-500" />
+      case 'message':
+        return <MessageSquare className="h-4 w-4 text-blue-400" />
+      case 'system':
+        return <Info className="h-4 w-4 text-gray-400" />
       default:
         return <Info className="h-4 w-4 text-gray-400" />
     }
