@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { SimplifiedAssignmentsAPI, type Assignment } from '@/services/assignments/simplified-assignments'
+import { AssignmentAPI, type Assignment } from '@/services/assignments/api'
 import { useAuthStore } from '@/store/auth-store'
 import { http } from '@/services/http'
 
@@ -34,7 +34,7 @@ export function useSimplifiedAssignments() {
       for (const enrollment of enrollments) {
         try {
           console.log(`Fetching assignments for course: ${enrollment.course_id}`)
-          const courseAssignments = await SimplifiedAssignmentsAPI.getCourseAssignments(enrollment.course_id)
+          const courseAssignments = await AssignmentAPI.listCourseAssignments(enrollment.course_id)
           console.log(`Assignments found for course ${enrollment.course_id}:`, courseAssignments.length)
           // Add course information to each assignment
           const assignmentsWithCourse = courseAssignments.map(assignment => ({
@@ -74,7 +74,15 @@ export function useSimplifiedAssignments() {
     files?: string[]
   }) => {
     try {
-      const result = await SimplifiedAssignmentsAPI.submitAssignment(assignmentId, data)
+      // Convert to the new submission format
+      const submissionData = {
+        content: {
+          text: data.response,
+          file_upload: data.files || []
+        },
+        status: 'submitted' as const
+      }
+      const result = await AssignmentAPI.createSubmission(assignmentId, submissionData)
       // Refresh assignments after submission
       await fetchAssignments()
       return result

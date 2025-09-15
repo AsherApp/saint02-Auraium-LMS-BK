@@ -13,7 +13,7 @@ import { FluidTabs, useFluidTabs } from "@/components/ui/fluid-tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAuthStore } from "@/store/auth-store"
 import { useSimplifiedAssignments } from "@/hooks/use-simplified-assignments"
-import { type Assignment } from "@/services/assignments/simplified-assignments"
+import { type Assignment } from "@/services/assignments/api"
 import { 
   ClipboardList, 
   Calendar, 

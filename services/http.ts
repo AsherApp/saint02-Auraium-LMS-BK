@@ -56,6 +56,7 @@ export async function http<T>(path: string, opts: HttpOptions = {}): Promise<T> 
   if (!res.ok) {
     const text = await res.text().catch(() => '')
     
+    
     // Handle authentication errors
     if (res.status === 401) {
       // Clear invalid token
@@ -66,7 +67,18 @@ export async function http<T>(path: string, opts: HttpOptions = {}): Promise<T> 
       throw new Error('Authentication failed. Please log in again.')
     }
     
-    throw new Error(text || `HTTP ${res.status}`)
+    // Try to parse JSON error response
+    try {
+      const errorData = JSON.parse(text)
+      if (errorData.error) {
+        throw new Error(errorData.error)
+      }
+      // If no error field, use the full response
+      throw new Error(JSON.stringify(errorData))
+    } catch (parseError) {
+      // If JSON parsing fails, use the raw text
+      throw new Error(text || `HTTP ${res.status}`)
+    }
   }
   
   if (res.status === 204) return undefined as unknown as T

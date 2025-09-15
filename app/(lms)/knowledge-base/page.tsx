@@ -47,13 +47,29 @@ export default function KnowledgeBasePage() {
     const loadArticles = async () => {
       try {
         setLoading(true)
-        const data = await ContentService.getKnowledgeBaseArticles()
-        // Map the API data to match our component's expected format
-        const mappedArticles = data.map(article => ({
-          ...article,
-          estimated_read_time: article.estimated_time
-        }))
-        setArticles(mappedArticles)
+        // Temporarily use mock data until backend endpoints are ready
+        const mockArticles: Article[] = [
+          {
+            id: '1',
+            title: 'Getting Started with AuraiumLMS',
+            excerpt: 'Learn the basics of using AuraiumLMS for your educational needs',
+            content: 'Full content here...',
+            category: 'Getting Started',
+            tags: ['basics', 'tutorial'],
+            author: 'Admin',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            views: 1250,
+            likes: 45,
+            is_featured: true,
+            difficulty: 'beginner',
+            estimated_time: 5,
+            estimated_read_time: 5,
+            type: 'article',
+            helpful_count: 42
+          }
+        ]
+        setArticles(mockArticles)
       } catch (error) {
         console.error('Failed to load knowledge base articles:', error)
         // Fallback to empty array on error

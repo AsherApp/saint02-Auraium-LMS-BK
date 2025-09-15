@@ -10,8 +10,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { useAuthStore } from "@/store/auth-store"
-import { useAssignment, useMySubmission } from "@/services/assignments/hook"
-import { type Assignment, type Submission } from "@/services/assignments/api"
+import { useAssignment } from "@/services/assignments/hook"
+import { useSubmissionManagement, useSubmission } from "@/services/submissions/hook"
+import { type Assignment } from "@/services/assignments/api"
+import { type Submission } from "@/services/submissions/api"
 import { RichTextEditor } from "@/components/shared/rich-text-editor"
 import { 
   ArrowLeft, 
@@ -54,10 +56,12 @@ export default function StudentAssignmentWorkspacePage() {
   const params = useParams()
   const router = useRouter()
   const { user } = useAuthStore()
-  const assignmentId = params.aid as string
+  const assignmentId = params?.aid as string
   
   const { assignment, loading, error } = useAssignment(assignmentId)
-  const { submission, createSubmission, updateSubmission } = useMySubmission(assignmentId)
+  const { createSubmission, updateSubmission } = useSubmissionManagement()
+  const { submission: studentSubmission, loading: submissionLoading } = useSubmission(assignmentId)
+  const [currentSubmission, setCurrentSubmission] = useState<Submission | null>(null)
   const [saving, setSaving] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [timeSpent, setTimeSpent] = useState(0)
@@ -104,6 +108,7 @@ export default function StudentAssignmentWorkspacePage() {
 
   // Initialize content from existing submission
   useEffect(() => {
+    const submission = studentSubmission || currentSubmission
     if (submission?.content) {
       setContent({
         essay: submission.content.essay || '',
@@ -119,15 +124,16 @@ export default function StudentAssignmentWorkspacePage() {
         setQuizAnswers(submission.content.quiz_answers)
       }
     }
-  }, [submission])
+  }, [studentSubmission, currentSubmission])
 
   // Initialize timer if assignment has time limit
   useEffect(() => {
+    const submission = studentSubmission || currentSubmission
     if (assignment?.time_limit_minutes && !submission?.status) {
       setTimeRemaining(assignment.time_limit_minutes * 60) // Convert to seconds
       setTimerActive(true)
     }
-  }, [assignment, submission])
+  }, [assignment, studentSubmission, currentSubmission])
 
   // Auto-save effect
   useEffect(() => {
@@ -136,6 +142,7 @@ export default function StudentAssignmentWorkspacePage() {
     }
 
     // Only auto-save if there's content and no existing submission or it's a draft
+    const submission = studentSubmission || currentSubmission
     if (Object.keys(content).length > 0 && (!submission || submission.status === 'draft')) {
       autoSaveTimeoutRef.current = setTimeout(async () => {
         await handleAutoSave()
@@ -147,7 +154,7 @@ export default function StudentAssignmentWorkspacePage() {
         clearTimeout(autoSaveTimeoutRef.current)
       }
     }
-  }, [content])
+  }, [content, assignment, studentSubmission, currentSubmission])
 
   // Timer effect
   useEffect(() => {
@@ -168,23 +175,28 @@ export default function StudentAssignmentWorkspacePage() {
     }, 1000)
 
     return () => clearInterval(timer)
-  }, [timerActive, timeRemaining, submission?.status])
+  }, [timerActive, timeRemaining, studentSubmission?.status, currentSubmission?.status])
 
   const handleAutoSave = async () => {
+    const submission = studentSubmission || currentSubmission
     if (!assignment || !user?.email || submission?.status === 'submitted') return
     
     setIsAutoSaving(true)
     try {
       const submissionData = {
+        assignment_id: assignmentId,
         content,
-        status: 'draft' as const,
-        timeSpentMinutes: timeSpent
+        response: content.essay || content.project || content.discussion || content.code_submission || content.presentation || ''
       }
       
       if (submission) {
-        await updateSubmission(submission.id, submissionData)
+        // Update existing submission
+        const updatedSubmission = await updateSubmission(submission.id, submissionData)
+        setCurrentSubmission(updatedSubmission)
       } else {
-        await createSubmission(submissionData)
+        // Create new submission
+        const newSubmission = await createSubmission(submissionData)
+        setCurrentSubmission(newSubmission)
       }
       setLastSaved(new Date())
     } catch (err: any) {
@@ -200,15 +212,20 @@ export default function StudentAssignmentWorkspacePage() {
     setSaving(true)
     try {
       const submissionData = {
+        assignment_id: assignmentId,
         content,
-        status: 'draft' as const,
-        timeSpentMinutes: timeSpent
+        response: content.essay || content.project || content.discussion || content.code_submission || content.presentation || ''
       }
       
-      if (submission) {
-        await updateSubmission(submission.id, submissionData)
+      const existingSubmission = studentSubmission || currentSubmission
+      if (existingSubmission) {
+        // Update existing submission
+        const updatedSubmission = await updateSubmission(existingSubmission.id, submissionData)
+        setCurrentSubmission(updatedSubmission)
       } else {
-        await createSubmission(submissionData)
+        // Create new submission
+        const newSubmission = await createSubmission(submissionData)
+        setCurrentSubmission(newSubmission)
       }
       setLastSaved(new Date())
     } catch (err: any) {
@@ -224,15 +241,20 @@ export default function StudentAssignmentWorkspacePage() {
     setSubmitting(true)
     try {
       const submissionData = {
+        assignment_id: assignmentId,
         content,
-        status: 'submitted' as const,
-        timeSpentMinutes: timeSpent
+        response: content.essay || content.project || content.discussion || content.code_submission || content.presentation || ''
       }
       
-      if (submission) {
-        await updateSubmission(submission.id, submissionData)
+      const existingSubmission = studentSubmission || currentSubmission
+      if (existingSubmission) {
+        // Update existing submission
+        const updatedSubmission = await updateSubmission(existingSubmission.id, submissionData)
+        setCurrentSubmission(updatedSubmission)
       } else {
-        await createSubmission(submissionData)
+        // Create new submission
+        const newSubmission = await createSubmission(submissionData)
+        setCurrentSubmission(newSubmission)
       }
     } catch (err: any) {
       console.error('Failed to submit:', err)
@@ -333,6 +355,9 @@ export default function StudentAssignmentWorkspacePage() {
     }
     return `${minutes}:${secs.toString().padStart(2, '0')}`
   }
+
+  // Get current submission
+  const submission = studentSubmission || currentSubmission
 
   // Check if assignment is read-only (submitted or graded, but not returned for resubmission)
   const isReadOnly = submission?.status === 'submitted' || submission?.status === 'graded'

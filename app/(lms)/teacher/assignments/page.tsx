@@ -39,7 +39,7 @@ export default function TeacherAssignmentsPage() {
   const filteredAssignments = assignments.filter(assignment => {
     const matchesSearch = searchTerm === "" || 
       assignment.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      assignment.course_id.toLowerCase().includes(searchTerm.toLowerCase())
+      (assignment.course_title || assignment.course_id).toLowerCase().includes(searchTerm.toLowerCase())
     
     let matchesFilter = true
     switch (filterType) {
@@ -195,7 +195,7 @@ export default function TeacherAssignmentsPage() {
                           <h3 className="text-lg font-semibold text-white truncate mb-1">
                             {assignment.title}
                           </h3>
-                          <p className="text-xs text-slate-400">Course: {assignment.course_id}</p>
+                          <p className="text-xs text-slate-400">Course: {assignment.course_title || assignment.course_id}</p>
                         </div>
                         <div className="flex items-center gap-2">
                           {getStatusBadge(assignment)}

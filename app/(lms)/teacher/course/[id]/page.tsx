@@ -183,6 +183,23 @@ export default function TeacherCourseDetailPage() {
     loadModuleLessons()
   }, [loadModuleLessons])
 
+  // Load assignments when course changes
+  useEffect(() => {
+    const fetchAssignments = async () => {
+      if (!course?.id) return
+      
+      try {
+        const courseAssignments = await AssignmentProAPI.listCourseAssignments(course.id)
+        setAssignments(courseAssignments)
+      } catch (error) {
+        console.error('Failed to fetch assignments:', error)
+        setAssignments([])
+      }
+    }
+
+    fetchAssignments()
+  }, [course?.id])
+
   const stats = useMemo(() => {
     const lessons = Object.values(moduleLessons).reduce((acc, lessons) => acc + lessons.length, 0)
     const students = (rosterSvc.items || []).length
@@ -519,8 +536,8 @@ export default function TeacherCourseDetailPage() {
                 </DialogTrigger>
               </Dialog>
 
-              {/* Manage Assignments - Icon Button */}
-              <AssignmentButton href="/teacher/assignments" />
+              {/* Create Course Assignment - Icon Button */}
+              <AssignmentButton onClick={() => setAssignmentOpen({ level: "course" })} />
             </div>
 
             {/* Course Settings Icon Button */}
@@ -651,6 +668,7 @@ export default function TeacherCourseDetailPage() {
                               <p className="text-slate-400 text-sm">Create a new assignment for this module</p>
                             </DialogHeader>
                             <AssignmentCreator
+                              courseId={course.id}
                               scope={{ level: "module", moduleId: m.id }}
                               scopeLabel={`Module: ${m.title}`}
                               onCancel={() => setAssignmentOpen(false)}
@@ -741,6 +759,7 @@ export default function TeacherCourseDetailPage() {
                                     <p className="text-slate-400 text-sm">Create a new assignment for this specific lesson</p>
                                   </DialogHeader>
                                   <AssignmentCreator
+                                    courseId={course.id}
                                     scope={{ level: "lesson", moduleId: m.id, lessonId: l.id }}
                                     scopeLabel={`Lesson: ${m.title} › ${l.title}`}
                                     onCancel={() => setAssignmentOpen(false)}
@@ -1254,6 +1273,61 @@ export default function TeacherCourseDetailPage() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Course-level Assignment Dialog */}
+      <Dialog
+        open={!!assignmentOpen && assignmentOpen.level === "course"}
+        onOpenChange={(o) => setAssignmentOpen(o ? { level: "course" } : false)}
+      >
+        <DialogContent size="full" className="bg-white/10 border-white/20 backdrop-blur text-white max-w-[1200px] w-[95vw] max-h-[95vh] overflow-y-auto">
+          <DialogHeader className="pb-4">
+            <DialogTitle className="text-xl font-semibold text-white">New Assignment (Course)</DialogTitle>
+            <p className="text-slate-400 text-sm">Create a new assignment for this course</p>
+          </DialogHeader>
+          <AssignmentCreator
+            courseId={course.id}
+            scope={{ level: "course" }}
+            scopeLabel={`Course: ${course.title}`}
+            onCancel={() => setAssignmentOpen(false)}
+            onSave={(data) => {
+              if (!course.id) return
+              AssignmentProAPI.createAssignment({
+                course_id: course.id,
+                scope: { level: "course" },
+                title: data.title,
+                description: data.description || "",
+                instructions: data.instructions || "",
+                type: data.type,
+                points: data.points,
+                due_at: data.dueAt,
+                available_from: data.availableFrom,
+                available_until: data.availableUntil,
+                allow_late_submissions: data.allowLateSubmissions,
+                late_penalty_percent: data.latePenaltyPercent,
+                max_attempts: data.maxAttempts,
+                time_limit_minutes: data.timeLimitMinutes,
+                require_rubric: data.requireRubric,
+                rubric: data.rubricCriteria,
+                resources: data.resources || [],
+                settings: {
+                  peer_review: data.peerReview,
+                  allow_comments: data.allowComments,
+                  max_group_size: data.groupAssignment ? data.maxGroupSize : null,
+                  self_assessment: data.selfAssessment,
+                  group_assignment: data.groupAssignment,
+                  plagiarism_check: data.plagiarismCheck,
+                  anonymous_grading: data.anonymousGrading,
+                  peer_review_count: data.peerReview ? data.peerReviewCount : null,
+                  show_grades_immediately: data.showGradesImmediately
+                }
+              }).then(() => {
+                setAssignmentOpen(false)
+                toast({ title: "Assignment created" })
+              })
+            }}
+          />
         </DialogContent>
       </Dialog>
 

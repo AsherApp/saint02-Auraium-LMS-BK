@@ -32,6 +32,8 @@ export function SimplifiedAssignmentCard({ assignment, onSubmissionUpdate }: Sim
   const isSubmitted = assignment.is_submitted
   const isGraded = assignment.is_graded
   const submission = assignment.student_submission
+  const status = assignment.status || 'not_started'
+  const canResubmit = assignment.can_resubmit || false
 
   // Use computed fields from backend
   const isOverdue = assignment.is_overdue
@@ -97,10 +99,28 @@ export function SimplifiedAssignmentCard({ assignment, onSubmissionUpdate }: Sim
                 Graded
               </Badge>
             )}
-            {isSubmitted && !isGraded && (
+            {status === 'submitted' && (
               <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
                 <Clock className="h-3 w-3 mr-1" />
                 Submitted
+              </Badge>
+            )}
+            {status === 'graded' && (
+              <Badge variant="secondary" className="bg-green-500/20 text-green-400 border-green-500/30">
+                <CheckCircle className="h-3 w-3 mr-1" />
+                Graded
+              </Badge>
+            )}
+            {status === 'awaiting_response' && (
+              <Badge variant="secondary" className="bg-orange-500/20 text-orange-400 border-orange-500/30">
+                <AlertCircle className="h-3 w-3 mr-1" />
+                Awaiting Response
+              </Badge>
+            )}
+            {status === 'not_started' && (
+              <Badge variant="secondary" className="bg-blue-500/20 text-blue-400 border-blue-500/30">
+                <FileText className="h-3 w-3 mr-1" />
+                Not Started
               </Badge>
             )}
             {isLate && (
@@ -214,8 +234,21 @@ export function SimplifiedAssignmentCard({ assignment, onSubmissionUpdate }: Sim
       )}
 
       {/* Submission Form or View */}
-      {!isSubmitted ? (
+      {(!isSubmitted || canResubmit) ? (
         <div className="space-y-4">
+          {/* Resubmission Request Message */}
+          {canResubmit && (
+            <div className="p-4 bg-orange-900/20 rounded-lg border border-orange-700/50">
+              <div className="flex items-center gap-2 text-orange-400 mb-2">
+                <AlertCircle className="h-5 w-5" />
+                <span className="font-medium">Resubmission Requested</span>
+              </div>
+              <p className="text-slate-300 text-sm">
+                Your teacher has requested that you resubmit this assignment. Please review the feedback and make the necessary changes.
+              </p>
+            </div>
+          )}
+          
           {/* Availability Check */}
           {!isAvailable ? (
             <div className="p-4 bg-yellow-900/20 rounded-lg border border-yellow-700/50">
@@ -269,7 +302,7 @@ export function SimplifiedAssignmentCard({ assignment, onSubmissionUpdate }: Sim
                   ) : (
                     <>
                       <Upload className="h-4 w-4 mr-2" />
-                      Submit Assignment
+                      {canResubmit ? 'Resubmit Assignment' : 'Submit Assignment'}
                     </>
                   )}
                 </Button>

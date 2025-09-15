@@ -49,12 +49,13 @@ import {
 interface AssignmentCreatorProps {
   scope?: { level: "course" | "module" | "lesson"; moduleId?: string; lessonId?: string }
   scopeLabel?: string
+  courseId?: string // Add courseId prop to pre-populate the course
   onCancel?: () => void
   onSave?: (data: any) => void
   onClose?: () => void
 }
 
-export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose }: AssignmentCreatorProps) {
+export function AssignmentCreator({ scope, scopeLabel, courseId: propCourseId, onCancel, onSave, onClose }: AssignmentCreatorProps) {
   const { user } = useAuthStore()
   const [courses, setCourses] = useState<any[]>([])
   const [loadingCourses, setLoadingCourses] = useState(true)
@@ -66,7 +67,7 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [instructions, setInstructions] = useState("")
-  const [courseId, setCourseId] = useState("")
+  const [courseId, setCourseId] = useState(propCourseId || "")
   const [type, setType] = useState<"essay" | "file_upload" | "quiz" | "project" | "discussion" | "presentation" | "code_submission" | "peer_review">("essay")
   const [scopeLevel, setScopeLevel] = useState<"course" | "module" | "lesson">(scope?.level || "course")
   const [moduleId, setModuleId] = useState(scope?.moduleId || "")
@@ -115,6 +116,23 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
 
   const selectedCourse = courses.find(c => c.id === courseId)
 
+  // Update courseId when prop changes
+  useEffect(() => {
+    if (propCourseId && propCourseId !== courseId) {
+      setCourseId(propCourseId)
+    }
+  }, [propCourseId])
+
+  // Update moduleId and lessonId when scope changes
+  useEffect(() => {
+    if (scope?.moduleId && scope.moduleId !== moduleId) {
+      setModuleId(scope.moduleId)
+    }
+    if (scope?.lessonId && scope.lessonId !== lessonId) {
+      setLessonId(scope.lessonId)
+    }
+  }, [scope?.moduleId, scope?.lessonId, moduleId, lessonId])
+
   // Fetch real courses from backend
   useEffect(() => {
     const fetchCourses = async () => {
@@ -125,8 +143,8 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
         const teacherCourses = coursesResponse.items || []
         setCourses(teacherCourses)
         
-        // Set default course if available
-        if (teacherCourses.length > 0 && !courseId) {
+        // Set default course if available and no propCourseId
+        if (teacherCourses.length > 0 && !courseId && !propCourseId) {
           setCourseId(teacherCourses[0].id)
         }
       } catch (error) {
@@ -137,7 +155,7 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
     }
 
     fetchCourses()
-  }, [user?.email, courseId])
+  }, [user?.email, courseId, propCourseId])
 
   const assignmentTypeIcons = {
     essay: FileText,
@@ -216,7 +234,9 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
           max_group_size: groupAssignment ? maxGroupSize : undefined,
           self_assessment: selfAssessment,
           peer_review: peerReview,
-          peer_review_count: peerReview ? peerReviewCount : undefined
+          peer_review_count: peerReview ? peerReviewCount : undefined,
+          // Include quiz questions if assignment type is quiz
+          ...(type === 'quiz' && quizQuestions.length > 0 ? { quiz_questions: quizQuestions } : {})
         }
       }
 
@@ -289,7 +309,13 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
                       <div className="text-slate-400 text-sm">Loading courses...</div>
                     ) : courses.length === 0 ? (
                       <div className="text-red-400 text-sm">No courses available. Please create a course first.</div>
+                    ) : (scope?.level === "course" || scope?.level === "module" || scope?.level === "lesson") ? (
+                      // Course/Module/Lesson level: Show as populated (not selectable)
+                      <div className="bg-white/5 border border-white/10 rounded-md px-3 py-2 text-white">
+                        {selectedCourse?.title || "No course selected"}
+                      </div>
                     ) : (
+                      // Module/Lesson level: Show as selectable
                       <Select value={courseId} onValueChange={setCourseId} required>
                         <SelectTrigger className="bg-white/5 border-white/10 text-white h-11">
                           <SelectValue placeholder="Select a course" />
@@ -326,54 +352,93 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
 
                   <div className="space-y-2">
                     <Label htmlFor="scope" className="text-white">Scope Level</Label>
-                    <Select value={scopeLevel} onValueChange={(value: "course" | "module" | "lesson") => setScopeLevel(value)}>
-                      <SelectTrigger className="bg-white/5 border-white/10 text-white h-11">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-slate-900/95 text-white border-white/20 backdrop-blur-md">
-                        <SelectItem value="course" className="hover:bg-white/10">Course Wide</SelectItem>
-                        <SelectItem value="module" className="hover:bg-white/10">Module Specific</SelectItem>
-                        <SelectItem value="lesson" className="hover:bg-white/10">Lesson Specific</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    {scope?.level ? (
+                      // Show as populated (not selectable) when scope is provided
+                      <div className="bg-white/5 border border-white/10 rounded-md px-3 py-2 text-white">
+                        {scope.level === "course" && "Course Wide"}
+                        {scope.level === "module" && "Module Specific"}
+                        {scope.level === "lesson" && "Lesson Specific"}
+                      </div>
+                    ) : (
+                      // Show as selectable when no scope is provided
+                      <Select value={scopeLevel} onValueChange={(value: "course" | "module" | "lesson") => setScopeLevel(value)}>
+                        <SelectTrigger className="bg-white/5 border-white/10 text-white h-11">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-900/95 text-white border-white/20 backdrop-blur-md">
+                          <SelectItem value="course" className="hover:bg-white/10">Course Wide</SelectItem>
+                          <SelectItem value="module" className="hover:bg-white/10">Module Specific</SelectItem>
+                          <SelectItem value="lesson" className="hover:bg-white/10">Lesson Specific</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
                 </div>
+
+                {/* Scope Label Display */}
+                {scopeLabel && (
+                  <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
+                    <div className="flex items-center gap-2">
+                      <Info className="h-4 w-4 text-blue-400" />
+                      <span className="text-blue-300 text-sm font-medium">Assignment Context:</span>
+                      <span className="text-white text-sm">{scopeLabel}</span>
+                    </div>
+                  </div>
+                )}
 
                 {scopeLevel !== "course" && selectedCourse && (
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="module" className="text-white">Module</Label>
-                      <Select value={moduleId} onValueChange={setModuleId}>
-                        <SelectTrigger className="bg-white/5 border-white/10 text-white h-11">
-                          <SelectValue placeholder="Select module" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-slate-900/95 text-white border-white/20 backdrop-blur-md">
-                          {(selectedCourse?.modules || []).map((module: any) => (
-                            <SelectItem key={module.id} value={module.id} className="hover:bg-white/10">
-                              {module.title}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      {scope?.level === "module" || scope?.level === "lesson" ? (
+                        // Module/Lesson level: Show as populated (not selectable)
+                        <div className="bg-white/5 border border-white/10 rounded-md px-3 py-2 text-white">
+                          {selectedCourse?.modules?.find((m: any) => m.id === moduleId)?.title || "No module selected"}
+                        </div>
+                      ) : (
+                        // Course level: Show as selectable
+                        <Select value={moduleId} onValueChange={setModuleId}>
+                          <SelectTrigger className="bg-white/5 border-white/10 text-white h-11">
+                            <SelectValue placeholder="Select module" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-slate-900/95 text-white border-white/20 backdrop-blur-md">
+                            {(selectedCourse?.modules || []).map((module: any) => (
+                              <SelectItem key={module.id} value={module.id} className="hover:bg-white/10">
+                                {module.title}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
                     </div>
 
                     {scopeLevel === "lesson" && moduleId && (
                       <div className="space-y-2">
                         <Label htmlFor="lesson" className="text-white">Lesson</Label>
-                        <Select value={lessonId} onValueChange={setLessonId}>
-                          <SelectTrigger className="bg-white/5 border-white/10 text-white h-11">
-                            <SelectValue placeholder="Select lesson" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-slate-900/95 text-white border-white/20 backdrop-blur-md">
-                            {(selectedCourse?.modules
-                              ?.find((m: any) => m.id === moduleId)?.lessons || [])
-                              .map((lesson: any) => (
-                                <SelectItem key={lesson.id} value={lesson.id} className="hover:bg-white/10">
-                                  {lesson.title}
-                                </SelectItem>
-                              ))}
-                          </SelectContent>
-                        </Select>
+                        {scope?.level === "lesson" ? (
+                          // Lesson level: Show as populated (not selectable)
+                          <div className="bg-white/5 border border-white/10 rounded-md px-3 py-2 text-white">
+                            {selectedCourse?.modules
+                              ?.find((m: any) => m.id === moduleId)?.lessons
+                              ?.find((l: any) => l.id === lessonId)?.title || "No lesson selected"}
+                          </div>
+                        ) : (
+                          // Module level: Show as selectable
+                          <Select value={lessonId} onValueChange={setLessonId}>
+                            <SelectTrigger className="bg-white/5 border-white/10 text-white h-11">
+                              <SelectValue placeholder="Select lesson" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-slate-900/95 text-white border-white/20 backdrop-blur-md">
+                              {(selectedCourse?.modules
+                                ?.find((m: any) => m.id === moduleId)?.lessons || [])
+                                .map((lesson: any) => (
+                                  <SelectItem key={lesson.id} value={lesson.id} className="hover:bg-white/10">
+                                    {lesson.title}
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                        )}
                       </div>
                     )}
                   </div>

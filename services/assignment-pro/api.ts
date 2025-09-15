@@ -262,7 +262,7 @@ export class AssignmentProAPI {
     attachments: AttachmentFile[]
     attempt_number?: number
   }): Promise<Submission> {
-    const response = await http<any>(`/api/submissions/assignment/${assignmentId}`, {
+    const response = await http<any>(`/api/assignments/${assignmentId}/submit`, {
       method: 'POST',
       body: {
         ...data,
@@ -297,7 +297,7 @@ export class AssignmentProAPI {
     content: SubmissionContent
     attachments: AttachmentFile[]
   }): Promise<Submission> {
-    const response = await http<any>(`/api/submissions/assignment/${assignmentId}`, {
+    const response = await http<any>(`/api/assignments/${assignmentId}/submit`, {
       method: 'POST',
       body: {
         ...data,
@@ -330,7 +330,7 @@ export class AssignmentProAPI {
 
   static async getSubmission(assignmentId: string, studentEmail?: string): Promise<Submission | null> {
     try {
-      const response = await http<any[]>(`/api/submissions/assignment/${assignmentId}`)
+      const response = await http<any[]>(`/api/assignments/${assignmentId}/submissions`)
       
       if (!response || response.length === 0) return null
       
@@ -368,7 +368,7 @@ export class AssignmentProAPI {
 
   // Student submission methods
   static async getStudentSubmissions(assignmentId: string): Promise<Submission[]> {
-    const response = await http<any[]>(`/api/submissions/assignment/${assignmentId}`)
+    const response = await http<any[]>(`/api/assignments/${assignmentId}/submissions`)
     
     // Transform backend response to match frontend type
     return response.map(item => ({
@@ -399,7 +399,7 @@ export class AssignmentProAPI {
     status?: 'draft' | 'submitted'
     timeSpentMinutes?: number
   }): Promise<Submission> {
-    const response = await http<any>(`/api/submissions/assignment/${assignmentId}`, {
+    const response = await http<any>(`/api/assignments/${assignmentId}/submit`, {
       method: 'POST',
       body: data
     })
@@ -433,7 +433,7 @@ export class AssignmentProAPI {
     status?: 'draft' | 'submitted'
     timeSpentMinutes?: number
   }): Promise<Submission> {
-    const response = await http<any>(`/api/submissions/${submissionId}`, {
+    const response = await http<any>(`/api/assignments/${submissionId}`, {
       method: 'PUT',
       body: data
     })
@@ -462,7 +462,7 @@ export class AssignmentProAPI {
   }
 
   static async getSubmissionById(submissionId: string): Promise<Submission> {
-    const response = await http<any>(`/api/submissions/${submissionId}`)
+    const response = await http<any>(`/api/assignments/${submissionId}`)
     
     // Transform backend response to match frontend type
     return {
@@ -513,7 +513,7 @@ export class AssignmentProAPI {
   }
 
   static async getMyAssignmentSubmissions(assignmentId: string): Promise<Submission[]> {
-    const response = await http<any[]>(`/api/submissions/assignment/${assignmentId}`)
+    const response = await http<any[]>(`/api/assignments/${assignmentId}/submissions`)
     
     return response.map(submission => ({
       id: submission.id,
@@ -543,7 +543,7 @@ export class AssignmentProAPI {
     feedback?: string
     rubric_scores?: RubricScore[]
   }): Promise<Submission> {
-    return await http<Submission>(`/api/submissions/${submissionId}/grade`, {
+    return await http<Submission>(`/api/assignments/${submissionId}/grade`, {
       method: 'POST',
       body: data
     })

@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { useAssignment, useAssignmentSubmissions } from "@/services/assignments/hook"
-import { type Assignment, type Submission } from "@/services/assignments/api"
+import { useAssignment } from "@/services/assignments/hook"
+import { useSubmission, useSubmissionManagement } from "@/services/submissions/hook"
 import { http } from "@/services/http"
 import { 
   ArrowLeft, 
@@ -37,61 +37,42 @@ export default function TeacherSubmissionDetailPage() {
   
   // Extract parameters from the URL
   const assignmentId = params.aid as string
-  const submissionId = params.sid as string
+  const submissionId = params.studentEmail as string // This is actually submission ID
   
-  const { assignment } = useAssignment(params.aid as string)
-  const { submissions } = useAssignmentSubmissions(params.aid as string)
-  const [submission, setSubmission] = useState<Submission | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [grading, setGrading] = useState(false)
+  const { assignment, loading: assignmentLoading } = useAssignment(assignmentId)
+  const { submission, loading: submissionLoading, error: submissionError } = useSubmission(submissionId)
+  const { gradeSubmission, loading: grading } = useSubmissionManagement()
   
   // Grading state
   const [grade, setGrade] = useState<number>(0)
   const [feedback, setFeedback] = useState("")
-  const [rubricScores, setRubricScores] = useState<any>({})
+  const [requestResubmission, setRequestResubmission] = useState(false)
 
-  // Find the specific submission from the submissions array
+  // Update grading state when submission loads
   useEffect(() => {
-    if (submissions && submissionId) {
-      const foundSubmission = submissions.find(s => s.id === submissionId)
-      if (foundSubmission) {
-        setSubmission(foundSubmission)
-        setGrade(foundSubmission.grade || 0)
-        setFeedback(foundSubmission.feedback || "")
-        setRubricScores(foundSubmission.rubric_scores || {})
-        setLoading(false)
-      } else {
-        setError('Submission not found')
-        setLoading(false)
-      }
+    if (submission) {
+      setGrade(submission.grade || 0)
+      setFeedback(submission.feedback || "")
     }
-  }, [submissions, submissionId])
+  }, [submission])
 
   const handleGradeSubmission = async () => {
-    if (!submission || !assignment) return
+    if (!submission) return
     
-    setGrading(true)
     try {
-      await http(`/api/submissions/${submission.id}/grade`, {
-        method: 'POST',
-        body: {
-          grade,
-          feedback,
-          rubric_scores: Object.entries(rubricScores).map(([criterionId, score]) => ({ criterion_id: criterionId, score }))
-        }
+      await gradeSubmission(submission.id, {
+        grade,
+        feedback,
+        requestResubmission
       })
       
       toast({
-        title: "Submission graded successfully",
-        description: `Grade: ${grade}/${assignment.points}`,
+        title: requestResubmission ? "Submission returned for resubmission" : "Submission graded successfully",
+        description: `Grade: ${grade}/${assignment?.points}`,
       })
       
-      // Refresh submission data by finding it again in the submissions array
-      const updatedSubmission = submissions.find(s => s.id === submissionId)
-      if (updatedSubmission) {
-        setSubmission(updatedSubmission)
-      }
+      // Refresh the page to get updated data
+      window.location.reload()
     } catch (error: any) {
       console.error('Failed to grade submission:', error)
       toast({
@@ -99,40 +80,6 @@ export default function TeacherSubmissionDetailPage() {
         description: error.message || "Please try again",
         variant: "destructive"
       })
-    } finally {
-      setGrading(false)
-    }
-  }
-
-  const handleReturnSubmission = async () => {
-    if (!submission || !assignment) return
-    
-    setGrading(true)
-    try {
-      await http(`/api/submissions/${submission.id}/return`, {
-        method: 'POST',
-        body: { feedback }
-      })
-      
-      toast({
-        title: "Submission returned for resubmission",
-        description: "Student will be notified to make changes",
-      })
-      
-      // Refresh submission data by finding it again in the submissions array
-      const updatedSubmission = submissions.find(s => s.id === submissionId)
-      if (updatedSubmission) {
-        setSubmission(updatedSubmission)
-      }
-    } catch (error: any) {
-      console.error('Failed to return submission:', error)
-      toast({
-        title: "Failed to return submission",
-        description: error.message || "Please try again",
-        variant: "destructive"
-      })
-    } finally {
-      setGrading(false)
     }
   }
 
@@ -152,13 +99,6 @@ export default function TeacherSubmissionDetailPage() {
             Submitted
           </Badge>
         )
-      case 'draft':
-        return (
-          <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
-            <Clock className="h-3 w-3 mr-1" />
-            Draft
-          </Badge>
-        )
       case 'returned':
         return (
           <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30">
@@ -175,7 +115,7 @@ export default function TeacherSubmissionDetailPage() {
     }
   }
 
-  if (loading) {
+  if (assignmentLoading || submissionLoading) {
     return (
       <div className="space-y-6">
         <GlassCard className="p-8">
@@ -185,21 +125,21 @@ export default function TeacherSubmissionDetailPage() {
     )
   }
 
-  if (error || !assignment || !submission) {
+  if (submissionError || !assignment || !submission) {
     return (
       <div className="space-y-6">
         <GlassCard className="p-8">
           <div className="text-center">
             <h3 className="text-xl font-semibold text-white mb-2">Submission Not Found</h3>
             <p className="text-slate-400 mb-4">
-              This submission doesn't exist or you don't have access to it.
+              {submissionError || "This submission doesn't exist or you don't have access to it."}
             </p>
             <Button 
-              onClick={() => router.push(`/teacher/assignments`)}
+              onClick={() => router.push(`/teacher/assignment/${assignmentId}`)}
               className="bg-blue-600/80 hover:bg-blue-600 text-white"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Assignments
+              Back to Assignment
             </Button>
           </div>
         </GlassCard>
@@ -217,16 +157,16 @@ export default function TeacherSubmissionDetailPage() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => router.push(`/teacher/assignments`)}
+                onClick={() => router.push(`/teacher/assignment/${assignmentId}`)}
                 className="text-slate-400 hover:text-white hover:bg-white/10 p-2"
               >
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              <span className="text-sm text-slate-400">{assignment.courseTitle}</span>
+              <span className="text-sm text-slate-400">{assignment.title}</span>
             </div>
             
-            <h1 className="text-3xl font-bold text-white mb-3">{assignment.title}</h1>
-            <p className="text-slate-400">Student Submission Review & Grading</p>
+            <h1 className="text-3xl font-bold text-white mb-3">Student Submission Review</h1>
+            <p className="text-slate-400">Review and grade student submission</p>
           </div>
           <div className="flex items-center gap-2">
             {getStatusBadge(submission.status)}
@@ -244,8 +184,8 @@ export default function TeacherSubmissionDetailPage() {
                 <Users className="h-5 w-5 text-blue-400" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-white">{submission.studentName}</h3>
-                <p className="text-sm text-slate-400">{submission.studentEmail}</p>
+                <h3 className="text-lg font-semibold text-white">{submission?.student_name || 'Unknown Student'}</h3>
+                <p className="text-sm text-slate-400">{submission?.student_email || 'Unknown Email'}</p>
               </div>
             </div>
             
@@ -253,19 +193,13 @@ export default function TeacherSubmissionDetailPage() {
               <div className="flex items-center gap-2">
                 <Clock className="h-4 w-4 text-slate-400" />
                 <span className="text-slate-300">Submitted:</span>
-                <span className="text-white">{new Date(submission.submittedAt).toLocaleString()}</span>
+                <span className="text-white">{submission.submitted_at ? new Date(submission.submitted_at).toLocaleString() : 'Unknown'}</span>
               </div>
               <div className="flex items-center gap-2">
                 <FileText className="h-4 w-4 text-slate-400" />
-                <span className="text-slate-300">Attempt:</span>
-                <span className="text-white">{submission.attemptNumber}</span>
+                <span className="text-slate-300">Status:</span>
+                <span className="text-white capitalize">{submission.status}</span>
               </div>
-              {submission.lateSubmission && (
-                <div className="flex items-center gap-2 col-span-2">
-                  <AlertTriangle className="h-4 w-4 text-orange-400" />
-                  <span className="text-orange-400">Late Submission</span>
-                </div>
-              )}
             </div>
           </GlassCard>
 
@@ -273,9 +207,25 @@ export default function TeacherSubmissionDetailPage() {
           <GlassCard className="p-6">
             <h3 className="text-lg font-semibold text-white mb-4">Student Response</h3>
             
-            {submission.content && Object.keys(submission.content).length > 0 ? (
+            {submission.response ? (
               <div className="space-y-4">
-                {submission.content.essay && (
+                <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+                  <h4 className="font-medium text-white mb-2">Student Response</h4>
+                  <p className="text-slate-300 whitespace-pre-wrap">{submission.response}</p>
+                </div>
+              </div>
+            ) : submission.content && Object.keys(submission.content).length > 0 ? (
+              <div className="space-y-4">
+                {/* Debug: Show the actual content structure */}
+                <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                  <h4 className="font-medium text-yellow-400 mb-2">Debug: Content Structure</h4>
+                  <pre className="text-xs text-slate-300 overflow-auto">
+                    {JSON.stringify(submission.content, null, 2)}
+                  </pre>
+                </div>
+
+                {/* Handle different content types safely */}
+                {submission.content.essay && typeof submission.content.essay === 'string' && (
                   <div>
                     <h4 className="font-medium text-white mb-2">Essay Response</h4>
                     <div className="bg-white/5 border border-white/10 rounded-lg p-4">
@@ -284,7 +234,7 @@ export default function TeacherSubmissionDetailPage() {
                   </div>
                 )}
                 
-                {submission.content.project && (
+                {submission.content.project && typeof submission.content.project === 'string' && (
                   <div>
                     <h4 className="font-medium text-white mb-2">Project Description</h4>
                     <div className="bg-white/5 border border-white/10 rounded-lg p-4">
@@ -293,7 +243,7 @@ export default function TeacherSubmissionDetailPage() {
                   </div>
                 )}
                 
-                {submission.content.discussion && (
+                {submission.content.discussion && typeof submission.content.discussion === 'string' && (
                   <div>
                     <h4 className="font-medium text-white mb-2">Discussion Response</h4>
                     <div className="bg-white/5 border border-white/10 rounded-lg p-4">
@@ -302,7 +252,7 @@ export default function TeacherSubmissionDetailPage() {
                   </div>
                 )}
                 
-                {submission.content.quiz && assignment.settings.quiz_questions && (
+                {submission.content.quiz && assignment?.settings?.quiz_questions && (
                   <div>
                     <h4 className="font-medium text-white mb-2">Quiz Response</h4>
                     <QuizViewer
@@ -314,49 +264,38 @@ export default function TeacherSubmissionDetailPage() {
                   </div>
                 )}
                 
-                {submission.content.code_submission && (
-                  <CodeViewer
-                    code={submission.content.code_submission}
-                    language="javascript"
-                    filename="submission.js"
-                    repositoryUrl={submission.content.repository_url}
-                    demoUrl={submission.content.demo_url}
-                    readOnly={true}
-                    showHeader={true}
-                  />
-                )}
-
-                {submission.content.quiz && assignment.settings.quiz_questions && (
-                  <QuizViewer
-                    questions={assignment.settings.quiz_questions}
-                    submission={submission.content.quiz}
-                    showAnswers={true}
-                    isReadOnly={true}
-                    totalPoints={assignment.points}
-                    earnedPoints={submission.grade || 0}
-                    submittedAt={submission.submitted_at}
-                    gradedAt={submission.graded_at}
-                    feedback={submission.feedback}
-                  />
+                {submission.content.code_submission && typeof submission.content.code_submission === 'string' && (
+                  <div>
+                    <h4 className="font-medium text-white mb-2">Code Submission</h4>
+                    <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+                      <pre className="text-slate-300 whitespace-pre-wrap">{submission.content.code_submission}</pre>
+                    </div>
+                  </div>
                 )}
 
                 {submission.content.peer_review && (
-                  <PeerReviewViewer
-                    submission={submission.content.peer_review}
-                    readOnly={true}
-                    showHeader={true}
-                  />
+                  <div>
+                    <h4 className="font-medium text-white mb-2">Peer Review</h4>
+                    <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+                      <pre className="text-slate-300 whitespace-pre-wrap text-xs overflow-auto">
+                        {JSON.stringify(submission.content.peer_review, null, 2)}
+                      </pre>
+                    </div>
+                  </div>
                 )}
 
                 {submission.content.file_upload && (
-                  <FileUploadViewer
-                    files={submission.content.file_upload}
-                    readOnly={true}
-                    showHeader={true}
-                  />
+                  <div>
+                    <h4 className="font-medium text-white mb-2">File Upload</h4>
+                    <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+                      <pre className="text-slate-300 whitespace-pre-wrap text-xs overflow-auto">
+                        {JSON.stringify(submission.content.file_upload, null, 2)}
+                      </pre>
+                    </div>
+                  </div>
                 )}
 
-                {submission.content.presentation && (
+                {submission.content.presentation && typeof submission.content.presentation === 'string' && (
                   <div>
                     <h4 className="font-medium text-white mb-2">Presentation Notes</h4>
                     <div className="bg-white/5 border border-white/10 rounded-lg p-4">
@@ -368,42 +307,71 @@ export default function TeacherSubmissionDetailPage() {
                   </div>
                 )}
 
-                {submission.content.files && submission.content.files.length > 0 && (
+                {submission.content.files && Array.isArray(submission.content.files) && submission.content.files.length > 0 && (
                   <div>
                     <h4 className="font-medium text-white mb-2">Uploaded Files</h4>
-                    <FileList
-                      files={submission.content.files.map((file: any, index: number) => ({
-                        id: file.id || `file-${index}`,
-                        name: file.name || `File ${index + 1}`,
-                        url: file.url || '#',
-                        type: file.type || 'application/octet-stream',
-                        size: file.size || 0,
-                        uploadedAt: file.uploadedAt || new Date().toISOString()
-                      }))}
-                      showDownload={true}
-                      showViewer={true}
-                    />
+                    <div className="space-y-2">
+                      {submission.content.files.map((file: any, index: number) => (
+                        <div key={index} className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <FileText className="h-4 w-4 text-slate-400" />
+                            <span className="text-slate-300">{file.name || `File ${index + 1}`}</span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-slate-400 hover:text-white"
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
+
+                {/* Handle any other content types that might exist */}
+                {Object.entries(submission.content).map(([key, value]) => {
+                  // Skip already handled fields
+                  if (['essay', 'project', 'discussion', 'quiz', 'code_submission', 'peer_review', 'file_upload', 'presentation', 'files'].includes(key)) {
+                    return null
+                  }
+                  
+                  // Handle unknown fields safely
+                  return (
+                    <div key={key}>
+                      <h4 className="font-medium text-white mb-2">{key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</h4>
+                      <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+                        {typeof value === 'string' ? (
+                          <p className="text-slate-300 whitespace-pre-wrap">{value}</p>
+                        ) : (
+                          <pre className="text-slate-300 whitespace-pre-wrap text-xs overflow-auto">
+                            {JSON.stringify(value, null, 2)}
+                          </pre>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             ) : (
               <div className="text-center text-slate-400 py-8">
                 <FileText className="h-12 w-12 mx-auto mb-4" />
-                <p>No content submitted</p>
+                <p>No response provided</p>
               </div>
             )}
           </GlassCard>
 
           {/* Attachments */}
-          {submission.attachments && submission.attachments.length > 0 && (
+          {submission.files && submission.files.length > 0 && (
             <GlassCard className="p-6">
               <h3 className="text-lg font-semibold text-white mb-4">Attachments</h3>
               <div className="space-y-2">
-                {submission.attachments.map((attachment: any, index: number) => (
+                {submission.files.map((file: any, index: number) => (
                   <div key={index} className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-lg">
                     <div className="flex items-center gap-3">
                       <FileText className="h-4 w-4 text-slate-400" />
-                      <span className="text-slate-300">{attachment.name || `Attachment ${index + 1}`}</span>
+                      <span className="text-slate-300">{file.name || `File ${index + 1}`}</span>
                     </div>
                     <Button
                       variant="ghost"
@@ -454,6 +422,20 @@ export default function TeacherSubmissionDetailPage() {
                 />
               </div>
 
+              {/* Request Resubmission Checkbox */}
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="requestResubmission"
+                  checked={requestResubmission}
+                  onChange={(e) => setRequestResubmission(e.target.checked)}
+                  className="rounded border-white/20 bg-white/5 text-blue-600 focus:ring-blue-500"
+                />
+                <label htmlFor="requestResubmission" className="text-sm text-slate-300">
+                  Request resubmission
+                </label>
+              </div>
+
               {/* Current Grade Display */}
               {submission.grade !== null && submission.grade !== undefined && (
                 <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
@@ -490,32 +472,10 @@ export default function TeacherSubmissionDetailPage() {
                   ) : (
                     <>
                       <Send className="h-4 w-4 mr-2" />
-                      Submit Grade
+                      {requestResubmission ? 'Return for Resubmission' : 'Submit Grade'}
                     </>
                   )}
                 </Button>
-
-                {/* Request Resubmission Button */}
-                {submission.status === 'submitted' && (
-                  <Button
-                    onClick={handleReturnSubmission}
-                    disabled={grading || !feedback.trim()}
-                    variant="outline"
-                    className="w-full border-orange-500/50 text-orange-400 hover:bg-orange-500/10"
-                  >
-                    {grading ? (
-                      <>
-                        <Clock className="h-4 w-4 mr-2 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <AlertTriangle className="h-4 w-4 mr-2" />
-                        Request Resubmission
-                      </>
-                    )}
-                  </Button>
-                )}
               </div>
             </div>
           </GlassCard>

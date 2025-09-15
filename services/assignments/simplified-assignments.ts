@@ -90,14 +90,14 @@ export const SimplifiedAssignmentsAPI = {
   // Get assignments for a course
   getCourseAssignments: async (courseId: string): Promise<Assignment[]> => {
     console.log('DEBUG: Fetching simplified assignments for course:', courseId)
-    const response = await http<Assignment[]>(`/api/assignments/simplified/course/${courseId}`)
+    const response = await http<Assignment[]>(`/api/assignments/course/${courseId}`)
     console.log('DEBUG: Simplified assignments response:', response)
     return response || []
   },
 
   // Get all student submissions for an assignment (for teachers)
   getAssignmentSubmissions: async (assignmentId: string): Promise<any[]> => {
-    const response = await http<any[]>(`/api/assignments/simplified/${assignmentId}/submissions`)
+    const response = await http<any[]>(`/api/assignments/${assignmentId}/submissions`)
     return response || []
   },
 
@@ -106,7 +106,7 @@ export const SimplifiedAssignmentsAPI = {
     response: string
     files?: string[]
   }): Promise<{ success: boolean; message: string; submission: AssignmentSubmission }> => {
-    return await http(`/api/assignments/simplified/${assignmentId}/submit`, {
+    return await http(`/api/assignments/${assignmentId}/submit`, {
       method: 'POST',
       body: data
     })
@@ -118,7 +118,7 @@ export const SimplifiedAssignmentsAPI = {
     grade: number
     feedback?: string
   }): Promise<{ success: boolean; message: string; grade: AssignmentSubmission }> => {
-    return await http(`/api/assignments/simplified/${assignmentId}/grade`, {
+    return await http(`/api/assignments/${assignmentId}/grade`, {
       method: 'PUT',
       body: data
     })
@@ -126,7 +126,7 @@ export const SimplifiedAssignmentsAPI = {
 
   // Get assignment details with all submissions (teacher)
   getAssignmentDetails: async (assignmentId: string): Promise<AssignmentDetails> => {
-    return await http(`/api/assignments/simplified/${assignmentId}/details`)
+    return await http(`/api/assignments/${assignmentId}/details`)
   }
 }
 

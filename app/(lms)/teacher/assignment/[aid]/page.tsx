@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { GlassCard } from "@/components/shared/glass-card"
-import { useAssignment, useAssignmentSubmissions, useGradingStats } from "@/services/assignments/hook"
+import { useAssignment, useGradingStats } from "@/services/assignments/hook"
+import { useAssignmentSubmissions } from "@/services/submissions/hook"
 import { type Assignment, type Submission, type GradingStats, type AssignmentType } from "@/services/assignments/api"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -81,7 +82,7 @@ function SubmissionsTableView({ assignment }: { assignment: AssignmentWithStats 
     let comparison = 0
     switch (sortBy) {
       case "name":
-        comparison = a.student_name.localeCompare(b.student_name)
+        comparison = (a.student_name || '').localeCompare(b.student_name || '')
         break
       case "submitted_at":
         comparison = new Date(a.submitted_at || '').getTime() - new Date(b.submitted_at || '').getTime()
@@ -129,7 +130,7 @@ function SubmissionsTableView({ assignment }: { assignment: AssignmentWithStats 
 
   const selectAllSubmissions = (checked: boolean) => {
     if (checked) {
-      setSelectedSubmissions(new Set(filteredSubmissions.map(s => s.id)))
+      setSelectedSubmissions(new Set(filteredSubmissions.map(s => s.student_id || s.student_email)))
     } else {
       setSelectedSubmissions(new Set())
     }
@@ -213,11 +214,11 @@ function SubmissionsTableView({ assignment }: { assignment: AssignmentWithStats 
             </TableHeader>
             <TableBody>
               {sortedSubmissions.map((submission) => (
-                <TableRow key={submission.id} className="border-white/10 hover:bg-white/5">
+                <TableRow key={submission.student_id || submission.student_email} className="border-white/10 hover:bg-white/5">
                   <TableCell>
                     <Checkbox 
-                      checked={selectedSubmissions.has(submission.id)}
-                      onCheckedChange={() => toggleSubmissionSelection(submission.id)}
+                      checked={selectedSubmissions.has(submission.student_id || submission.student_email)}
+                      onCheckedChange={() => toggleSubmissionSelection(submission.student_id || submission.student_email)}
                     />
                   </TableCell>
                   <TableCell>
@@ -370,8 +371,8 @@ export default function TeacherAssignmentDetailPage() {
   const params = useParams<{ aid: string }>()
   const router = useRouter()
   
-  const { assignment, loading, error } = useAssignment(params.aid)
-  const { stats } = useGradingStats(params.aid)
+  const { assignment, loading, error } = useAssignment(params?.aid || '')
+  const { stats } = useGradingStats(params?.aid || '')
   const [courseInfo, setCourseInfo] = useState<any>(null)
   const [moduleInfo, setModuleInfo] = useState<any>(null)
   const [lessonInfo, setLessonInfo] = useState<any>(null)
@@ -397,7 +398,7 @@ export default function TeacherAssignmentDetailPage() {
     if (assignment) {
       setCourseInfo({
         id: assignment.course_id,
-        title: `Course ${assignment.course_id}`
+        title: assignment.course_title || `Course ${assignment.course_id}`
       })
       
       if (assignment.scope?.moduleId) {
