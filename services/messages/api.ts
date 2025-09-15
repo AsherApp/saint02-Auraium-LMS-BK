@@ -128,4 +128,19 @@ export async function getMessageStats() {
   }>('/api/messages/stats', {
     headers: getHeadersWithUserEmail()
   })
+}
+
+export async function getStudentsForMessaging() {
+  return http<{
+    items: Array<{
+      id: string
+      student_name: string
+      student_email: string
+      student_code: string
+      course_id: string
+      course_title: string
+    }>
+  }>('/api/students/messaging', {
+    headers: getHeadersWithUserEmail()
+  })
 } 

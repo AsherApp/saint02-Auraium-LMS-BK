@@ -54,7 +54,7 @@ function DialogContent({
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
-  size?: "sm" | "md" | "lg" | "xl" | "full"
+  size?:  "xs" | "sm" | "md" | "lg" | "xl" | "2xl" | "full" | "auto" | "fit"
 }) {
   const sizeClasses = {
     sm: "sm:max-w-sm",

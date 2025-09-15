@@ -50,13 +50,9 @@ function FluidTab({ id, label, icon, badge, isActive, onClick, variant = 'defaul
           : "hover:bg-white/5"
       )}
       whileHover={{ 
-        y: -1,
-        color: "rgb(255, 255, 255)"
+        y: -1
       }}
       whileTap={{ scale: 0.98 }}
-      animate={{
-        color: isActive ? "rgb(255, 255, 255)" : "rgb(203, 213, 225)"
-      }}
       transition={{ duration: 0.3, ease: "easeInOut" }}
     >
       {/* Active background with glassmorphism */}
@@ -105,15 +101,13 @@ function FluidTab({ id, label, icon, badge, isActive, onClick, variant = 'defaul
           </motion.div>
         )}
         
-        <motion.span 
-          className="whitespace-nowrap font-medium"
-          animate={{
-            color: isActive ? "rgb(255, 255, 255)" : "rgb(203, 213, 225)"
-          }}
-          transition={{ duration: 0.3, ease: "easeInOut" }}
+        <span 
+          className={`whitespace-nowrap font-medium ${
+            isActive ? "text-white" : "text-slate-300"
+          }`}
         >
           {label}
-        </motion.span>
+        </span>
         
         {badge && (
           <motion.div

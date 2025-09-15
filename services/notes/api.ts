@@ -12,6 +12,14 @@ export type Note = {
   is_public: boolean
   created_at: string
   updated_at: string
+  courses?: {
+    id: string
+    title: string
+  }
+  lessons?: {
+    id: string
+    title: string
+  }
 }
 
 // Helper function to get user email and create headers

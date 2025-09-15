@@ -98,6 +98,22 @@ export default function NewCourseWizardPage() {
   const [newLessonContent, setNewLessonContent] = useState<any>({})
   const [showLessonEditor, setShowLessonEditor] = useState(false)
   const [editingLesson, setEditingLesson] = useState<Lesson | null>(null)
+  
+  // Certificate configuration
+  const [certificateConfig, setCertificateConfig] = useState({
+    enabled: false,
+    template: "default",
+    custom_text: "",
+    signature: "",
+    logo_url: "",
+    background_color: "#1e293b",
+    text_color: "#ffffff",
+    border_color: "#3b82f6",
+    show_completion_date: true,
+    show_course_duration: false,
+    show_grade: false,
+    custom_fields: []
+  })
 
   async function handleCreateCourse() {
     if (!title.trim()) {
@@ -122,7 +138,8 @@ export default function NewCourseWizardPage() {
         visibility,
         enrollment_policy: enrollmentPolicy,
         course_mode: courseMode,
-        thumbnail_url: thumbnailUrl.trim() || undefined
+        thumbnail_url: thumbnailUrl.trim() || undefined,
+        certificate_config: certificateConfig
       })
       
       // Step 2: Create modules and lessons
@@ -336,7 +353,7 @@ export default function NewCourseWizardPage() {
   }
 
   function StepIndicator() {
-    const steps = ["Course Details", "Course Structure", "Settings", "Review"]
+    const steps = ["Course Details", "Course Structure", "Settings", "Review", "Certificates"]
     return (
       <div className="flex items-center justify-between gap-3">
         {steps.map((s, i) => {
@@ -369,7 +386,7 @@ export default function NewCourseWizardPage() {
               Back
             </Button>
           )}
-          {step < 3 ? (
+          {step < 4 ? (
             <Button
               className="bg-blue-600/80 hover:bg-blue-600 text-white w-full sm:w-auto"
               onClick={() => {
@@ -859,6 +876,107 @@ export default function NewCourseWizardPage() {
                 </div>
               </div>
             )}
+          </section>
+        )}
+
+        {step === 4 && (
+          <section className="space-y-4">
+            <h2 className="text-white font-semibold">Certificate Configuration</h2>
+            <p className="text-slate-400 text-sm">
+              Configure certificates that will be automatically generated when students complete your course.
+            </p>
+            
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 border border-white/10 rounded-lg bg-white/5">
+                <div>
+                  <div className="text-white font-medium">Enable Certificates</div>
+                  <div className="text-slate-400 text-sm">Generate certificates for course completion</div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={certificateConfig.enabled}
+                  onChange={(e) => setCertificateConfig(prev => ({ ...prev, enabled: e.target.checked }))}
+                  className="w-5 h-5 text-blue-600 bg-slate-800 border-slate-600 rounded focus:ring-blue-500"
+                />
+              </div>
+
+              {certificateConfig.enabled && (
+                <div className="space-y-4 p-4 border border-white/10 rounded-lg bg-white/5">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <Label className="text-slate-300">Certificate Template</Label>
+                      <Select 
+                        value={certificateConfig.template} 
+                        onValueChange={(value) => setCertificateConfig(prev => ({ ...prev, template: value }))}
+                      >
+                        <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-900/95 text-white border-white/10">
+                          <SelectItem value="default">Default</SelectItem>
+                          <SelectItem value="classic">Classic</SelectItem>
+                          <SelectItem value="modern">Modern</SelectItem>
+                          <SelectItem value="minimal">Minimal</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div>
+                      <Label className="text-slate-300">Signature/Authority</Label>
+                      <Input
+                        value={certificateConfig.signature}
+                        onChange={(e) => setCertificateConfig(prev => ({ ...prev, signature: e.target.value }))}
+                        placeholder="Your name or institution"
+                        className="bg-white/5 border-white/10 text-white placeholder:text-slate-400"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label className="text-slate-300">Custom Text</Label>
+                    <textarea
+                      value={certificateConfig.custom_text}
+                      onChange={(e) => setCertificateConfig(prev => ({ ...prev, custom_text: e.target.value }))}
+                      placeholder="Additional text to include on the certificate..."
+                      className="w-full p-3 bg-white/5 border border-white/10 text-white placeholder:text-slate-400 rounded-md"
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={certificateConfig.show_completion_date}
+                        onChange={(e) => setCertificateConfig(prev => ({ ...prev, show_completion_date: e.target.checked }))}
+                        className="w-4 h-4 text-blue-600 bg-slate-800 border-slate-600 rounded"
+                      />
+                      <Label className="text-slate-300 text-sm">Show Completion Date</Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={certificateConfig.show_course_duration}
+                        onChange={(e) => setCertificateConfig(prev => ({ ...prev, show_course_duration: e.target.checked }))}
+                        className="w-4 h-4 text-blue-600 bg-slate-800 border-slate-600 rounded"
+                      />
+                      <Label className="text-slate-300 text-sm">Show Course Duration</Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={certificateConfig.show_grade}
+                        onChange={(e) => setCertificateConfig(prev => ({ ...prev, show_grade: e.target.checked }))}
+                        className="w-4 h-4 text-blue-600 bg-slate-800 border-slate-600 rounded"
+                      />
+                      <Label className="text-slate-300 text-sm">Show Final Grade</Label>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </section>
         )}
 

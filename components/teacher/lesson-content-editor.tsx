@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { FluidTabs, useFluidTabs } from "@/components/ui/fluid-tabs"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { 
@@ -27,6 +27,8 @@ import {
 import type { Lesson, LessonContent, LessonType } from "@/store/course-store"
 import { uploadVideo, uploadFile } from "@/services/upload/api"
 import { useToast } from "@/hooks/use-toast"
+import { useVideoCompression } from "@/hooks/use-video-compression"
+import { needsCompression, formatFileSize } from "@/lib/video-compression"
 
 type Props = {
   lesson: Lesson
@@ -37,10 +39,13 @@ type Props = {
 export function LessonContentEditor({ lesson, onCancel = () => {}, onSave = () => {} }: Props) {
   const type: LessonType = lesson.type
   const [content, setContent] = useState<LessonContent>(lesson.content || {})
-  const [activeTab, setActiveTab] = useState("content")
+  const { activeTab, handleTabChange } = useFluidTabs("content")
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [videoThumbnail, setVideoThumbnail] = useState<string | null>(null)
   const { toast } = useToast()
+  const { state: compressionState, compress, reset: resetCompression } = useVideoCompression()
 
   useEffect(() => {
     setContent(lesson.content || {})
@@ -66,6 +71,50 @@ export function LessonContentEditor({ lesson, onCancel = () => {}, onSave = () =
     const file = event.target.files?.[0]
     if (!file) return
 
+    setSelectedFile(file)
+    resetCompression()
+
+    // Check if file needs compression
+    if (needsCompression(file, 50)) {
+      toast({
+        title: "Large file detected",
+        description: `File size (${formatFileSize(file.size)}) exceeds 50MB limit. Compression will be applied automatically.`,
+      })
+      
+      try {
+        const compressionResult = await compress(file, {
+          maxSizeMB: 50,
+          quality: 0.95, // Pixel-perfect clarity
+          maxWidth: 1920, // Higher resolution
+          maxHeight: 1080,
+          audioQuality: 0.9 // High audio quality
+        })
+
+        if (compressionResult.success) {
+          // Store thumbnail if available
+          if (compressionResult.thumbnail) {
+            setVideoThumbnail(compressionResult.thumbnail)
+          }
+          await uploadCompressedFile(compressionResult.compressedFile, contentType)
+        } else {
+          throw new Error(compressionResult.error || 'Compression failed')
+        }
+      } catch (error) {
+        console.error("Compression error:", error)
+        toast({
+          title: "Compression failed",
+          description: error instanceof Error ? error.message : "Failed to compress file",
+          variant: "destructive",
+        })
+        setSelectedFile(null)
+      }
+    } else {
+      // File is small enough, upload directly
+      await uploadCompressedFile(file, contentType)
+    }
+  }
+
+  const uploadCompressedFile = async (file: File, contentType: 'video' | 'file') => {
     setUploading(true)
     try {
       let uploadResult
@@ -75,6 +124,10 @@ export function LessonContentEditor({ lesson, onCancel = () => {}, onSave = () =
         setField(["video", "name"], uploadResult.file.name)
         setField(["video", "size"], uploadResult.file.size)
         setField(["video", "type"], uploadResult.file.type)
+        // Store thumbnail if available
+        if (videoThumbnail) {
+          setField(["video", "thumbnail"], videoThumbnail)
+        }
       } else {
         uploadResult = await uploadFile(file)
         setField(["file", "url"], uploadResult.file.url)
@@ -96,6 +149,7 @@ export function LessonContentEditor({ lesson, onCancel = () => {}, onSave = () =
       })
     } finally {
       setUploading(false)
+      setSelectedFile(null)
     }
   }
 
@@ -105,10 +159,17 @@ export function LessonContentEditor({ lesson, onCancel = () => {}, onSave = () =
         return content?.video?.url ? (
           <div className="aspect-video bg-black rounded-lg overflow-hidden">
             {content.video.source === "upload" ? (
-              <video controls className="w-full h-full">
-                <source src={content.video.url} type="video/mp4" />
-                Your browser does not support the video tag.
-              </video>
+              <div className="relative w-full h-full">
+                {/* Show thumbnail as poster if available */}
+                <video 
+                  controls 
+                  className="w-full h-full"
+                  poster={content.video.thumbnail}
+                >
+                  <source src={content.video.url} type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video>
+              </div>
             ) : content.video.source === "onedrive" ? (
               <iframe
                 src={content.video.url}
@@ -237,21 +298,32 @@ export function LessonContentEditor({ lesson, onCancel = () => {}, onSave = () =
     }
   }
 
+  const tabs = [
+    {
+      id: "content",
+      label: "Content",
+      icon: <Eye className="h-4 w-4" />
+    },
+    {
+      id: "preview", 
+      label: "Preview",
+      icon: <PlayCircle className="h-4 w-4" />
+    }
+  ]
+
   return (
     <div className="space-y-6">
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2 bg-white/5">
-          <TabsTrigger value="content" className="data-[state=active]:bg-white/10">
-            <Eye className="h-4 w-4 mr-2" />
-            Content
-          </TabsTrigger>
-          <TabsTrigger value="preview" className="data-[state=active]:bg-white/10">
-            <PlayCircle className="h-4 w-4 mr-2" />
-            Preview
-          </TabsTrigger>
-        </TabsList>
+      <FluidTabs
+        tabs={tabs}
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        variant="compact"
+        width="auto"
+        className="mb-6"
+      />
 
-        <TabsContent value="content" className="space-y-4">
+      {activeTab === "content" && (
+        <div className="space-y-4">
           {type === "video" && (
             <Card className="bg-white/5 border-white/10">
               <CardHeader>
@@ -281,35 +353,113 @@ export function LessonContentEditor({ lesson, onCancel = () => {}, onSave = () =
                 {content?.video?.source === "upload" ? (
                   <div className="space-y-2">
                     <Label>Upload Video</Label>
-                    <div className="border-2 border-dashed border-white/20 rounded-lg p-6 text-center">
-                      <Upload className="h-8 w-8 mx-auto mb-2 text-slate-400" />
-                      <p className="text-sm text-slate-400 mb-2">
-                        Click to upload or drag and drop
-                      </p>
-                      <p className="text-xs text-slate-500 mb-4">
-                        MP4, WebM, or OGG up to 100MB
-                      </p>
-                      <Button
-                        variant="secondary"
-                        className="bg-white/10 hover:bg-white/20"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={uploading}
-                      >
-                        {uploading ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        ) : (
-                          <Upload className="h-4 w-4 mr-2" />
+                    
+                    {/* Show video thumbnail if uploaded, otherwise show upload area */}
+                    {content?.video?.url ? (
+                      <div className="border border-white/20 rounded-lg overflow-hidden">
+                        <div className="relative aspect-video bg-black">
+                          <video 
+                            controls 
+                            className="w-full h-full"
+                            poster={content.video.thumbnail}
+                          >
+                            <source src={content.video.url} type="video/mp4" />
+                            Your browser does not support the video tag.
+                          </video>
+                          {/* Overlay with file info */}
+                          <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                            {content.video.name && (
+                              <div className="truncate max-w-32" title={content.video.name}>
+                                {content.video.name}
+                              </div>
+                            )}
+                            {content.video.size && (
+                              <div className="text-gray-300">
+                                {formatFileSize(content.video.size)}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="p-3 bg-white/5 border-t border-white/10">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <CheckCircle className="h-4 w-4 text-green-400" />
+                              <span className="text-sm text-white">Video uploaded successfully</span>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => fileInputRef.current?.click()}
+                              className="text-blue-400 hover:text-blue-300"
+                            >
+                              Replace Video
+                            </Button>
+                          </div>
+                        </div>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="video/*"
+                          className="hidden"
+                          onChange={(e) => handleFileUpload(e, 'video')}
+                        />
+                      </div>
+                    ) : (
+                      <>
+                        <div className="border-2 border-dashed border-white/20 rounded-lg p-6 text-center">
+                          <Upload className="h-8 w-8 mx-auto mb-2 text-slate-400" />
+                          <p className="text-sm text-slate-400 mb-2">
+                            Click to upload or drag and drop
+                          </p>
+                          <p className="text-xs text-slate-500 mb-4">
+                            MP4, WebM, or OGG up to 50MB (larger files will be compressed automatically)
+                          </p>
+                          <Button
+                            variant="secondary"
+                            className="bg-white/10 hover:bg-white/20"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={uploading || compressionState.isCompressing}
+                          >
+                            {uploading || compressionState.isCompressing ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <Upload className="h-4 w-4 mr-2" />
+                            )}
+                            {uploading ? 'Uploading...' : compressionState.isCompressing ? 'Compressing...' : 'Choose File'}
+                          </Button>
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="video/*"
+                            className="hidden"
+                            onChange={(e) => handleFileUpload(e, 'video')}
+                          />
+                        </div>
+                        
+                        {/* Simple Upload Progress - Only show when processing */}
+                        {(uploading || compressionState.isCompressing) && (
+                          <div className="mt-4 p-3 bg-white/5 rounded-lg border border-white/10">
+                            <div className="flex items-center gap-3">
+                              <Loader2 className="h-5 w-5 animate-spin text-blue-400" />
+                              <div className="flex-1">
+                                <p className="text-sm text-white">
+                                  {compressionState.isCompressing ? 'Compressing video...' : 'Uploading...'}
+                                </p>
+                                <div className="w-full bg-gray-700 rounded-full h-2 mt-2">
+                                  <div 
+                                    className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                                    style={{ width: `${compressionState.progress}%` }}
+                                  />
+                                </div>
+                              </div>
+                              <span className="text-xs text-gray-400">
+                                {Math.round(compressionState.progress)}%
+                              </span>
+                            </div>
+                          </div>
                         )}
-                        {uploading ? 'Uploading...' : 'Choose File'}
-                      </Button>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="video/*"
-                        className="hidden"
-                        onChange={(e) => handleFileUpload(e, 'video')}
-                      />
-                    </div>
+                      </>
+                    )}
                   </div>
                 ) : content?.video?.source === "onedrive" ? (
                   <div className="space-y-2">
@@ -402,14 +552,14 @@ export function LessonContentEditor({ lesson, onCancel = () => {}, onSave = () =
                         variant="secondary"
                         className="bg-white/10 hover:bg-white/20"
                         onClick={() => fileInputRef.current?.click()}
-                        disabled={uploading}
+                        disabled={uploading || compressionState.isCompressing}
                       >
-                        {uploading ? (
+                        {uploading || compressionState.isCompressing ? (
                           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                         ) : (
                           <Upload className="h-4 w-4 mr-2" />
                         )}
-                        {uploading ? 'Uploading...' : 'Choose File'}
+                        {uploading ? 'Uploading...' : compressionState.isCompressing ? 'Compressing...' : 'Choose File'}
                       </Button>
                       <input
                         ref={fileInputRef}
@@ -418,6 +568,29 @@ export function LessonContentEditor({ lesson, onCancel = () => {}, onSave = () =
                         onChange={(e) => handleFileUpload(e, 'file')}
                       />
                     </div>
+                    
+                    {/* Simple File Upload Progress - Only show when processing */}
+                    {(uploading || compressionState.isCompressing) && (
+                      <div className="mt-4 p-3 bg-white/5 rounded-lg border border-white/10">
+                        <div className="flex items-center gap-3">
+                          <FileText className="h-5 w-5 text-blue-400" />
+                          <div className="flex-1">
+                            <p className="text-sm text-white">
+                              {compressionState.isCompressing ? 'Compressing file...' : 'Uploading...'}
+                            </p>
+                            <div className="w-full bg-gray-700 rounded-full h-2 mt-2">
+                              <div 
+                                className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                                style={{ width: `${compressionState.progress}%` }}
+                              />
+                            </div>
+                          </div>
+                          <span className="text-xs text-gray-400">
+                            {Math.round(compressionState.progress)}%
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -520,9 +693,11 @@ export function LessonContentEditor({ lesson, onCancel = () => {}, onSave = () =
               </CardContent>
             </Card>
           )}
-        </TabsContent>
+        </div>
+      )}
 
-        <TabsContent value="preview" className="space-y-4">
+      {activeTab === "preview" && (
+        <div className="space-y-4">
           <div className="bg-white/5 p-4 rounded-lg">
             <h3 className="font-medium mb-3 text-white">Content Preview</h3>
             {getContentPreview() || (
@@ -532,8 +707,8 @@ export function LessonContentEditor({ lesson, onCancel = () => {}, onSave = () =
               </div>
             )}
           </div>
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
 
       <div className="flex justify-end gap-2">
         <Button variant="secondary" className="bg-white/10 hover:bg-white/20 text-white" onClick={onCancel}>

@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useState } from "react"
 import { useAuthStore } from "@/store/auth-store"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -24,12 +25,16 @@ import {
   HelpCircle,
   GraduationCap,
   CreditCard,
-  Award
+  Award,
+  ChevronLeft,
+  ChevronRight,
+  Menu
 } from "lucide-react"
 
 export function AppSidebar() {
   const pathname = usePathname()
   const { user } = useAuthStore()
+  const [isCollapsed, setIsCollapsed] = useState(false)
 
   if (!user) return null
 
@@ -288,10 +293,14 @@ const studentItems = [
   const items = user.role === "teacher" ? teacherItems : getFilteredStudentItems()
 
   return (
-    <div className="flex h-full w-64 flex-col bg-white/5 backdrop-blur border-r border-white/10">
+    <motion.div 
+      className="flex h-full flex-col bg-white/5 backdrop-blur border-r border-white/10 relative"
+      animate={{ width: isCollapsed ? 80 : 256 }}
+      transition={{ duration: 0.3, ease: "easeInOut" }}
+    >
       {/* Header */}
       <motion.div 
-        className="flex h-16 shrink-0 items-center gap-2 border-b border-white/10 px-4"
+        className="flex h-16 shrink-0 items-center justify-between border-b border-white/10 px-4"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
@@ -312,19 +321,45 @@ const studentItems = [
           >
             <span className="text-white font-bold text-sm">L</span>
           </motion.div>
-          <motion.span 
-            className="font-semibold text-white"
-            whileHover={{ 
-              background: "linear-gradient(45deg, #3b82f6, #8b5cf6)",
-              backgroundClip: "text",
-              WebkitBackgroundClip: "text",
-              color: "transparent"
-            }}
+          <AnimatePresence>
+            {!isCollapsed && (
+              <motion.span 
+                className="font-semibold text-white"
+                initial={{ opacity: 1, width: "auto" }}
+                exit={{ opacity: 0, width: 0 }}
+                transition={{ duration: 0.2 }}
+                whileHover={{ 
+                  background: "linear-gradient(45deg, #3b82f6, #8b5cf6)",
+                  backgroundClip: "text",
+                  WebkitBackgroundClip: "text",
+                  color: "transparent"
+                }}
+              >
+                AuraiumLMS
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </motion.div>
+        
+        {/* Toggle Button */}
+        <motion.button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="p-1.5 rounded-lg hover:bg-white/10 transition-colors duration-200"
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+          transition={{ type: "spring", stiffness: 400, damping: 10 }}
+        >
+          <motion.div
+            animate={{ rotate: isCollapsed ? 180 : 0 }}
             transition={{ duration: 0.3 }}
           >
-            AuraiumLMS
-          </motion.span>
-        </motion.div>
+            {isCollapsed ? (
+              <ChevronRight className="h-4 w-4 text-white" />
+            ) : (
+              <ChevronLeft className="h-4 w-4 text-white" />
+            )}
+          </motion.div>
+        </motion.button>
       </motion.div>
 
       {/* User Info */}
@@ -335,22 +370,26 @@ const studentItems = [
         transition={{ duration: 0.5, delay: 0.1 }}
       >
         {/* Public Mode Indicator */}
-        {isPublicMode && (
-          <motion.div 
-            className="mb-3 p-2 bg-blue-500/20 border border-blue-500/30 rounded-lg"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3, delay: 0.2 }}
-          >
-            <div className="flex items-center gap-2 text-blue-400 text-xs">
-              <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-              <span className="font-medium">Public Learning Mode</span>
-            </div>
-            <p className="text-blue-300/70 text-xs mt-1">
-              Simplified environment
-            </p>
-          </motion.div>
-        )}
+        <AnimatePresence>
+          {isPublicMode && !isCollapsed && (
+            <motion.div 
+              className="mb-3 p-2 bg-blue-500/20 border border-blue-500/30 rounded-lg"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.3, delay: 0.2 }}
+            >
+              <div className="flex items-center gap-2 text-blue-400 text-xs">
+                <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                <span className="font-medium">Public Learning Mode</span>
+              </div>
+              <p className="text-blue-300/70 text-xs mt-1">
+                Simplified environment
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        
         <motion.div 
           className="flex items-center gap-3"
           whileHover={{ scale: 1.02 }}
@@ -375,36 +414,45 @@ const studentItems = [
               )}
             </motion.div>
           </motion.div>
-          <div className="flex-1 min-w-0">
-            <motion.p 
-              className="text-sm font-medium text-white truncate"
-              whileHover={{ 
-                background: "linear-gradient(45deg, #3b82f6, #8b5cf6)",
-                backgroundClip: "text",
-                WebkitBackgroundClip: "text",
-                color: "transparent"
-              }}
-              transition={{ duration: 0.3 }}
-            >
-              {user.first_name && user.last_name ? `${user.first_name} ${user.last_name}` : user.name || user.email}
-            </motion.p>
-            <motion.div className="flex items-center gap-2">
-              <motion.p 
-                className="text-xs text-slate-400 capitalize hover:text-purple-400 transition-colors duration-300"
+          <AnimatePresence>
+            {!isCollapsed && (
+              <motion.div 
+                className="flex-1 min-w-0"
+                initial={{ opacity: 1, width: "auto" }}
+                exit={{ opacity: 0, width: 0 }}
+                transition={{ duration: 0.2 }}
               >
-                {user.role}
-              </motion.p>
-              {user.role === 'student' && user.student_code && (
                 <motion.p 
-                  className="text-xs text-blue-400 font-mono bg-blue-500/20 px-2 py-1 rounded"
-                  whileHover={{ scale: 1.05 }}
-                  transition={{ duration: 0.2 }}
+                  className="text-sm font-medium text-white truncate"
+                  whileHover={{ 
+                    background: "linear-gradient(45deg, #3b82f6, #8b5cf6)",
+                    backgroundClip: "text",
+                    WebkitBackgroundClip: "text",
+                    color: "transparent"
+                  }}
+                  transition={{ duration: 0.3 }}
                 >
-                  {user.student_code}
+                  {user.first_name && user.last_name ? `${user.first_name} ${user.last_name}` : user.name || user.email}
                 </motion.p>
-              )}
-            </motion.div>
-          </div>
+                <motion.div className="flex items-center gap-2">
+                  <motion.p 
+                    className="text-xs text-slate-400 capitalize hover:text-purple-400 transition-colors duration-300"
+                  >
+                    {user.role}
+                  </motion.p>
+                  {user.role === 'student' && user.student_code && (
+                    <motion.p 
+                      className="text-xs text-blue-400 font-mono bg-blue-500/20 px-2 py-1 rounded"
+                      whileHover={{ scale: 1.05 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      {user.student_code}
+                    </motion.p>
+                  )}
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
       </motion.div>
 
@@ -424,16 +472,22 @@ const studentItems = [
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.3 + groupIndex * 0.1 }}
             >
-              <motion.h4 
-                className="text-xs font-semibold text-slate-400 uppercase tracking-wider px-2"
-                whileHover={{ 
-                  color: "#8b5cf6",
-                  x: 5
-                }}
-                transition={{ duration: 0.3 }}
-              >
-                {group.title}
-              </motion.h4>
+              <AnimatePresence>
+                {!isCollapsed && (
+                  <motion.h4 
+                    className="text-xs font-semibold text-slate-400 uppercase tracking-wider px-2"
+                    initial={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2 }}
+                    whileHover={{ 
+                      color: "#8b5cf6",
+                      x: 5
+                    }}
+                  >
+                    {group.title}
+                  </motion.h4>
+                )}
+              </AnimatePresence>
               {group.items.map((item, itemIndex) => {
                 const isActive = pathname === item.href
                 return (
@@ -453,11 +507,15 @@ const studentItems = [
                         }}
                         whileTap={{ scale: 0.98 }}
                         transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                        title={isCollapsed ? item.title : undefined}
                       >
                         <Button
                           variant="ghost"
                           className={cn(
-                            "w-full justify-start gap-3 h-auto p-3 text-left transition-all duration-300",
+                            "w-full h-auto text-left transition-all duration-300",
+                            isCollapsed 
+                              ? "justify-center p-3" 
+                              : "justify-start gap-3 p-3",
                             isActive
                               ? "bg-blue-600/20 text-blue-400 border border-blue-500/30 shadow-lg shadow-blue-500/20"
                               : "text-slate-300 hover:text-white hover:bg-white/10 hover:border hover:border-white/20"
@@ -472,35 +530,45 @@ const studentItems = [
                           >
                             <item.icon className="h-4 w-4 shrink-0" />
                           </motion.div>
-                          <div className="flex-1 min-w-0">
-                            <motion.div 
-                              className="font-medium"
-                              whileHover={{ 
-                                background: isActive ? "linear-gradient(45deg, #3b82f6, #8b5cf6)" : "linear-gradient(45deg, #ffffff, #e2e8f0)",
-                                backgroundClip: "text",
-                                WebkitBackgroundClip: "text",
-                                color: "transparent"
-                              }}
-                              transition={{ duration: 0.3 }}
-                            >
-                              {item.title}
-                            </motion.div>
-                            <motion.div 
-                              className="text-xs text-slate-400 truncate hover:text-purple-400 transition-colors duration-300"
-                            >
-                              {item.description}
-                            </motion.div>
-                          </div>
+                          <AnimatePresence>
+                            {!isCollapsed && (
+                              <motion.div 
+                                className="flex-1 min-w-0"
+                                initial={{ opacity: 1, width: "auto" }}
+                                exit={{ opacity: 0, width: 0 }}
+                                transition={{ duration: 0.2 }}
+                              >
+                                <motion.div 
+                                  className="font-medium"
+                                  whileHover={{ 
+                                    background: isActive ? "linear-gradient(45deg, #3b82f6, #8b5cf6)" : "linear-gradient(45deg, #ffffff, #e2e8f0)",
+                                    backgroundClip: "text",
+                                    WebkitBackgroundClip: "text",
+                                    color: "transparent"
+                                  }}
+                                  transition={{ duration: 0.3 }}
+                                >
+                                  {item.title}
+                                </motion.div>
+                                <motion.div 
+                                  className="text-xs text-slate-400 truncate hover:text-purple-400 transition-colors duration-300"
+                                >
+                                  {item.description}
+                                </motion.div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </Button>
                       </motion.div>
                     </Link>
                   </motion.div>
                 )
               })}
-              {groupIndex < items.length - 1 && (
+              {groupIndex < items.length - 1 && !isCollapsed && (
                 <motion.div
                   initial={{ scaleX: 0 }}
                   animate={{ scaleX: 1 }}
+                  exit={{ scaleX: 0 }}
                   transition={{ duration: 0.5, delay: 0.5 + groupIndex * 0.1 }}
                 >
                   <Separator className="my-2 bg-white/10" />
@@ -512,11 +580,13 @@ const studentItems = [
       </motion.div>
 
       {/* Quick Stats - Only show for teachers */}
-      {user.role === "teacher" && (
+      <AnimatePresence>
+        {user.role === "teacher" && !isCollapsed && (
         <motion.div 
           className="p-4 border-t border-white/10"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 20 }}
           transition={{ duration: 0.5, delay: 0.6 }}
         >
           <motion.div 
@@ -577,14 +647,17 @@ const studentItems = [
             </motion.div>
           </motion.div>
         </motion.div>
-      )}
+        )}
+      </AnimatePresence>
 
       {/* Quick Stats - Only show for students */}
-      {user.role === "student" && (
+      <AnimatePresence>
+        {user.role === "student" && !isCollapsed && (
         <motion.div 
           className="p-4 border-t border-white/10"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 20 }}
           transition={{ duration: 0.5, delay: 0.6 }}
         >
           <motion.div 
@@ -645,7 +718,8 @@ const studentItems = [
             </motion.div>
           </motion.div>
         </motion.div>
-      )}
-    </div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   )
 }

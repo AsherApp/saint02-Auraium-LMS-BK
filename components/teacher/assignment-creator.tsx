@@ -8,8 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent } from "@/components/ui/tabs"
-import { FluidTabs } from "@/components/ui/fluid-tabs"
+import { FluidTabs, useFluidTabs } from "@/components/ui/fluid-tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { AssignmentAPI, type Assignment, type AssignmentType } from "@/services/assignments/api"
@@ -61,7 +60,7 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
   const [loadingCourses, setLoadingCourses] = useState(true)
   
   const [loading, setLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState("basic")
+  const { activeTab, handleTabChange } = useFluidTabs("basic")
   
   // Basic assignment data
   const [title, setTitle] = useState("")
@@ -254,16 +253,15 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
             { id: 'settings', label: 'Settings', icon: <Settings className="h-4 w-4" /> }
           ]}
           activeTab={activeTab}
-          onTabChange={setActiveTab}
+          onTabChange={handleTabChange}
           variant="default"
           width="full"
         />
       </div>
       
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-
-        <form onSubmit={handleSubmit} className="w-full">
-          <TabsContent value="basic" className="space-y-6 w-full mt-6">
+      <form onSubmit={handleSubmit} className="w-full">
+        {activeTab === "basic" && (
+          <div className="space-y-6 w-full mt-6">
             <Card className="bg-white/5 border-white/10 w-full">
               <CardHeader className="pb-4">
                 <CardTitle className="text-white text-lg">Assignment Details</CardTitle>
@@ -407,9 +405,11 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          </div>
+        )}
 
-          <TabsContent value="content" className="space-y-6 w-full max-w-none">
+        {activeTab === "content" && (
+          <div className="space-y-6 w-full max-w-none">
             {/* Type-specific content builders */}
             {type === "quiz" && (
               <Card className="bg-white/5 border-white/10 w-full max-w-none">
@@ -641,9 +641,11 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
                 </CardContent>
               </Card>
             )}
-          </TabsContent>
+          </div>
+        )}
 
-          <TabsContent value="grading" className="space-y-6 w-full max-w-none mt-6">
+        {activeTab === "grading" && (
+          <div className="space-y-6 w-full max-w-none mt-6">
             <Card className="bg-white/5 border-white/10 w-full max-w-none">
               <CardHeader>
                 <CardTitle className="text-white">Grading & Timing</CardTitle>
@@ -759,9 +761,11 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          </div>
+        )}
 
-          <TabsContent value="rubric" className="space-y-6 w-full max-w-none">
+        {activeTab === "rubric" && (
+          <div className="space-y-6 w-full max-w-none">
             <Card className="bg-white/5 border-white/10 w-full max-w-none">
               <CardHeader>
                 <CardTitle className="text-white">Grading Rubric</CardTitle>
@@ -848,9 +852,11 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
+          </div>
+        )}
 
-          <TabsContent value="settings" className="space-y-6 w-full max-w-none">
+        {activeTab === "settings" && (
+          <div className="space-y-6 w-full max-w-none">
             <Card className="bg-white/5 border-white/10 w-full max-w-none">
               <CardHeader>
                 <CardTitle className="text-white">Assignment Settings</CardTitle>
@@ -956,9 +962,10 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          </div>
+        )}
 
-          {/* Form Actions */}
+        {/* Form Actions */}
           <div className="flex justify-end gap-3 pt-6 mt-6 border-t border-white/10">
             <Button
               type="button"
@@ -976,8 +983,8 @@ export function AssignmentCreator({ scope, scopeLabel, onCancel, onSave, onClose
               {loading ? "Creating..." : "Create Assignment"}
             </Button>
           </div>
-        </form>
-      </Tabs>
+        )}
+      </form>
     </div>
   )
 }

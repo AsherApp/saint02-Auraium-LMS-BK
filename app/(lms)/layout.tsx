@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation"
 import { AppSidebar } from "@/components/app-sidebar"
 import { Navbar } from "@/components/shared/navbar"
 import { Toaster } from "@/components/ui/toaster"
+import { NotificationSystem } from "@/components/shared/notification-system"
 
 export default function LmsLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname()
@@ -44,6 +45,9 @@ export default function LmsLayout({ children }: { children: ReactNode }) {
       
       {/* Toast Notifications */}
       <Toaster />
+      
+      {/* Notification System - Moved to root level for proper overlay */}
+      <NotificationSystem />
     </div>
   )
 }

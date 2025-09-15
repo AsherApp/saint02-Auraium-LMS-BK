@@ -35,7 +35,7 @@ const filesToUpdate = [
   'components/live/participants-list.tsx',
   'components/live/chat-widget.tsx',
   'components/live/poll-widget.tsx',
-  'components/student/study-area.tsx',
+  'components/student/clean-study-area.tsx',
   'components/shared/course-completion-certificate.tsx',
   'components/teacher/grading-interface.tsx',
   'components/teacher/assignment-grading.tsx',

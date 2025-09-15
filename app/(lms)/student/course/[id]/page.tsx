@@ -16,6 +16,7 @@ import { useCourseAssignments } from "@/services/assignments/hook"
 import { DocumentViewer } from "@/components/shared/document-viewer"
 import { PresentationViewer } from "@/components/shared/presentation-viewer"
 import { getViewerType, canPreviewFile, contentToFileInfo, getPreviewButtonText, type FileInfo } from "@/utils/file-viewer-utils"
+import { http } from "@/services/http"
 
 export default function StudentCourseDetailPage() {
   const params = useParams<{ id: string }>()
@@ -27,69 +28,94 @@ export default function StudentCourseDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState("curriculum")
   const [isPublicMode, setIsPublicMode] = useState(false)
+  const [modulesWithLessons, setModulesWithLessons] = useState<any[]>([])
   
 
   // Set up course data
   useEffect(() => {
-    if (params.id) {
-      // Mock course details - replace with real API call
-      const mockCourse = {
-        id: params.id,
-        title: "Advanced React Development",
-        description: "Learn advanced React concepts including hooks, context, and performance optimization.",
-        course_mode: 'full',
-        instructor: "Dr. Sarah Johnson",
-        created_at: "2025-01-01T00:00:00Z"
+    if (params.id && user?.email) {
+      const fetchCourseData = async () => {
+        setLoading(true)
+        setError(null)
+        
+        try {
+          // Fetch real course details
+          const courseResponse = await http<any>(`/api/courses/${params.id}`)
+          setCourse(courseResponse)
+          
+          // Check if course is in public mode
+          const isPublic = courseResponse.course_mode === 'public'
+          setIsPublicMode(isPublic)
+          
+          // Update user object with course_mode for sidebar detection
+          if (isPublic && user) {
+            const updatedUser = { ...user, course_mode: 'public' as const }
+            const { setUser } = useAuthStore.getState()
+            setUser(updatedUser)
+          }
+          
+          // Fetch real modules data
+          try {
+            const modulesResponse = await http<any>(`/api/modules/course/${params.id}`)
+            setModules(modulesResponse.items || [])
+          } catch (modulesError) {
+            console.warn('Failed to fetch modules:', modulesError)
+            setModules([]) // Set empty array if modules fetch fails
+          }
+          
+        } catch (err: any) {
+          setError(err.message || "Failed to load course")
+          console.error('Course fetch error:', err)
+        } finally {
+          setLoading(false)
+        }
       }
       
-      setIsPublicMode(false)
-      setCourse(mockCourse)
-      
-      // Mock modules data - replace with real API call
-      const mockModules = [
-        {
-          id: "module-js-basics",
-          title: "JavaScript Fundamentals",
-          description: "Core JavaScript concepts and ES6+ features",
-          lessons: [
-            { id: "lesson-1", title: "Variables and Functions", duration: "30 min" },
-            { id: "lesson-2", title: "Arrays and Objects", duration: "45 min" },
-            { id: "lesson-3", title: "ES6+ Features", duration: "60 min" }
-          ]
-        },
-        {
-          id: "module-react-core",
-          title: "React Core Concepts",
-          description: "Understanding React components, props, and state",
-          lessons: [
-            { id: "lesson-4", title: "Components and JSX", duration: "40 min" },
-            { id: "lesson-5", title: "Props and State", duration: "50 min" },
-            { id: "lesson-6", title: "Event Handling", duration: "35 min" }
-          ]
-        },
-        {
-          id: "module-react-advanced",
-          title: "Advanced React",
-          description: "Hooks, context, and performance optimization",
-          lessons: [
-            { id: "lesson-7", title: "React Hooks", duration: "70 min" },
-            { id: "lesson-8", title: "Context API", duration: "45 min" },
-            { id: "lesson-9", title: "Performance Optimization", duration: "60 min" }
-          ]
-        }
-      ]
-      
-      setModules(mockModules)
-      setLoading(false)
+      fetchCourseData()
     }
-  }, [params.id])
+  }, [params.id, user?.email])
+
+  // Fetch lessons for each module
+  useEffect(() => {
+    if (modules.length > 0 && user?.email) {
+      const fetchLessonsForModules = async () => {
+        try {
+          const modulesWithLessonsData = await Promise.all(
+            modules.map(async (module) => {
+              try {
+                const lessonsResponse = await http<any>(`/api/lessons/module/${module.id}`)
+                return {
+                  ...module,
+                  lessons: lessonsResponse.items || []
+                }
+              } catch (error) {
+                console.warn(`Failed to fetch lessons for module ${module.id}:`, error)
+                return {
+                  ...module,
+                  lessons: []
+                }
+              }
+            })
+          )
+          setModulesWithLessons(modulesWithLessonsData)
+        } catch (error) {
+          console.error('Failed to fetch lessons for modules:', error)
+          setModulesWithLessons(modules.map(module => ({ ...module, lessons: [] })))
+        }
+      }
+      
+      fetchLessonsForModules()
+    }
+  }, [modules, user?.email])
 
   const stats = useMemo(() => {
-    if (!modules) return { modules: 0, lessons: 0, completed: 0 }
-    const lessons = modules.reduce((acc: number, m: any) => acc + (m.lessons?.length || 0), 0)
-    const completed = Math.floor(lessons * 0.3) // Mock 30% completion
-    return { modules: modules.length, lessons, completed }
-  }, [modules])
+    if (!modulesWithLessons) return { modules: 0, lessons: 0, completed: 0 }
+    const lessons = modulesWithLessons.reduce((acc: number, m: any) => acc + (m.lessons?.length || 0), 0)
+    // TODO: Calculate real completion based on student progress
+    // For now, return 0 completed until we have progress tracking
+    const completed = 0
+    return { modules: modulesWithLessons.length, lessons, completed }
+  }, [modulesWithLessons])
 
   const getAssignmentIcon = (type: string) => {
     switch (type) {
@@ -106,9 +132,9 @@ export default function StudentCourseDetailPage() {
   }
 
   const getAssignmentStatus = (assignment: any) => {
-    // Mock status - replace with real submission data
-    const statuses = ['not_started', 'in_progress', 'submitted', 'graded']
-    return statuses[Math.floor(Math.random() * statuses.length)]
+    // TODO: Fetch real submission data for this assignment
+    // For now, return 'not_started' until we implement submission tracking
+    return 'not_started'
   }
 
   const getStatusBadge = (status: string) => {
@@ -159,9 +185,19 @@ export default function StudentCourseDetailPage() {
             <h1 className="text-3xl font-bold text-white">{course.title}</h1>
             <p className="text-slate-400">{course.description}</p>
           </div>
-          <div className="text-right">
-            <p className="text-sm text-slate-400">Instructor</p>
-            <p className="text-white font-medium">{course.instructor}</p>
+          <div className="flex items-center gap-4">
+            <div className="text-right">
+              <p className="text-sm text-slate-400">Instructor</p>
+              <p className="text-white font-medium">{course.instructor}</p>
+            </div>
+            {modulesWithLessons.length > 0 && modulesWithLessons[0].lessons.length > 0 && (
+              <Link href={`/student/course/${params.id}/study/${modulesWithLessons[0].id}/${modulesWithLessons[0].lessons[0].id}`}>
+                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                  <PlayCircle className="h-4 w-4 mr-2" />
+                  Start Course
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
       </AnimationWrapper>
@@ -210,19 +246,22 @@ export default function StudentCourseDetailPage() {
           </GlassCard>
         </AnimationWrapper>
 
-        <AnimationWrapper delay={0.4}>
-          <GlassCard className="p-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-orange-500/20 rounded-lg">
-                <ClipboardList className="h-6 w-6 text-orange-400" />
+        {/* Hide assignments for public courses */}
+        {!isPublicMode && (
+          <AnimationWrapper delay={0.4}>
+            <GlassCard className="p-6">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-orange-500/20 rounded-lg">
+                  <ClipboardList className="h-6 w-6 text-orange-400" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-white">{assignments?.length || 0}</p>
+                  <p className="text-sm text-slate-400">Assignments</p>
+                </div>
               </div>
-              <div>
-                <p className="text-2xl font-bold text-white">{assignments?.length || 0}</p>
-                <p className="text-sm text-slate-400">Assignments</p>
-              </div>
-            </div>
-          </GlassCard>
-        </AnimationWrapper>
+            </GlassCard>
+          </AnimationWrapper>
+        )}
       </div>
 
       {/* Progress Bar */}
@@ -249,12 +288,13 @@ export default function StudentCourseDetailPage() {
                 icon: <BookOpen className="h-4 w-4" />, 
                 badge: stats.modules
               },
-              { 
+              // Hide assignments tab for public courses
+              ...(isPublicMode ? [] : [{
                 id: 'assignments', 
                 label: 'Assignments', 
                 icon: <ClipboardList className="h-4 w-4" />, 
                 badge: assignments?.length || 0
-              }
+              }])
             ]}
             activeTab={activeTab}
             onTabChange={(tab) => setActiveTab(tab)}
@@ -269,7 +309,7 @@ export default function StudentCourseDetailPage() {
         {/* Curriculum Tab */}
         <TabsContent value="curriculum" className="space-y-6">
           <StaggeredAnimationWrapper>
-            {modules.map((module, moduleIndex) => (
+            {modulesWithLessons.map((module, moduleIndex) => (
               <AnimationWrapper key={module.id} delay={moduleIndex * 0.1}>
                 <GlassCard className="p-6">
                   <div className="space-y-4">
@@ -295,10 +335,12 @@ export default function StudentCourseDetailPage() {
                               <p className="text-sm text-slate-400">{lesson.duration}</p>
                             </div>
                           </div>
-                          <Button size="sm" variant="outline">
-                            <PlayCircle className="h-4 w-4 mr-2" />
-                            Start
-                          </Button>
+                          <Link href={`/student/course/${params.id}/study/${module.id}/${lesson.id}`}>
+                            <Button size="sm" variant="outline">
+                              <PlayCircle className="h-4 w-4 mr-2" />
+                              Start
+                            </Button>
+                          </Link>
                         </div>
                       ))}
                     </div>

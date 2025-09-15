@@ -2,7 +2,7 @@
 
 import { notFound, useParams, useRouter } from "next/navigation"
 import { useMemo, useState, useEffect } from "react"
-import { StudyArea } from "@/components/student/study-area"
+import { CleanStudyArea } from "@/components/student/clean-study-area"
 import { useAuthStore } from "@/store/auth-store"
 import { http } from "@/services/http"
 import { GlassCard } from "@/components/shared/glass-card"
@@ -72,13 +72,9 @@ export default function StudyAreaPage() {
 
   return (
     <div className="space-y-6">
-      <StudyArea
+      <CleanStudyArea
         courseId={course.id}
-        moduleId={moduleId}
-        lessonId={lessonId}
-        onNavigate={(m, l) => {
-          router.push(`/student/course/${course.id}/study/${m}/${l}`)
-        }}
+        title="Study Area"
       />
     </div>
   )

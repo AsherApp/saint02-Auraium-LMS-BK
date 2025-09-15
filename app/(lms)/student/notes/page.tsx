@@ -332,19 +332,33 @@ export default function StudentNotesPage() {
                   {note.course_id && (
                     <div className="flex items-center space-x-1">
                       <BookOpen className="h-3 w-3" />
-                      <span>{courses.find(c => c.id === note.course_id)?.title || "Unknown course"}</span>
+                      <span>{note.courses?.title || "Unknown course"}</span>
                     </div>
                   )}
                 </div>
                 
                 {note.tags && note.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1">
-                    {note.tags.map((tag, index) => (
-                      <Badge key={index} variant="secondary" className="bg-white/10 text-slate-200 border-white/10 text-xs">
-                        <Tag className="mr-1 h-3 w-3" />
-                        {tag}
-                      </Badge>
-                    ))}
+                    {note.tags.map((tag, index) => {
+                      // Extract meaningful information from tags
+                      let displayText = tag
+                      let badgeColor = "bg-white/10 text-slate-200"
+                      
+                      if (tag.startsWith('lesson-')) {
+                        displayText = note.lessons?.title || 'Lesson'
+                        badgeColor = "bg-blue-500/20 text-blue-200"
+                      } else if (tag.startsWith('course-')) {
+                        displayText = note.courses?.title || 'Course'
+                        badgeColor = "bg-green-500/20 text-green-200"
+                      }
+                      
+                      return (
+                        <Badge key={index} variant="secondary" className={`${badgeColor} border-white/10 text-xs`}>
+                          <Tag className="mr-1 h-3 w-3" />
+                          {displayText}
+                        </Badge>
+                      )
+                    })}
                   </div>
                 )}
                 

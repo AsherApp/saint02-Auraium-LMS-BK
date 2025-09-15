@@ -12,8 +12,8 @@ import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { FluidTabs, useFluidTabs } from "@/components/ui/fluid-tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAuthStore } from "@/store/auth-store"
-import { useAssignments } from "@/services/assignments/hook"
-import { type Assignment } from "@/services/assignments/api"
+import { useSimplifiedAssignments } from "@/hooks/use-simplified-assignments"
+import { type Assignment } from "@/services/assignments/simplified-assignments"
 import { 
   ClipboardList, 
   Calendar, 
@@ -26,17 +26,15 @@ import {
   Edit,
   Settings
 } from "lucide-react"
-import { StudentGrades } from "@/components/student/assignment-grades"
 
 type AssignmentWithSubmission = Assignment & {
   course_title?: string
-  submission?: any | null
-  submission_status?: 'not_started' | 'in_progress' | 'submitted' | 'graded' | 'overdue' | 'returned'
+  course_description?: string
 }
 
 export default function StudentAssignmentsPage() {
   const { user } = useAuthStore()
-  const { assignments: allAssignments, loading, error } = useAssignments()
+  const { assignments: allAssignments, loading, error, refreshAssignments } = useSimplifiedAssignments()
   const [courses, setCourses] = useState<any[]>([])
   const [assignments, setAssignments] = useState<AssignmentWithSubmission[]>([])
   const [progressData, setProgressData] = useState<any>(null)
@@ -45,43 +43,47 @@ export default function StudentAssignmentsPage() {
   const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "submitted" | "overdue">("all")
   const [activeTab, setActiveTab] = useState("assignments")
 
-  // Process assignments from real API
+  // Process assignments from simplified API
   useEffect(() => {
     const processAssignments = () => {
-      if (!user?.email || !allAssignments.length) return
+      if (!allAssignments.length) return
 
       try {
-        // Transform assignments to include submission status
-        const assignmentsWithSubmissions: AssignmentWithSubmission[] = allAssignments.map(assignment => ({
-          ...assignment,
-          course_title: `Course ${assignment.course_id}`, // You might want to fetch course titles separately
-          submission: null, // You might want to fetch submissions separately
-          submission_status: 'not_started' // You might want to determine this based on actual submission data
-        }))
-        
-        setAssignments(assignmentsWithSubmissions)
+        // The simplified API already provides processed assignments with submission data
+        setAssignments(allAssignments)
       } catch (error) {
         console.error('Error processing assignments:', error)
       }
     }
 
     processAssignments()
-  }, [user?.email, allAssignments])
+  }, [allAssignments])
 
   useEffect(() => {
     if (activeTab === "progress") {
       setProgressLoading(true)
-      // Mock progress data - replace with real API call
-      const mockProgressData = {
+      // Calculate real progress data from assignments
+      const realProgressData = {
         totalAssignments: assignments.length,
-        completedAssignments: assignments.filter(a => a.submission_status === 'graded').length,
-        averageGrade: 85,
-        recentActivity: [
-          { type: 'submission', assignment: 'React Quiz', grade: 92, date: '2024-01-15' },
-          { type: 'grade', assignment: 'Database Project', grade: 88, date: '2024-01-14' }
-        ]
+        completedAssignments: assignments.filter(a => a.is_submitted).length,
+        gradedAssignments: assignments.filter(a => a.is_graded).length,
+        averageGrade: assignments.filter(a => a.student_submission?.grade).length > 0 
+          ? Math.round(assignments.filter(a => a.student_submission?.grade)
+              .reduce((sum, a) => sum + (a.student_submission?.grade || 0), 0) / 
+              assignments.filter(a => a.student_submission?.grade).length)
+          : 0,
+        recentActivity: assignments
+          .filter(a => a.is_submitted)
+          .sort((a, b) => new Date(b.student_submission?.submitted_at || b.created_at).getTime() - new Date(a.student_submission?.submitted_at || a.created_at).getTime())
+          .slice(0, 5)
+          .map(a => ({
+            type: a.is_graded ? 'grade' : 'submission',
+            assignment: a.title,
+            grade: a.student_submission?.grade || null,
+            date: a.student_submission?.submitted_at || a.created_at
+          }))
       }
-      setProgressData(mockProgressData)
+      setProgressData(realProgressData)
       setProgressLoading(false)
     }
   }, [activeTab, assignments])
@@ -95,13 +97,13 @@ export default function StudentAssignmentsPage() {
     let matchesFilter = true
     switch (filterStatus) {
       case "pending":
-        matchesFilter = assignment.submission_status === 'not_started' || assignment.submission_status === 'in_progress'
+        matchesFilter = !assignment.is_submitted
         break
       case "submitted":
-        matchesFilter = assignment.submission_status === 'submitted'
+        matchesFilter = !!assignment.is_submitted && !assignment.is_graded
         break
       case "overdue":
-        matchesFilter = assignment.submission_status === 'overdue'
+        matchesFilter = !!assignment.is_overdue && !assignment.is_submitted
         break
       default:
         matchesFilter = true
@@ -110,20 +112,17 @@ export default function StudentAssignmentsPage() {
     return matchesSearch && matchesFilter
   })
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'graded':
-        return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">Graded</Badge>
-      case 'submitted':
-        return <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">Submitted</Badge>
-      case 'in_progress':
-        return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">In Progress</Badge>
-      case 'overdue':
-        return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Overdue</Badge>
-      case 'returned':
-        return <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30">Returned</Badge>
-      default:
-        return <Badge variant="outline" className="border-slate-500 text-slate-400">Not Started</Badge>
+  const getStatusBadge = (assignment: AssignmentWithSubmission) => {
+    if (assignment.is_graded) {
+      return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">Graded</Badge>
+    } else if (assignment.is_submitted) {
+      return <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">Submitted</Badge>
+    } else if (assignment.is_overdue) {
+      return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Overdue</Badge>
+    } else if (!assignment.is_available) {
+      return <Badge className="bg-gray-500/20 text-gray-400 border-gray-500/30">Not Available</Badge>
+    } else {
+      return <Badge variant="outline" className="border-slate-500 text-slate-400">Not Started</Badge>
     }
   }
 
@@ -192,7 +191,7 @@ export default function StudentAssignmentsPage() {
                 id: 'progress', 
                 label: 'Progress', 
                 icon: <BarChart3 className="h-4 w-4" />, 
-                badge: assignments.filter(a => a.submission_status === 'graded').length
+                badge: assignments.filter(a => a.is_graded).length
               }
             ]}
             activeTab={activeTab}
@@ -262,7 +261,7 @@ export default function StudentAssignmentsPage() {
                           <p className="text-xs text-slate-400">{assignment.course_title}</p>
                         </div>
                         <div className="flex items-center gap-2">
-                          {getStatusBadge(assignment.submission_status || 'not_started')}
+                          {getStatusBadge(assignment)}
                         </div>
                       </div>
 
@@ -293,9 +292,9 @@ export default function StudentAssignmentsPage() {
                       <div className="flex gap-2 pt-2">
                         <Link href={`/student/assignment/${assignment.id}`} className="flex-1">
                           <Button size="sm" className="w-full bg-blue-600/80 hover:bg-blue-600 text-white">
-                            {assignment.submission_status === 'graded' ? 'View Result' : 
-                             assignment.submission_status === 'submitted' ? 'View Submission' :
-                             assignment.submission_status === 'in_progress' ? 'Continue' : 'Start Assignment'}
+                            {assignment.is_graded ? 'View Result' : 
+                             assignment.is_submitted ? 'View Submission' :
+                             !assignment.is_available ? 'Not Available' : 'Start Assignment'}
                           </Button>
                         </Link>
                       </div>
@@ -314,7 +313,67 @@ export default function StudentAssignmentsPage() {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400"></div>
             </div>
           ) : progressData ? (
-            <StudentGrades progressData={progressData} />
+            <GlassCard className="p-8">
+              <div className="space-y-6">
+                <div className="text-center">
+                  <BarChart3 className="h-12 w-12 mx-auto mb-4 text-blue-400 opacity-50" />
+                  <h3 className="text-lg font-medium text-white mb-2">Performance Overview</h3>
+                </div>
+                
+                {/* Stats Grid */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                    <div className="text-2xl font-bold text-white">{progressData.totalAssignments}</div>
+                    <div className="text-sm text-slate-400">Total</div>
+                  </div>
+                  <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                    <div className="text-2xl font-bold text-green-400">{progressData.completedAssignments}</div>
+                    <div className="text-sm text-slate-400">Submitted</div>
+                  </div>
+                  <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                    <div className="text-2xl font-bold text-blue-400">{progressData.gradedAssignments}</div>
+                    <div className="text-sm text-slate-400">Graded</div>
+                  </div>
+                  <div className="text-center p-4 bg-slate-800/50 rounded-lg">
+                    <div className="text-2xl font-bold text-yellow-400">{progressData.averageGrade}%</div>
+                    <div className="text-sm text-slate-400">Average</div>
+                  </div>
+                </div>
+
+                {/* Recent Activity */}
+                {progressData.recentActivity.length > 0 && (
+                  <div>
+                    <h4 className="text-md font-medium text-white mb-3">Recent Activity</h4>
+                    <div className="space-y-2">
+                      {progressData.recentActivity.map((activity: any, index: number) => (
+                        <div key={index} className="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-lg ${
+                              activity.type === 'grade' ? 'bg-green-500/20' : 'bg-blue-500/20'
+                            }`}>
+                              {activity.type === 'grade' ? (
+                                <CheckCircle className="h-4 w-4 text-green-400" />
+                              ) : (
+                                <FileText className="h-4 w-4 text-blue-400" />
+                              )}
+                            </div>
+                            <div>
+                              <div className="text-sm font-medium text-white">{activity.assignment}</div>
+                              <div className="text-xs text-slate-400">
+                                {activity.type === 'grade' ? 'Graded' : 'Submitted'} • {new Date(activity.date).toLocaleDateString()}
+                              </div>
+                            </div>
+                          </div>
+                          {activity.grade && (
+                            <div className="text-sm font-bold text-green-400">{activity.grade}%</div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </GlassCard>
           ) : (
             <GlassCard className="p-8">
               <div className="text-center">

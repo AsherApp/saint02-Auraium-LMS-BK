@@ -200,7 +200,11 @@ export default function StudentAssignmentDetailPage() {
   }
 
   const statusInfo = getStatusInfo()
-  const progress = submission ? 75 : 0 // Mock progress based on submission status
+  // Calculate real progress based on submission status
+  const progress = submission 
+    ? (submission.status === 'submitted' ? 100 : 
+       submission.status === 'in_progress' ? 50 : 0)
+    : 0
 
   return (
     <div className="space-y-6">

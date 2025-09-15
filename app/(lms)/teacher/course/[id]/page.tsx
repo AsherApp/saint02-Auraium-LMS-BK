@@ -1039,7 +1039,7 @@ export default function TeacherCourseDetailPage() {
 
       {/* Enhanced Course Settings Dialog */}
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent className="bg-white/5 border-white/20 backdrop-blur-2xl text-white max-w-4xl w-full mx-4 shadow-2xl before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/10 before:to-transparent before:rounded-lg before:pointer-events-none">
+        <DialogContent size="auto" className="bg-white/5 border-white/20 backdrop-blur-2xl text-white max-w-4xl w-full mx-4 shadow-2xl before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/10 before:to-transparent before:rounded-lg before:pointer-events-none">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold text-white">Course General Settings</DialogTitle>
             <DialogDescription className="text-slate-300">Manage all aspects of your course including visibility, enrollment, and content settings.</DialogDescription>
@@ -1542,7 +1542,7 @@ export default function TeacherCourseDetailPage() {
 
       {/* Edit Lesson Content Dialog */}
       <Dialog open={editContentOpen} onOpenChange={setEditContentOpen}>
-        <DialogContent className="bg-white/10 border-white/20 backdrop-blur text-white max-w-2xl">
+        <DialogContent size="xl" className="bg-white/10 border-white/20 backdrop-blur text-white max-w-2xl">
           <DialogHeader>
             <DialogTitle>Edit Lesson Content</DialogTitle>
             <DialogDescription>Edit the content and settings for this lesson.</DialogDescription>

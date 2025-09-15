@@ -7,6 +7,7 @@ import { Bell, X, CheckCircle, AlertCircle, Info, MessageSquare, BookOpen, Users
 import { useToast } from "@/hooks/use-toast"
 import { motion, AnimatePresence } from "framer-motion"
 import { useAuthStore } from "@/store/auth-store"
+import { useNotificationStore } from "@/store/notification-store"
 import { http } from "@/services/http"
 
 interface Notification {
@@ -23,10 +24,17 @@ interface Notification {
 
 export function NotificationSystem() {
   const { user } = useAuthStore()
-  const [notifications, setNotifications] = useState<Notification[]>([])
-  const [showNotifications, setShowNotifications] = useState(false)
+  const { 
+    notifications, 
+    unreadCount, 
+    showNotificationCenter, 
+    setShowNotificationCenter,
+    markAsRead, 
+    markAllAsRead, 
+    removeNotification,
+    addNotification
+  } = useNotificationStore()
   const [loading, setLoading] = useState(false)
-  const [unreadCount, setUnreadCount] = useState(0)
   const { toast } = useToast()
 
   // Fetch real notifications from API
@@ -51,53 +59,57 @@ export function NotificationSystem() {
         metadata: notification.metadata
       }))
       
-      setNotifications(transformedNotifications)
-      setUnreadCount(transformedNotifications.filter(n => !n.read).length)
+      // Add notifications to store
+      transformedNotifications.forEach(notification => {
+        // Check if notification already exists to avoid duplicates
+        const exists = notifications.some(n => n.id === notification.id)
+        if (!exists) {
+          // Add to store using the store's addNotification method
+          addNotification({
+            type: notification.type as any,
+            title: notification.title,
+            message: notification.message,
+            actionUrl: notification.courseId ? `/student/course/${notification.courseId}` : undefined,
+            metadata: {
+              courseId: notification.courseId,
+              courseTitle: notification.courseTitle,
+              ...notification.metadata
+            }
+          })
+        }
+      })
     } catch (error) {
       console.error('Failed to fetch notifications:', error)
-      // Fallback to empty array on error
-      setNotifications([])
-      setUnreadCount(0)
     } finally {
       setLoading(false)
     }
   }
 
-  // Mark notification as read
-  const markAsRead = async (id: string) => {
+  // Mark notification as read (using store function)
+  const handleMarkAsRead = async (id: string) => {
     try {
       await http(`/api/notifications/${id}/read`, {
         method: 'POST'
       })
-      
-      setNotifications(prev => 
-        prev.map(n => n.id === id ? { ...n, read: true } : n)
-      )
-      setUnreadCount(prev => Math.max(0, prev - 1))
+      markAsRead(id)
     } catch (error) {
       console.error('Failed to mark notification as read:', error)
       // Update locally even if API fails
-      setNotifications(prev => 
-        prev.map(n => n.id === id ? { ...n, read: true } : n)
-      )
-      setUnreadCount(prev => Math.max(0, prev - 1))
+      markAsRead(id)
     }
   }
 
-  // Mark all as read
-  const markAllAsRead = async () => {
+  // Mark all as read (using store function)
+  const handleMarkAllAsRead = async () => {
     try {
       await http(`/api/notifications/me/read-all`, {
         method: 'POST'
       })
-      
-      setNotifications(prev => prev.map(n => ({ ...n, read: true })))
-      setUnreadCount(0)
+      markAllAsRead()
     } catch (error) {
       console.error('Failed to mark all notifications as read:', error)
       // Update locally even if API fails
-      setNotifications(prev => prev.map(n => ({ ...n, read: true })))
-      setUnreadCount(0)
+      markAllAsRead()
     }
   }
 
@@ -199,79 +211,49 @@ export function NotificationSystem() {
   }
 
   return (
-    <div className="relative z-[99999] isolate">
-      {/* Enhanced Notification Bell */}
-      <motion.div
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.95 }}
-        className="relative"
-      >
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowNotifications(!showNotifications)}
-          className="relative text-white hover:text-white hover:bg-white/10 transition-all duration-300 group"
+    <div className="fixed top-4 right-4 z-[9999999] isolate">
+      {/* Notification Badge - Positioned over navbar bell */}
+      {unreadCount > 0 && (
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: "spring", stiffness: 500, damping: 30 }}
+          className="absolute -top-1 -right-1 z-10"
         >
-          <motion.div
-            animate={unreadCount > 0 ? { 
-              rotate: [0, -10, 10, 0],
-              scale: [1, 1.1, 1]
-            } : {}}
-            transition={{ 
-              duration: 0.6, 
-              repeat: unreadCount > 0 ? Infinity : 0, 
-              repeatDelay: 3 
-            }}
+          <Badge 
+            className={`h-4 w-4 rounded-full p-0 text-xs flex items-center justify-center ${
+              getNotificationBadgeColor('default')
+            }`}
           >
-            <Bell className="h-5 w-5 group-hover:scale-110 transition-transform duration-300" />
-          </motion.div>
-          
-          {/* Enhanced Badge with pulse effect */}
-          {unreadCount > 0 && (
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: "spring", stiffness: 500, damping: 30 }}
+            <motion.span
+              animate={{ 
+                scale: [1, 1.2, 1],
+                opacity: [1, 0.8, 1]
+              }}
+              transition={{ 
+                duration: 2, 
+                repeat: Infinity, 
+                ease: "easeInOut" 
+              }}
             >
-              <Badge 
-                className={`absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 text-xs flex items-center justify-center ${
-                  getNotificationBadgeColor('default')
-                }`}
-              >
-                <motion.span
-                  animate={{ 
-                    scale: [1, 1.2, 1],
-                    opacity: [1, 0.8, 1]
-                  }}
-                  transition={{ 
-                    duration: 2, 
-                    repeat: Infinity, 
-                    ease: "easeInOut" 
-                  }}
-                >
-                  {unreadCount > 99 ? '99+' : unreadCount}
-                </motion.span>
-              </Badge>
-            </motion.div>
-          )}
-          
-          {/* Subtle glow effect on hover */}
-          <div className="absolute inset-0 rounded-md bg-blue-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-        </Button>
-      </motion.div>
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </motion.span>
+          </Badge>
+        </motion.div>
+      )}
 
       {/* Enhanced Notification Panel - Fixed overlay positioning */}
       <AnimatePresence>
-        {showNotifications && (
+        {showNotificationCenter && (
           <>
             {/* Backdrop overlay */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[999998]"
-              style={{ zIndex: 999998 }}
-              onClick={() => setShowNotifications(false)}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999998]"
+              style={{ zIndex: 9999998 }}
+              onClick={() => setShowNotificationCenter(false)}
             />
             
             {/* Notification Panel */}
@@ -281,7 +263,7 @@ export function NotificationSystem() {
               exit={{ opacity: 0, y: -20, scale: 0.95 }}
               transition={{ type: "spring", stiffness: 300, damping: 25 }}
               className="fixed right-4 top-20 w-80 bg-slate-800/95 backdrop-blur-md border border-white/20 rounded-xl shadow-2xl overflow-hidden"
-              style={{ zIndex: 999999 }}
+              style={{ zIndex: 9999999 }}
             >
               {/* Panel Header */}
               <div className="p-4 border-b border-white/10 bg-gradient-to-r from-slate-800 to-slate-700">
@@ -300,7 +282,7 @@ export function NotificationSystem() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={markAllAsRead}
+                        onClick={handleMarkAllAsRead}
                         className="text-slate-400 hover:text-white text-xs"
                       >
                         Mark all read
@@ -309,7 +291,7 @@ export function NotificationSystem() {
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => setShowNotifications(false)}
+                      onClick={() => setShowNotificationCenter(false)}
                       className="text-slate-400 hover:text-white"
                     >
                       <X className="h-4 w-4" />
@@ -342,7 +324,7 @@ export function NotificationSystem() {
                         className={`p-4 hover:bg-white/5 transition-colors duration-200 cursor-pointer ${
                           !notification.read ? 'bg-blue-500/10 border-l-2 border-blue-500' : ''
                         }`}
-                        onClick={() => markAsRead(notification.id)}
+                        onClick={() => handleMarkAsRead(notification.id)}
                       >
                         <div className="flex items-start gap-3">
                           <div className="flex-shrink-0 mt-1">
@@ -360,15 +342,15 @@ export function NotificationSystem() {
                             <p className="text-xs text-slate-300 line-clamp-2 mb-2">
                               {notification.message}
                             </p>
-                            {notification.courseTitle && (
+                            {(notification.metadata as any)?.courseTitle && (
                               <div className="flex items-center gap-1 text-xs text-slate-400 mb-1">
                                 <BookOpen className="h-3 w-3" />
-                                <span>{notification.courseTitle}</span>
+                                <span>{(notification.metadata as any).courseTitle}</span>
                               </div>
                             )}
                             <div className="flex items-center gap-2 text-xs text-slate-500">
                               <Clock className="h-3 w-3" />
-                              <span>{formatTimestamp(notification.timestamp)}</span>
+                              <span>{formatTimestamp(typeof notification.timestamp === 'string' ? notification.timestamp : notification.timestamp.toString())}</span>
                             </div>
                           </div>
                         </div>

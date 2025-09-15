@@ -25,12 +25,6 @@ interface CourseCompletion {
   course_id: string
   course_title: string
   completion_percentage: number
-  completed_lessons: number
-  total_lessons: number
-  completed_assignments: number
-  total_assignments: number
-  passed_quizzes: number
-  total_quizzes: number
   started_at: string
   completed_at?: string
   certificate_issued?: boolean
@@ -55,14 +49,20 @@ export default function StudentCertificatesPage() {
       setLoading(true)
       setError(null)
       
-      // Get student's course progress
-      const progressResponse = await http<any>(`/api/students/me/progress`)
-      const progressData = progressResponse.items || []
+      // Get student's completed courses directly from certificates
+      const certificatesResponse = await http<any>(`/api/certificates`)
+      const certificates = certificatesResponse.items || []
       
-      // Filter for completed courses (100% completion)
-      const completed = progressData.filter((course: any) => 
-        course.completion_percentage >= 100 && (course.course?.course_mode === 'public' || course.course?.course_mode === 'full')
-      )
+      // Transform certificate data to match the expected format
+      const completed = certificates.map((cert: any) => ({
+        course_id: cert.course_id,
+        course_title: cert.course_title,
+        completion_percentage: 100, // If certificate exists, course is 100% complete
+        started_at: cert.created_at,
+        completed_at: cert.completion_date,
+        certificate_issued: true,
+        certificate_url: cert.certificate_url
+      }))
       
       setCompletedCourses(completed)
     } catch (err: any) {
@@ -80,24 +80,15 @@ export default function StudentCertificatesPage() {
 
   const handleDownloadCertificate = async (course: CourseCompletion) => {
     try {
-      // Generate certificate PDF
-      const response = await http<any>(`/api/certificates/generate`, {
-        method: 'POST',
-        body: {
-          course_id: course.course_id,
-          student_email: user?.email,
-          student_name: getUserDisplayName(user),
-          completion_date: course.completed_at || new Date().toISOString()
-        }
-      })
-      
-      if (response.certificate_url) {
-        // Download the certificate
-        window.open(response.certificate_url, '_blank')
+      // Download the certificate directly
+      if (course.certificate_url) {
+        window.open(course.certificate_url, '_blank')
+      } else {
+        alert('Certificate not found. Please contact support.')
       }
     } catch (err: any) {
-      console.error('Error generating certificate:', err)
-      alert('Failed to generate certificate. Please try again.')
+      console.error('Error downloading certificate:', err)
+      alert('Failed to download certificate. Please try again.')
     }
   }
 
@@ -165,9 +156,9 @@ export default function StudentCertificatesPage() {
             </div>
             <div>
               <p className="text-2xl font-bold text-white">
-                {completedCourses.reduce((sum, course) => sum + course.completed_lessons, 0)}
+                {completedCourses.length}
               </p>
-              <p className="text-slate-400 text-sm">Lessons Completed</p>
+              <p className="text-slate-400 text-sm">Courses Completed</p>
             </div>
           </div>
         </GlassCard>
@@ -232,10 +223,6 @@ export default function StudentCertificatesPage() {
                   <span className="text-slate-400">Completion</span>
                   <span className="text-white font-medium">{course.completion_percentage}%</span>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-400">Lessons</span>
-                  <span className="text-white">{course.completed_lessons}/{course.total_lessons}</span>
-                </div>
                 {course.completed_at && (
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-400">Completed</span>
@@ -277,12 +264,12 @@ export default function StudentCertificatesPage() {
           studentName={getUserDisplayName(user)}
           completionDate={selectedCourse.completed_at || new Date().toISOString()}
           courseId={selectedCourse.course_id}
-          totalLessons={selectedCourse.total_lessons}
-          completedLessons={selectedCourse.completed_lessons}
-          totalAssignments={selectedCourse.total_assignments}
-          completedAssignments={selectedCourse.completed_assignments}
-          totalQuizzes={selectedCourse.total_quizzes}
-          passedQuizzes={selectedCourse.passed_quizzes}
+          totalLessons={0}
+          completedLessons={0}
+          totalAssignments={0}
+          completedAssignments={0}
+          totalQuizzes={0}
+          passedQuizzes={0}
           onClose={() => setShowCertificate(false)}
         />
       )}

@@ -11,6 +11,7 @@ import { FluidTabs } from "@/components/ui/fluid-tabs"
 import { useAuthStore } from "@/store/auth-store"
 import { useSettingsFn } from "@/services/settings/hook"
 import { useToast } from "@/hooks/use-toast"
+import { http } from "@/services/http"
 import { Settings, Bell, Eye, Palette, Globe, Save, Loader2, GraduationCap, User, Camera, Edit3, X } from "lucide-react"
 
 export default function StudentSettingsPage() {

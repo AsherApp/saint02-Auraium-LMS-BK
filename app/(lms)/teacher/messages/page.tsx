@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useAuthStore } from "@/store/auth-store"
 import { useMessagesFn } from "@/services/messages/hook"
+import * as messagesApi from "@/services/messages/api"
 import { useToast } from "@/hooks/use-toast"
 import { 
   MessageSquare, 
@@ -317,7 +318,7 @@ export default function TeacherMessages() {
                 New Message
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-white/10 border-white/20 backdrop-blur text-white max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogContent size="auto" className="bg-white/10 border-white/20 backdrop-blur text-white max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="text-xl">
                   {replyTo ? `Reply to ${replyTo.from_email}` : "Compose New Message"}
@@ -747,7 +748,39 @@ function ComposeMessageForm({
   const [showStudentList, setShowStudentList] = useState(false)
   const [loadingStudents, setLoadingStudents] = useState(false)
   const [filteredStudents, setFilteredStudents] = useState<any[]>([])
+  const [allStudents, setAllStudents] = useState<any[]>([])
   const studentDropdownRef = useRef<HTMLDivElement>(null)
+
+  // Fetch students for messaging
+  const fetchStudents = async () => {
+    try {
+      setLoadingStudents(true)
+      const response = await messagesApi.getStudentsForMessaging()
+      setAllStudents(response.items || [])
+      setFilteredStudents(response.items || [])
+    } catch (error) {
+      console.error('Failed to fetch students:', error)
+      setAllStudents([])
+      setFilteredStudents([])
+    } finally {
+      setLoadingStudents(false)
+    }
+  }
+
+  // Filter students based on search term
+  const filterStudents = (searchTerm: string) => {
+    if (!searchTerm.trim()) {
+      setFilteredStudents(allStudents)
+      return
+    }
+
+    const filtered = allStudents.filter(student => 
+      student.student_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.student_email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.course_title.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    setFilteredStudents(filtered)
+  }
 
   useEffect(() => {
     if (replyTo) {
@@ -759,6 +792,16 @@ function ComposeMessageForm({
       })
     }
   }, [replyTo])
+
+  useEffect(() => {
+    if (showStudentList && allStudents.length === 0) {
+      fetchStudents()
+    }
+  }, [showStudentList])
+
+  useEffect(() => {
+    filterStudents(searchTerm)
+  }, [searchTerm, allStudents])
 
   return (
     <div className="space-y-4">
