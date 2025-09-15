@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button"
 import { CourseProgressBar, EnhancedProgress } from "@/components/ui/enhanced-progress"
 import { InlineNotes } from "@/components/student/inline-notes"
 import { RestrictedVideoPlayer } from "@/components/shared/restricted-video-player"
+import { DocumentViewer } from "@/components/shared/document-viewer"
+import { PresentationViewer } from "@/components/shared/presentation-viewer"
 import { useSequentialNavigation } from "@/hooks/use-sequential-navigation"
 import { useContentCompletion } from "@/hooks/use-content-completion"
 import { useAuthStore } from "@/store/auth-store"
@@ -14,6 +16,7 @@ import { useToast } from "@/hooks/use-toast"
 import { useCongratulations } from "@/hooks/use-congratulations"
 import { CongratulationBalloon } from "@/components/shared/congratulation-balloon"
 import { QuizWithTimer } from "@/components/student/quiz-with-timer"
+import { getViewerType, canPreviewFile, contentToFileInfo, getPreviewButtonText, type FileInfo } from "@/utils/file-viewer-utils"
 import {
   BookOpen,
   Video,
@@ -25,7 +28,9 @@ import {
   ArrowRight,
   Clock,
   Target,
-  Award
+  Award,
+  Download,
+  ExternalLink
 } from "lucide-react"
 
 interface CleanStudyAreaProps {
@@ -66,6 +71,12 @@ export function CleanStudyArea({ courseId, title = "Study Area" }: CleanStudyAre
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showNavigation, setShowNavigation] = useState(false)
+  
+  // Viewer states
+  const [documentViewerOpen, setDocumentViewerOpen] = useState(false)
+  const [presentationViewerOpen, setPresentationViewerOpen] = useState(false)
+  const [currentDocument, setCurrentDocument] = useState<any>(null)
+  const [currentPresentation, setCurrentPresentation] = useState<any>(null)
 
   // Use our new hooks
   const {
@@ -347,37 +358,50 @@ export function CleanStudyArea({ courseId, title = "Study Area" }: CleanStudyAre
 
     const { content } = currentLesson
 
-    // Video content
+    // Enhanced Video content
     if (content?.video?.url || content?.video_url) {
       const videoUrl = content.video?.url || content.video_url
       return (
-        <div className="space-y-4">
-          <RestrictedVideoPlayer
-            src={videoUrl}
-            poster={content.video?.thumbnail}
-            title={currentLesson.title}
-            onTimeUpdate={(currentTime, duration) => {
-              updateVideoProgress(currentTime, duration)
-            }}
-            onComplete={() => {
-              markVideoCompleted()
-            }}
-            onWatchTimeUpdate={(watchTime) => {
-              updateVideoProgress(watchTime, content.video?.duration || 0)
-            }}
-            className="aspect-video"
-          />
+        <div className="space-y-6">
+          {/* Enhanced Video Player Container */}
+          <div className="bg-white/5 backdrop-blur-sm p-6 rounded-xl border border-white/10">
+            <RestrictedVideoPlayer
+              src={videoUrl}
+              poster={content.video?.thumbnail}
+              title={currentLesson.title}
+              onTimeUpdate={(currentTime, duration) => {
+                updateVideoProgress(currentTime, duration)
+              }}
+              onComplete={() => {
+                markVideoCompleted()
+              }}
+              onWatchTimeUpdate={(watchTime) => {
+                updateVideoProgress(watchTime, content.video?.duration || 0)
+              }}
+              className="aspect-video rounded-lg overflow-hidden"
+            />
+          </div>
+          
           {content.video?.description && (
-            <div className="bg-white/5 p-4 rounded-lg">
-              <p className="text-slate-300">{content.video.description}</p>
+            <div className="bg-white/5 backdrop-blur-sm p-6 rounded-xl border border-white/10">
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-blue-500/20 rounded-lg">
+                  <Video className="h-5 w-5 text-blue-400" />
+                </div>
+                <div>
+                  <h4 className="text-white font-medium mb-2">Video Description</h4>
+                  <p className="text-slate-300 leading-relaxed">{content.video.description}</p>
+                </div>
+              </div>
             </div>
           )}
-          {/* Inline Notes for Video */}
+          
+          {/* Enhanced Inline Notes for Video */}
           <InlineNotes
             courseId={courseId}
             lessonId={currentLesson.id}
             lessonTitle={currentLesson.title}
-            className="mt-4"
+            className="mt-6"
           />
         </div>
       )
@@ -404,48 +428,64 @@ export function CleanStudyArea({ courseId, title = "Study Area" }: CleanStudyAre
       }
 
       return (
-        <div className="space-y-4">
-          <QuizWithTimer
-            quiz={quizData}
-            onComplete={(score, total, timeTaken) => {
-              // The QuizWithTimer component handles the quiz logic internally
-              // We just need to update our local state
-              const result = submitQuiz(score, total, timeTaken)
-              
-              if (result.passed) {
+        <div className="space-y-6">
+          {/* Enhanced Quiz Container */}
+          <div className="bg-white/5 backdrop-blur-sm p-6 rounded-xl border border-white/10">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-purple-500/20 rounded-lg">
+                <ClipboardList className="h-5 w-5 text-purple-400" />
+              </div>
+              <div>
+                <h4 className="text-white font-medium">Quiz: {currentLesson.title}</h4>
+                <p className="text-slate-400 text-sm">
+                  {questions.length} questions • {content.quiz?.time_limit_minutes ? `${content.quiz.time_limit_minutes} min time limit` : 'No time limit'}
+                </p>
+              </div>
+            </div>
+            
+            <QuizWithTimer
+              quiz={quizData}
+              onComplete={(score, total, timeTaken) => {
+                // The QuizWithTimer component handles the quiz logic internally
+                // We just need to update our local state
+                const result = submitQuiz(score, total, timeTaken)
+                
+                if (result.passed) {
+                  toast({
+                    title: "Quiz Passed! ✅",
+                    description: `You scored ${score}% on the quiz.`,
+                  })
+                } else if (result.canRetry) {
+                  toast({
+                    title: "Quiz Failed",
+                    description: `You scored ${score}%. You have ${result.attemptsRemaining} attempt(s) remaining.`,
+                    variant: "destructive"
+                  })
+                } else {
+                  toast({
+                    title: "Quiz Failed",
+                    description: `You've used all ${maxQuizAttempts} attempts. Please review the material and try again later.`,
+                    variant: "destructive"
+                  })
+                }
+              }}
+              onTimeExpired={() => {
+                // Handle time expiration - submit with current answers
                 toast({
-                  title: "Quiz Passed! ✅",
-                  description: `You scored ${score}% on the quiz.`,
-                })
-              } else if (result.canRetry) {
-                toast({
-                  title: "Quiz Failed",
-                  description: `You scored ${score}%. You have ${result.attemptsRemaining} attempt(s) remaining.`,
+                  title: "Time's Up! ⏰",
+                  description: "Your quiz has been automatically submitted.",
                   variant: "destructive"
                 })
-              } else {
-                toast({
-                  title: "Quiz Failed",
-                  description: `You've used all ${maxQuizAttempts} attempts. Please review the material and try again later.`,
-                  variant: "destructive"
-                })
-              }
-            }}
-            onTimeExpired={() => {
-              // Handle time expiration - submit with current answers
-              toast({
-                title: "Time's Up! ⏰",
-                description: "Your quiz has been automatically submitted.",
-                variant: "destructive"
-              })
-            }}
-          />
-          {/* Inline Notes for Quiz */}
+              }}
+            />
+          </div>
+          
+          {/* Enhanced Inline Notes for Quiz */}
           <InlineNotes
             courseId={courseId}
             lessonId={currentLesson.id}
             lessonTitle={currentLesson.title}
-            className="mt-4"
+            className="mt-6"
           />
         </div>
       )
@@ -482,12 +522,32 @@ export function CleanStudyArea({ courseId, title = "Study Area" }: CleanStudyAre
       )
     }
 
-    // File content
+    // File content with enhanced viewers
     if (content?.file_url || content?.file?.url || content?.files) {
+      const fileUrl = content.file?.url || content.file_url
+      const fileName = content.file?.name || currentLesson.title
+      const fileType = content.file?.type || 'application/pdf'
+      const fileSize = content.file?.size || 0
+      
+      // Convert to FileInfo for viewer utilities
+      const fileInfo: FileInfo = {
+        id: currentLesson.id,
+        name: fileName,
+        type: fileType,
+        size: fileSize,
+        url: fileUrl,
+        uploadedAt: content.file?.uploadedAt
+      }
+      
+      const viewerType = getViewerType(fileInfo)
+      const canPreview = canPreviewFile(fileInfo)
+      const previewButtonText = getPreviewButtonText(fileInfo)
+      
       return (
-        <div className="space-y-4">
+        <div className="space-y-6">
+          {/* Enhanced File Content Card */}
           <div 
-            className="bg-white/5 p-4 rounded-lg"
+            className="bg-white/5 backdrop-blur-sm p-8 rounded-xl border border-white/10 hover:bg-white/10 transition-all duration-300 cursor-pointer group"
             onMouseEnter={() => {
               const startTime = Date.now()
               const interval = setInterval(() => {
@@ -500,31 +560,91 @@ export function CleanStudyArea({ courseId, title = "Study Area" }: CleanStudyAre
               }, 1000)
             }}
           >
-            <h3 className="text-white font-medium mb-2">Document: {currentLesson.title}</h3>
-            <div className="flex items-center gap-2 mb-4">
-              <FileText className="h-5 w-5 text-blue-400" />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  const fileUrl = content.file?.url || content.file_url
-                  window.open(fileUrl, '_blank')
-                }}
-                className="text-blue-400 hover:text-blue-300 border-blue-400 hover:border-blue-300"
-              >
-                View Document
-              </Button>
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-blue-500/20 rounded-lg group-hover:bg-blue-500/30 transition-colors">
+                <FileText className="h-6 w-6 text-blue-400" />
+              </div>
+              
+              <div className="flex-1">
+                <h3 className="text-white font-semibold text-lg mb-2">{currentLesson.title}</h3>
+                <div className="flex items-center gap-4 text-sm text-slate-400 mb-4">
+                  <span className="flex items-center gap-1">
+                    <FileText className="h-4 w-4" />
+                    {fileName}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-4 w-4" />
+                    {currentLesson.duration || 0} min read
+                  </span>
+                  {fileSize > 0 && (
+                    <span className="text-slate-500">
+                      {(fileSize / 1024 / 1024).toFixed(1)} MB
+                    </span>
+                  )}
+                </div>
+                
+                {content.description && (
+                  <p className="text-slate-300 text-sm mb-4 leading-relaxed">{content.description}</p>
+                )}
+                
+                <div className="flex items-center gap-3">
+                  {canPreview ? (
+                    <Button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (viewerType === 'document') {
+                          setCurrentDocument(fileInfo)
+                          setDocumentViewerOpen(true)
+                        } else if (viewerType === 'presentation') {
+                          setCurrentPresentation(fileInfo)
+                          setPresentationViewerOpen(true)
+                        }
+                      }}
+                      className="bg-blue-600/80 hover:bg-blue-600 text-white"
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      {previewButtonText}
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        window.open(fileUrl, '_blank')
+                      }}
+                      variant="outline"
+                      className="text-blue-400 hover:text-blue-300 border-blue-400 hover:border-blue-300"
+                    >
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Open in New Tab
+                    </Button>
+                  )}
+                  
+                  <Button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      const link = document.createElement('a')
+                      link.href = fileUrl
+                      link.download = fileName
+                      link.click()
+                    }}
+                    variant="outline"
+                    size="sm"
+                    className="text-slate-400 hover:text-slate-300 border-slate-400 hover:border-slate-300"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download
+                  </Button>
+                </div>
+              </div>
             </div>
-            {content.description && (
-              <p className="text-slate-300 text-sm">{content.description}</p>
-            )}
           </div>
+          
           {/* Inline Notes for File Content */}
           <InlineNotes
             courseId={courseId}
             lessonId={currentLesson.id}
             lessonTitle={currentLesson.title}
-            className="mt-4"
+            className="mt-6"
           />
         </div>
       )
@@ -578,8 +698,8 @@ export function CleanStudyArea({ courseId, title = "Study Area" }: CleanStudyAre
       <div className="flex h-screen">
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col">
-          {/* Clean Header */}
-          <GlassCard className="m-4 mb-0 p-6 border-b border-white/10">
+          {/* Enhanced Header with Perfect Spacing */}
+          <GlassCard className="m-6 mb-0 p-8 border-b border-white/10 backdrop-blur-sm">
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-2xl font-bold text-white">{title}</h1>
@@ -613,14 +733,14 @@ export function CleanStudyArea({ courseId, title = "Study Area" }: CleanStudyAre
             </div>
           </GlassCard>
 
-          {/* Content Area */}
-          <div className="flex-1 overflow-hidden mx-4 mb-4">
-            <GlassCard className="h-full p-0">
+          {/* Enhanced Content Area with Perfect Spacing */}
+          <div className="flex-1 overflow-hidden mx-6 mb-6">
+            <GlassCard className="h-full p-0 backdrop-blur-sm border border-white/10">
               <div className="h-full flex flex-col">
                 {currentLesson ? (
                   <>
-                    {/* Lesson Header */}
-                    <div className="p-6 border-b border-white/10">
+                    {/* Enhanced Lesson Header */}
+                    <div className="p-8 border-b border-white/10 bg-white/5 backdrop-blur-sm">
                       <div className="flex items-center justify-between">
                         <div>
                           <h2 className="text-xl font-bold text-white">{currentLesson.title}</h2>
@@ -682,13 +802,15 @@ export function CleanStudyArea({ courseId, title = "Study Area" }: CleanStudyAre
                       )}
                     </div>
 
-                    {/* Lesson Content */}
-                    <div className="flex-1 overflow-y-auto p-6">
-                      {renderLessonContent()}
+                    {/* Enhanced Lesson Content Area */}
+                    <div className="flex-1 overflow-y-auto p-8 bg-gradient-to-b from-white/5 to-transparent">
+                      <div className="max-w-4xl mx-auto">
+                        {renderLessonContent()}
+                      </div>
                     </div>
 
-                    {/* Action Bar */}
-                    <div className="p-6 border-t border-white/10">
+                    {/* Enhanced Action Bar */}
+                    <div className="p-8 border-t border-white/10 bg-white/5 backdrop-blur-sm">
                       {isAllLessonsCompleted ? (
                         // Show "Mark Course Complete" button when all lessons are done
                         <div className="text-center">
@@ -769,10 +891,10 @@ export function CleanStudyArea({ courseId, title = "Study Area" }: CleanStudyAre
           </div>
         </div>
 
-        {/* Clean Navigation Sidebar */}
+        {/* Enhanced Navigation Sidebar */}
         {showNavigation && (
           <div className="w-80">
-            <GlassCard className="h-full m-4 ml-0 p-0">
+            <GlassCard className="h-full m-6 ml-0 p-0 backdrop-blur-sm border border-white/10">
               <div className="p-4 border-b border-white/10">
                 <div className="flex items-center justify-between">
                   <h3 className="text-white font-medium">Course Navigation</h3>
@@ -858,6 +980,29 @@ export function CleanStudyArea({ courseId, title = "Study Area" }: CleanStudyAre
           </div>
         )}
       </div>
+
+      {/* Enhanced Viewers */}
+      <DocumentViewer
+        document={currentDocument}
+        isOpen={documentViewerOpen}
+        onClose={() => {
+          setDocumentViewerOpen(false)
+          setCurrentDocument(null)
+        }}
+        title="Document Viewer"
+        subtitle={currentDocument?.name}
+      />
+      
+      <PresentationViewer
+        presentation={currentPresentation}
+        isOpen={presentationViewerOpen}
+        onClose={() => {
+          setPresentationViewerOpen(false)
+          setCurrentPresentation(null)
+        }}
+        title="Presentation Viewer"
+        subtitle={currentPresentation?.name}
+      />
 
       {/* Congratulatory Balloon */}
       <CongratulationBalloon
