@@ -142,7 +142,7 @@ function getAuthHeaders() {
 // =====================================================
 
 export async function listAssignments(): Promise<Assignment[]> {
-  const response = await http<Assignment[]>('/api/assignments', {
+  const response = await http<Assignment[]>('/api/assignments/simplified/teacher', {
     headers: getAuthHeaders()
   })
   return response
@@ -156,7 +156,7 @@ export async function getAssignment(assignmentId: string): Promise<Assignment> {
 }
 
 export async function createAssignment(data: Partial<Assignment>): Promise<Assignment> {
-  const response = await http<Assignment>('/api/assignments', {
+  const response = await http<Assignment>('/api/assignments/simplified', {
     method: 'POST',
     headers: getAuthHeaders(),
     body: data
@@ -165,7 +165,7 @@ export async function createAssignment(data: Partial<Assignment>): Promise<Assig
 }
 
 export async function updateAssignment(assignmentId: string, data: Partial<Assignment>): Promise<Assignment> {
-  const response = await http<Assignment>(`/api/assignments/${assignmentId}`, {
+  const response = await http<Assignment>(`/api/assignments/simplified/${assignmentId}`, {
     method: 'PUT',
     headers: getAuthHeaders(),
     body: data
@@ -174,7 +174,7 @@ export async function updateAssignment(assignmentId: string, data: Partial<Assig
 }
 
 export async function deleteAssignment(assignmentId: string): Promise<void> {
-  await http(`/api/assignments/${assignmentId}`, {
+  await http(`/api/assignments/simplified/${assignmentId}`, {
     method: 'DELETE',
     headers: getAuthHeaders()
   })
@@ -201,7 +201,7 @@ export async function duplicateAssignment(assignmentId: string, newTitle: string
 // =====================================================
 
 export async function listAssignmentSubmissions(assignmentId: string): Promise<Submission[]> {
-  const response = await http<Submission[]>(`/api/assignments/${assignmentId}/submissions`, {
+  const response = await http<Submission[]>(`/api/assignments/simplified/${assignmentId}/submissions`, {
     headers: getAuthHeaders()
   })
   return response
