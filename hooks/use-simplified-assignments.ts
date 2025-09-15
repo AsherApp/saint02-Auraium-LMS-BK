@@ -17,10 +17,13 @@ export function useSimplifiedAssignments() {
       setError(null)
       
       // Get student's enrolled courses
+      console.log('Fetching enrollments for student:', user.email)
       const enrollmentsResponse = await http<any>(`/api/students/me/enrollments`)
       const enrollments = enrollmentsResponse.items || []
+      console.log('Enrollments found:', enrollments.length, enrollments)
       
       if (enrollments.length === 0) {
+        console.log('No enrollments found for student')
         setAssignments([])
         return
       }
@@ -30,7 +33,9 @@ export function useSimplifiedAssignments() {
       
       for (const enrollment of enrollments) {
         try {
+          console.log(`Fetching assignments for course: ${enrollment.course_id}`)
           const courseAssignments = await SimplifiedAssignmentsAPI.getCourseAssignments(enrollment.course_id)
+          console.log(`Assignments found for course ${enrollment.course_id}:`, courseAssignments.length)
           // Add course information to each assignment
           const assignmentsWithCourse = courseAssignments.map(assignment => ({
             ...assignment,
