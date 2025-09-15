@@ -89,7 +89,9 @@ export interface AssignmentDetails {
 export const SimplifiedAssignmentsAPI = {
   // Get assignments for a course
   getCourseAssignments: async (courseId: string): Promise<Assignment[]> => {
+    console.log('DEBUG: Fetching simplified assignments for course:', courseId)
     const response = await http<Assignment[]>(`/api/assignments/simplified/course/${courseId}`)
+    console.log('DEBUG: Simplified assignments response:', response)
     return response.items || []
   },
 
