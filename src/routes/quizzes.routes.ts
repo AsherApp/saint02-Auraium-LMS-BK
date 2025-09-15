@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { supabaseAdmin } from '../lib/supabase.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { requireAuth } from '../middlewares/auth.js'
+import { NotificationService } from '../services/notification.service.js'
 
 export const router = Router()
 
@@ -57,6 +58,69 @@ router.get('/course/:courseId', requireAuth, asyncHandler(async (req, res) => {
   res.json({ items: quizzes || [] })
 }))
 
+// Get module exam for a specific module
+router.get('/module/:moduleId/exam', requireAuth, asyncHandler(async (req, res) => {
+  const userEmail = (req as any).user?.email
+  const userRole = (req as any).user?.role
+  const { moduleId } = req.params
+  
+  if (!userEmail) {
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
+
+  // Get module to verify access
+  const { data: module, error: moduleError } = await supabaseAdmin
+    .from('modules')
+    .select(`
+      *,
+      courses!inner(teacher_email)
+    `)
+    .eq('id', moduleId)
+    .single()
+
+  if (moduleError || !module) {
+    return res.status(404).json({ error: 'Module not found' })
+  }
+
+  // Check access permissions
+  if (userRole === 'teacher') {
+    // Teacher can only access their own modules
+    if (module.courses.teacher_email !== userEmail) {
+      return res.status(403).json({ error: 'Access denied' })
+    }
+  } else if (userRole === 'student') {
+    // Student must be enrolled in the course
+    const { data: enrollment, error: enrollmentError } = await supabaseAdmin
+      .from('enrollments')
+      .select('id')
+      .eq('course_id', module.course_id)
+      .eq('student_email', userEmail)
+      .single()
+
+    if (enrollmentError || !enrollment) {
+      return res.status(403).json({ error: 'Access denied' })
+    }
+  }
+
+  // Get module exam
+  const { data: exam, error: examError } = await supabaseAdmin
+    .from('quizzes')
+    .select('*')
+    .eq('module_id', moduleId)
+    .eq('is_module_exam', true)
+    .eq('is_published', true)
+    .single()
+
+  if (examError) {
+    if (examError.code === 'PGRST116') {
+      return res.json({ exam: null })
+    }
+    return res.status(500).json({ error: examError.message })
+  }
+
+  res.json({ exam })
+}))
+
 // Create a new quiz (teacher only)
 router.post('/', requireAuth, asyncHandler(async (req, res) => {
   const userEmail = (req as any).user?.email
@@ -68,17 +132,24 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
 
   const {
     course_id,
+    module_id,
     lesson_id,
     title,
     description,
     questions,
     time_limit_minutes,
     passing_score,
-    max_attempts
+    max_attempts,
+    is_module_exam = false
   } = req.body
 
   if (!course_id || !title || !questions) {
     return res.status(400).json({ error: 'course_id, title, and questions are required' })
+  }
+
+  // For module exams, module_id is required
+  if (is_module_exam && !module_id) {
+    return res.status(400).json({ error: 'module_id is required for module exams' })
   }
 
   // Check if teacher owns the course
@@ -98,6 +169,7 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
     .from('quizzes')
     .insert({
       course_id,
+      module_id,
       lesson_id,
       title,
       description,
@@ -105,6 +177,7 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
       time_limit_minutes,
       passing_score: passing_score || 70,
       max_attempts: max_attempts || 1,
+      is_module_exam,
       created_by: userEmail
     })
     .select()
@@ -327,14 +400,21 @@ router.post('/:quizId/submit', requireAuth, asyncHandler(async (req, res) => {
       .upsert({
         student_email: userEmail,
         course_id: quiz.course_id,
+        module_id: quiz.module_id,
+        lesson_id: quiz.lesson_id,
         progress_type: 'quiz_passed',
         status: 'completed',
         score,
         time_spent_seconds: time_taken_seconds,
-        metadata: { quiz_id: quizId, attempt_number: attempt.attempt_number }
+        metadata: { quiz_id: quizId, attempt_number: attempt.attempt_number, is_module_exam: quiz.is_module_exam }
       }, {
         onConflict: 'student_email,course_id,lesson_id,progress_type'
       })
+
+    // If this is a module exam, check for module completion
+    if (quiz.is_module_exam && quiz.module_id) {
+      await checkModuleCompletion(userEmail, quiz.course_id, quiz.module_id)
+    }
   }
 
   // Log activity
@@ -409,5 +489,257 @@ router.get('/:quizId/results', requireAuth, asyncHandler(async (req, res) => {
 
   res.json(result)
 }))
+
+// Helper function to check module completion
+async function checkModuleCompletion(studentEmail: string, courseId: string, moduleId: string) {
+  try {
+    // Get all lessons in the module
+    const { data: lessons, error: lessonsError } = await supabaseAdmin
+      .from('lessons')
+      .select('id')
+      .eq('module_id', moduleId)
+
+    if (lessonsError || !lessons || lessons.length === 0) return
+
+    // Get completed lessons for this module
+    const { data: completedLessons, error: completedError } = await supabaseAdmin
+      .from('student_progress')
+      .select('lesson_id')
+      .eq('student_email', studentEmail)
+      .eq('course_id', courseId)
+      .eq('module_id', moduleId)
+      .eq('progress_type', 'lesson_completed')
+      .eq('status', 'completed')
+
+    if (completedError) return
+
+    // Check if all lessons are completed
+    const completedLessonIds = completedLessons?.map(l => l.lesson_id) || []
+    const allLessonsCompleted = lessons.every(lesson => completedLessonIds.includes(lesson.id))
+
+    // Check if module exam is passed (if exists)
+    const { data: moduleExam, error: examError } = await supabaseAdmin
+      .from('quizzes')
+      .select('id')
+      .eq('module_id', moduleId)
+      .eq('is_module_exam', true)
+      .eq('is_published', true)
+      .single()
+
+    let moduleExamPassed = true // Default to true if no exam exists
+    if (moduleExam && !examError) {
+      const { data: examAttempt, error: attemptError } = await supabaseAdmin
+        .from('quiz_attempts')
+        .select('passed')
+        .eq('quiz_id', moduleExam.id)
+        .eq('student_email', studentEmail)
+        .eq('passed', true)
+        .order('completed_at', { ascending: false })
+        .limit(1)
+        .single()
+
+      moduleExamPassed = !attemptError && examAttempt?.passed === true
+    }
+
+    // Module is completed if all lessons are done AND exam is passed (if exists)
+    if (allLessonsCompleted && moduleExamPassed) {
+      // Check if module completion is already recorded
+      const { data: existingModuleCompletion } = await supabaseAdmin
+        .from('student_progress')
+        .select('id')
+        .eq('student_email', studentEmail)
+        .eq('course_id', courseId)
+        .eq('module_id', moduleId)
+        .eq('progress_type', 'module_completed')
+        .single()
+
+      if (!existingModuleCompletion) {
+        // Record module completion
+        const { data: moduleData } = await supabaseAdmin
+          .from('modules')
+          .select('title')
+          .eq('id', moduleId)
+          .single()
+
+        const { data: courseData } = await supabaseAdmin
+          .from('courses')
+          .select('title, teacher_email')
+          .eq('id', courseId)
+          .single()
+
+        await supabaseAdmin
+          .from('student_progress')
+          .insert({
+            student_email: studentEmail,
+            course_id: courseId,
+            module_id: moduleId,
+            progress_type: 'module_completed',
+            status: 'completed',
+            score: 100,
+            time_spent_seconds: 0,
+            metadata: {
+              module_title: moduleData?.title,
+              completed_at: new Date().toISOString(),
+              has_exam: !!moduleExam
+            }
+          })
+
+        // Send congratulatory notification to student
+        await NotificationService.sendNotification({
+          user_email: studentEmail,
+          user_type: 'student',
+          type: 'module_completion',
+          title: '🎉 Module Completed!',
+          message: `Congratulations! You have successfully completed the module "${moduleData?.title}" in the course "${courseData?.title}". ${moduleExam ? 'You passed the module exam!' : ''}`,
+          data: {
+            module_title: moduleData?.title,
+            course_title: courseData?.title,
+            course_id: courseId,
+            module_id: moduleId,
+            completion_date: new Date().toISOString(),
+            has_exam: !!moduleExam
+          }
+        })
+
+        // Send notification to teacher
+        if (courseData?.teacher_email) {
+          const { data: studentProfile } = await supabaseAdmin
+            .from('user_profiles')
+            .select('first_name, last_name')
+            .eq('email', studentEmail)
+            .eq('user_type', 'student')
+            .single()
+
+          await NotificationService.sendNotification({
+            user_email: courseData.teacher_email,
+            user_type: 'teacher',
+            type: 'module_completion',
+            title: 'Student Completed Module',
+            message: `${studentProfile ? `${studentProfile.first_name} ${studentProfile.last_name}` : studentEmail} has completed the module "${moduleData?.title}" in your course "${courseData?.title}". ${moduleExam ? 'They passed the module exam!' : ''}`,
+            data: {
+              student_name: studentProfile ? `${studentProfile.first_name} ${studentProfile.last_name}` : studentEmail,
+              student_email: studentEmail,
+              module_title: moduleData?.title,
+              course_title: courseData?.title,
+              course_id: courseId,
+              module_id: moduleId,
+              completion_date: new Date().toISOString(),
+              has_exam: !!moduleExam
+            }
+          })
+        }
+
+        // Check if course is now completed
+        await checkCourseCompletion(studentEmail, courseId)
+      }
+    }
+  } catch (error) {
+    console.error('Error checking module completion:', error)
+  }
+}
+
+// Helper function to check course completion
+async function checkCourseCompletion(studentEmail: string, courseId: string) {
+  try {
+    // Get all modules in the course
+    const { data: modules, error: modulesError } = await supabaseAdmin
+      .from('modules')
+      .select('id')
+      .eq('course_id', courseId);
+
+    if (modulesError || !modules || modules.length === 0) return;
+
+    // Get completed modules for this course
+    const { data: completedModules, error: completedError } = await supabaseAdmin
+      .from('student_progress')
+      .select('module_id')
+      .eq('student_email', studentEmail)
+      .eq('course_id', courseId)
+      .eq('progress_type', 'module_completed')
+      .eq('status', 'completed');
+
+    if (completedError) return;
+
+    // Check if all modules are completed
+    const completedModuleIds = completedModules?.map(m => m.module_id) || [];
+    const allModulesCompleted = modules.every(module => completedModuleIds.includes(module.id));
+
+    if (allModulesCompleted) {
+      // Check if course completion is already recorded
+      const { data: existingCourseCompletion } = await supabaseAdmin
+        .from('student_progress')
+        .select('id')
+        .eq('student_email', studentEmail)
+        .eq('course_id', courseId)
+        .eq('progress_type', 'course_completed')
+        .single();
+
+      if (!existingCourseCompletion) {
+        // Record course completion
+        const { data: courseData } = await supabaseAdmin
+          .from('courses')
+          .select('title, teacher_email')
+          .eq('id', courseId)
+          .single();
+
+        await supabaseAdmin
+          .from('student_progress')
+          .insert({
+            student_email: studentEmail,
+            course_id: courseId,
+            progress_type: 'course_completed',
+            status: 'completed',
+            score: 100,
+            time_spent_seconds: 0,
+            metadata: {
+              course_title: courseData?.title,
+              completed_at: new Date().toISOString()
+            }
+          });
+
+        // Send course completion notification to student
+        await NotificationService.sendNotification({
+          user_email: studentEmail,
+          user_type: 'student',
+          type: 'course_completion',
+          title: '🎉 Course Completed!',
+          message: `Congratulations! You have successfully completed the course "${courseData?.title}"! Your certificate is now available for download.`,
+          data: {
+            course_title: courseData?.title,
+            course_id: courseId,
+            completion_date: new Date().toISOString()
+          }
+        });
+
+        // Send notification to teacher
+        if (courseData?.teacher_email) {
+          const { data: studentProfile } = await supabaseAdmin
+            .from('user_profiles')
+            .select('first_name, last_name')
+            .eq('email', studentEmail)
+            .eq('user_type', 'student')
+            .single();
+
+          await NotificationService.sendNotification({
+            user_email: courseData.teacher_email,
+            user_type: 'teacher',
+            type: 'course_completion',
+            title: 'Student Completed Course',
+            message: `${studentProfile ? `${studentProfile.first_name} ${studentProfile.last_name}` : studentEmail} has successfully completed your course "${courseData?.title}".`,
+            data: {
+              student_name: studentProfile ? `${studentProfile.first_name} ${studentProfile.last_name}` : studentEmail,
+              student_email: studentEmail,
+              course_title: courseData?.title,
+              course_id: courseId,
+              completion_date: new Date().toISOString()
+            }
+          });
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error checking course completion:', error);
+  }
+}
 
 export default router

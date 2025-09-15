@@ -14,14 +14,42 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     if (!token && (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV)) {
       const devBypass = req.headers['x-dev'] === 'true' && typeof req.headers['x-user-email'] === 'string'
       if (devBypass) {
-        // Set user info for dev mode
+        // Set user info for dev mode - FIXED: Fetch actual user data from database
         const userEmail = req.headers['x-user-email'] as string
         const userRole = req.headers['x-user-role'] as string
         if (userEmail) {
           // Check if this is a student endpoint and set appropriate role
           const isStudentEndpoint = req.path.includes('/student') || req.path.includes('/students')
           const role = (userRole === 'teacher' || userRole === 'student') ? userRole : (isStudentEndpoint ? 'student' : 'teacher')
-          req.user = { id: 'dev-user-id', email: userEmail, role: role as 'teacher' | 'student' }
+          
+          // Fetch actual user data from database for dev mode
+          try {
+            const { data: userProfile } = await supabaseAdmin
+              .from('user_profiles')
+              .select('*')
+              .eq('email', userEmail.toLowerCase())
+              .single()
+
+            // Create proper name field with fallback logic
+            const name = userProfile?.first_name && userProfile?.last_name 
+              ? `${userProfile.first_name} ${userProfile.last_name}`.trim()
+              : userProfile?.first_name || userProfile?.email || userEmail
+
+            req.user = { 
+              id: userProfile?.id || 'dev-user-id', 
+              email: userEmail, 
+              role: role as 'teacher' | 'student',
+              name: name, // FIXED: Use proper name
+              first_name: userProfile?.first_name,
+              last_name: userProfile?.last_name,
+              full_name: userProfile ? `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() : undefined,
+              user_type: userProfile?.user_type
+            }
+          } catch (error) {
+            // Fallback if database fetch fails
+            req.user = { id: 'dev-user-id', email: userEmail, role: role as 'teacher' | 'student', name: userEmail }
+          }
+          
           // console.log('Dev bypass auth:', { email: userEmail, role })
           return next()
         }
@@ -54,10 +82,16 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
         .eq('email', payload.email)
         .single()
 
+      // Create proper name field with fallback logic
+      const name = userProfile?.first_name && userProfile?.last_name 
+        ? `${userProfile.first_name} ${userProfile.last_name}`.trim()
+        : userProfile?.first_name || userProfile?.email || payload.email
+
       req.user = { 
         id: payload.id,
         email: payload.email, 
         role: payload.role || 'teacher',
+        name: name, // FIXED: Set proper name field
         student_code: payload.student_code,
         subscription_status: payload.subscription_status,
         max_students_allowed: payload.max_students_allowed,

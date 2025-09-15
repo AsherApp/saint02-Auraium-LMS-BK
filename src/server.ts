@@ -99,29 +99,23 @@ const allowedOrigins = [
 
 const corsOptions = {
   origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
-    console.log(`CORS check - Origin: ${origin}, NODE_ENV: ${process.env.NODE_ENV}`)
-    
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) {
-      console.log('CORS allowing request with no origin')
       return callback(null, true)
     }
     
     // Check if origin is in allowed origins
     if (allowedOrigins.indexOf(origin) !== -1) {
-      console.log(`CORS allowing origin from allowedOrigins: ${origin}`)
       return callback(null, true)
     } 
     
     // Allow Vercel domains (always)
     if (origin && origin.endsWith('.vercel.app')) {
-      console.log(`CORS allowing Vercel domain: ${origin}`)
       return callback(null, true)
     }
     
     // Allow localhost in development
     if (origin && (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:'))) {
-      console.log(`CORS allowing localhost: ${origin}`)
       return callback(null, true)
     }
     
@@ -146,8 +140,8 @@ const corsOptions = {
 app.use(cors(corsOptions))
 app.options('*', cors(corsOptions)) // handle preflight requests properly
 
-// JSON body parsing
-app.use(express.json({ limit: '5mb' }))
+// JSON body parsing - limit for file uploads (50MB to match Supabase limit)
+app.use(express.json({ limit: '50mb' }))
 
 // Apply security middleware
 app.use(securityMiddleware)

@@ -25,7 +25,7 @@ router.get('/', requireAuth, asyncHandler(async (req, res) => {
 }))
 
 router.post('/', requireAuth, asyncHandler(async (req, res) => {
-  const { title, description, teacher_email, status, visibility, enrollment_policy, course_mode, thumbnail_url } = req.body || {}
+  const { title, description, teacher_email, status, visibility, enrollment_policy, course_mode, thumbnail_url, certificate_config } = req.body || {}
   if (!title || !teacher_email) return res.status(400).json({ error: 'missing_fields' })
   
   // Get teacher's course settings to apply defaults
@@ -70,7 +70,21 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
     allow_discussions: courseSettings.allow_student_discussions,
     default_duration: courseSettings.default_course_duration,
     course_mode: course_mode || 'full',
-    thumbnail_url: thumbnail_url || null
+    thumbnail_url: thumbnail_url || null,
+    certificate_config: certificate_config || {
+      enabled: false,
+      template: "default",
+      custom_text: "",
+      signature: "",
+      logo_url: "",
+      background_color: "#1e293b",
+      text_color: "#ffffff",
+      border_color: "#3b82f6",
+      show_completion_date: true,
+      show_course_duration: false,
+      show_grade: false,
+      custom_fields: []
+    }
   }
   
   const { data, error } = await supabaseAdmin
@@ -182,7 +196,7 @@ router.put('/:id', requireAuth, asyncHandler(async (req, res) => {
     return res.status(401).json({ error: 'Teacher email not found in request' })
   }
   
-  const { title, description, status, course_mode, thumbnail_url, visibility, enrollment_policy } = req.body || {}
+  const { title, description, status, course_mode, thumbnail_url, visibility, enrollment_policy, certificate_config } = req.body || {}
   const updateData: any = {}
   if (title !== undefined) updateData.title = title
   if (description !== undefined) updateData.description = description
@@ -191,6 +205,7 @@ router.put('/:id', requireAuth, asyncHandler(async (req, res) => {
   if (thumbnail_url !== undefined) updateData.thumbnail_url = thumbnail_url
   if (visibility !== undefined) updateData.visibility = visibility
   if (enrollment_policy !== undefined) updateData.enrollment_policy = enrollment_policy
+  if (certificate_config !== undefined) updateData.certificate_config = certificate_config
   
   // Only update course if it belongs to this teacher
   const { data, error } = await supabaseAdmin
@@ -241,29 +256,40 @@ router.get('/:id/roster', requireAuth, asyncHandler(async (req, res) => {
     return res.status(404).json({ error: 'Course not found or access denied' })
   }
   
-  // Get enrollments for this course
+  // Get enrollments for this course - FIXED: Use proper join syntax
   const { data, error } = await supabaseAdmin
     .from('enrollments')
     .select(`
       *,
-      students(name, email, status)
+      students!inner(name, email, status, student_code)
     `)
     .eq('course_id', req.params.id)
 
   if (error) return res.status(500).json({ error: error.message })
   
   if (userRole === 'teacher') {
-    // Teachers get full roster with all student details
-    const enhancedEnrollments = (data || []).map(enrollment => ({
-      ...enrollment,
-      name: enrollment.students?.name || enrollment.email,
-      enrolled_at: enrollment.enrolled_at || enrollment.created_at,
-      progress_percentage: enrollment.progress_percentage || 0,
-      last_activity: enrollment.last_activity || enrollment.updated_at,
-      grade_percentage: enrollment.grade_percentage,
-      student_id: enrollment.student_id || `STU${enrollment.id?.substr(0, 8).toUpperCase()}`,
-      state: enrollment.state || 'active'
-    }))
+    // Teachers get full roster with all student details - FIXED: Proper data mapping with name fallback
+    const enhancedEnrollments = (data || []).map(enrollment => {
+      const student = enrollment.students
+      const studentName = student?.name || 
+        (student?.first_name && student?.last_name ? `${student.first_name} ${student.last_name}` : null) ||
+        student?.first_name || 
+        student?.email || 
+        enrollment.student_email
+      
+      return {
+        ...enrollment,
+        name: studentName,
+        email: enrollment.student_email,
+        student_code: student?.student_code,
+        enrolled_at: enrollment.enrolled_at || enrollment.created_at,
+        progress_percentage: enrollment.progress_percentage || 0,
+        last_activity: enrollment.last_activity || enrollment.updated_at,
+        grade_percentage: enrollment.grade_percentage,
+        student_id: enrollment.student_id || `STU${enrollment.id?.substr(0, 8).toUpperCase()}`,
+        state: enrollment.status || 'active'
+      }
+    })
     
     res.json({ items: enhancedEnrollments })
   } else {

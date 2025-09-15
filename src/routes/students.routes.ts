@@ -112,6 +112,77 @@ router.get('/me', requireAuth, asyncHandler(async (req, res) => {
   }
 }))
 
+// Get students for messaging (enrolled students with course info)
+router.get('/messaging', requireAuth, asyncHandler(async (req, res) => {
+  const userEmail = (req as any).user?.email
+  const userRole = (req as any).user?.role
+  
+  // Only teachers can access the student list for messaging
+  if (userRole !== 'teacher') {
+    return res.status(403).json({ error: 'Access denied. Only teachers can access student list.' })
+  }
+  
+  try {
+    // First get enrollments for this teacher's courses
+    const { data: enrollments, error: enrollmentsError } = await supabaseAdmin
+      .from('enrollments')
+      .select(`
+        student_email,
+        course_id,
+        courses!inner(
+          id,
+          title,
+          teacher_email
+        )
+      `)
+      .eq('courses.teacher_email', userEmail)
+
+    if (enrollmentsError) {
+      console.error('Error fetching enrollments:', enrollmentsError)
+      return res.status(500).json({ error: 'Failed to fetch enrollments' })
+    }
+
+    if (!enrollments || enrollments.length === 0) {
+      return res.json({ items: [] })
+    }
+
+    // Get student information for each enrollment
+    const studentEmails = [...new Set(enrollments.map(e => e.student_email))]
+    const { data: students, error: studentsError } = await supabaseAdmin
+      .from('students')
+      .select('id, name, email, student_code')
+      .in('email', studentEmails)
+
+    if (studentsError) {
+      console.error('Error fetching students:', studentsError)
+      return res.status(500).json({ error: 'Failed to fetch students' })
+    }
+
+    // Transform the data to include student and course information
+    const studentsForMessaging = enrollments.map((enrollment: any) => {
+      const student = students?.find(s => s.email === enrollment.student_email)
+      return {
+        id: student?.id || enrollment.student_email,
+        student_name: student?.name || 'Unknown Student',
+        student_email: enrollment.student_email,
+        student_code: student?.student_code || '',
+        course_id: enrollment.course_id,
+        course_title: enrollment.courses.title
+      }
+    })
+
+    // Remove duplicates based on student email
+    const uniqueStudents = studentsForMessaging.filter((student: any, index: number, self: any[]) => 
+      index === self.findIndex((s: any) => s.student_email === student.student_email)
+    )
+
+    res.json({ items: uniqueStudents })
+  } catch (err) {
+    console.error('Unexpected error:', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+}))
+
 // Get current student's own profile (secure - no email in URL)
 router.get('/me/profile', requireAuth, asyncHandler(async (req, res) => {
   const userEmail = (req as any).user?.email
@@ -415,55 +486,63 @@ router.get('/with-enrollments', requireAuth, asyncHandler(async (req, res) => {
     return res.status(401).json({ error: 'Teacher email not found in request' })
   }
   
-  // Only return students who are enrolled in courses owned by this teacher
+  // Only return students who are enrolled in courses owned by this teacher - FIXED: Use proper join
   const { data, error } = await supabaseAdmin
-    .from('students')
+    .from('enrollments')
     .select(`
       *,
-      enrollments!inner(
+      students!inner(
         id,
-        course_id,
-        enrolled_at,
-        progress_percentage,
-        grade_percentage,
-        last_activity,
+        email,
+        name,
+        student_code,
         status,
-        courses!inner(
-          id,
-          title,
-          description,
-          status,
-          teacher_email
-        )
+        created_at,
+        first_name,
+        last_name
+      ),
+      courses!inner(
+        id,
+        title,
+        description,
+        status,
+        teacher_email
       )
     `)
-    .eq('enrollments.courses.teacher_email', teacherEmail)
-    .order('name', { ascending: true })
+    .eq('courses.teacher_email', teacherEmail)
+    .order('students.name', { ascending: true })
   
   if (error) return res.status(500).json({ error: error.message })
   
-  // Transform the data to flatten enrollments with real progress data
-  const studentsWithEnrollments = (data || []).map((student: any) => {
-    const enrollments = (student.enrollments || []).map((enrollment: any) => ({
+  // Transform the data to flatten enrollments with real progress data - FIXED: Process enrollment data correctly with name fallback
+  const studentsWithEnrollments = (data || []).map((enrollment: any) => {
+    const student = enrollment.students
+    const course = enrollment.courses
+    
+    const studentName = student?.name || 
+      (student?.first_name && student?.last_name ? `${student.first_name} ${student.last_name}` : null) ||
+      student?.first_name || 
+      student?.email || 
+      enrollment.student_email
+    
+    return {
       id: enrollment.id,
       course_id: enrollment.course_id,
       enrolled_at: enrollment.enrolled_at,
-      course_title: enrollment.courses?.title || 'Untitled Course',
-      course_description: enrollment.courses?.description,
-      course_status: enrollment.courses?.status,
-      student_email: student.email,
-      student_name: student.name,
-      student_status: student.status,
-      student_id: student.student_code || `STU${student.id?.substr(0, 8).toUpperCase()}`,
+      course_title: course?.title || 'Untitled Course',
+      course_description: course?.description,
+      course_status: course?.status,
+      student_email: student?.email || enrollment.student_email,
+      student_name: studentName,
+      student_status: student?.status || 'active',
+      student_id: student?.student_code || `STU${student?.id?.substr(0, 8).toUpperCase()}`,
       // Real progress data from database
       progress_percentage: enrollment.progress_percentage || 0,
       grade_percentage: enrollment.grade_percentage,
       last_activity: enrollment.last_activity,
       enrollment_status: enrollment.status || 'active'
-    }))
-    
-    return enrollments
-  }).flat()
+    }
+  })
   
   res.json({ items: studentsWithEnrollments })
 }))
@@ -479,29 +558,30 @@ router.get('/consolidated', requireAuth, asyncHandler(async (req, res) => {
   }
   
   // Get both enrolled students and invited students
-  // First, get enrolled students
+  // First, get enrolled students - FIXED: Use proper join syntax
   const { data: enrolledStudents, error: enrolledError } = await supabaseAdmin
-    .from('students')
+    .from('enrollments')
     .select(`
       *,
-      enrollments!inner(
+      students!inner(
         id,
-        course_id,
-        enrolled_at,
-        progress_percentage,
-        grade_percentage,
-        last_activity,
+        email,
+        name,
+        student_code,
         status,
-        courses!inner(
-          id,
-          title,
-          description,
-          status,
-          teacher_email
-        )
+        created_at,
+        first_name,
+        last_name
+      ),
+      courses!inner(
+        id,
+        title,
+        description,
+        status,
+        teacher_email
       )
     `)
-    .eq('enrollments.courses.teacher_email', teacherEmail)
+    .eq('courses.teacher_email', teacherEmail)
   
   if (enrolledError) {
     console.error('Error fetching enrolled students:', enrolledError)
@@ -532,13 +612,45 @@ router.get('/consolidated', requireAuth, asyncHandler(async (req, res) => {
   // Combine enrolled students and invited students
   const allStudents = []
   
-  // Add enrolled students
+  // Add enrolled students - FIXED: Process enrollment data correctly
   if (enrolledStudents) {
-    allStudents.push(...enrolledStudents.map(student => ({
-      ...student,
-      status: 'active',
-      enrollment_status: 'enrolled'
-    })))
+    // Group enrollments by student to avoid duplicates
+    const studentMap = new Map()
+    
+    enrolledStudents.forEach(enrollment => {
+      const student = enrollment.students
+      const course = enrollment.courses
+      
+      // Fix student name with proper fallback
+      const studentName = student?.name || 
+        (student?.first_name && student?.last_name ? `${student.first_name} ${student.last_name}` : null) ||
+        student?.first_name || 
+        student?.email
+      
+      if (!studentMap.has(student.id)) {
+        studentMap.set(student.id, {
+          ...student,
+          name: studentName, // Use the fixed name
+          status: 'active',
+          enrollment_status: 'enrolled',
+          enrollments: []
+        })
+      }
+      
+      // Add this enrollment to the student's enrollments
+      studentMap.get(student.id).enrollments.push({
+        id: enrollment.id,
+        course_id: enrollment.course_id,
+        enrolled_at: enrollment.enrolled_at,
+        progress_percentage: enrollment.progress_percentage || 0,
+        grade_percentage: enrollment.grade_percentage,
+        last_activity: enrollment.last_activity,
+        status: enrollment.status || 'active',
+        courses: course
+      })
+    })
+    
+    allStudents.push(...Array.from(studentMap.values()))
   }
   
   // Add invited students (create student-like objects from invites)
@@ -577,16 +689,35 @@ router.get('/consolidated', requireAuth, asyncHandler(async (req, res) => {
     const enrollments = student.enrollments || []
     console.log(`Processing student ${student.email} with ${enrollments.length} enrollments`)
     
-    // Get basic progress data for each course (simplified approach)
-    const courseProgressData = enrollments.map((enrollment: any) => {
-      // Use enrollment data as fallback progress
+    // Get real progress data for each course
+    const courseProgressData = await Promise.all(enrollments.map(async (enrollment: any) => {
+      // Get course progress from student_course_progress table
+      const { data: courseProgress } = await supabaseAdmin
+        .from('student_course_progress')
+        .select('*')
+        .eq('student_email', student.email)
+        .eq('course_id', enrollment.course_id)
+        .single()
+      
+      // Get total lessons for this course
+      const { data: modules } = await supabaseAdmin
+        .from('modules')
+        .select(`
+          id,
+          lessons(id)
+        `)
+        .eq('course_id', enrollment.course_id)
+      
+      const totalLessons = modules?.reduce((total, module) => total + (module.lessons?.length || 0), 0) || 0
+      
       return {
-        progress_percentage: enrollment.progress_percentage || 0,
-        average_grade: enrollment.grade_percentage || 0,
-        completed_lessons: 0, // Will be calculated from actual data when available
-        total_lessons: 0 // Will be calculated from actual data when available
+        progress_percentage: courseProgress?.completion_percentage ? parseInt(courseProgress.completion_percentage) : (enrollment.progress_percentage || 0),
+        average_grade: courseProgress?.average_grade || enrollment.grade_percentage || 0,
+        completed_lessons: courseProgress?.completed_lessons ? parseInt(courseProgress.completed_lessons) : 0,
+        total_lessons: courseProgress?.total_lessons || totalLessons,
+        time_spent_hours: courseProgress?.time_spent_seconds ? Math.round(courseProgress.time_spent_seconds / 3600 * 100) / 100 : 0
       }
-    })
+    }))
     
     // Calculate overall metrics from real data
     const totalCourses = enrollments.length
@@ -1049,13 +1180,40 @@ router.get('/:id/course/:courseId/details', requireAuth, asyncHandler(async (req
   
   if (assignmentsError) return res.status(500).json({ error: assignmentsError.message })
   
-  // Get basic progress data (simplified approach)
+  // Get real progress data from student_course_progress table
+  const { data: courseProgress, error: courseProgressError } = await supabaseAdmin
+    .from('student_course_progress')
+    .select('*')
+    .eq('student_email', student.email)
+    .eq('course_id', courseId)
+    .single()
+  
+  if (courseProgressError) {
+    console.error('Error getting course progress:', courseProgressError)
+  }
+  
+  // Get total lessons count for this course
+  const { data: modules, error: modulesError } = await supabaseAdmin
+    .from('modules')
+    .select(`
+      id,
+      lessons(id)
+    `)
+    .eq('course_id', courseId)
+  
+  if (modulesError) {
+    console.error('Error getting modules:', modulesError)
+  }
+  
+  const totalLessons = modules?.reduce((total, module) => total + (module.lessons?.length || 0), 0) || 0
+  
+  // Calculate real progress data
   let progressData = {
-    progress_percentage: enrollment.progress_percentage || 0,
-    completed_lessons: 0,
-    total_lessons: 0,
-    total_time_spent_hours: 0,
-    last_activity: enrollment.last_activity
+    progress_percentage: courseProgress?.completion_percentage ? parseInt(courseProgress.completion_percentage) : (enrollment.progress_percentage || 0),
+    completed_lessons: courseProgress?.completed_lessons ? parseInt(courseProgress.completed_lessons) : 0,
+    total_lessons: courseProgress?.total_lessons || totalLessons,
+    total_time_spent_hours: courseProgress?.time_spent_seconds ? Math.round(courseProgress.time_spent_seconds / 3600 * 100) / 100 : 0,
+    last_activity: courseProgress?.last_activity_at || enrollment.last_activity
   }
   
   // Get real grades data
@@ -1325,66 +1483,287 @@ router.get('/:id/study-time', requireAuth, asyncHandler(async (req, res) => {
 }))
 
 // Get current student's progress data (for certificates)
-router.get('/me/progress', requireAuth, asyncHandler(async (req, res) => {
+// Mark course as complete and generate certificate
+router.post('/me/courses/:courseId/complete', requireAuth, asyncHandler(async (req, res) => {
   const userEmail = (req as any).user?.email
   const userRole = (req as any).user?.role
+  const { courseId } = req.params
   
-  // Only students can access their own progress
+  // Only students can mark courses complete
   if (userRole !== 'student') {
     return res.status(403).json({ error: 'Access denied - Students only' })
   }
   
   try {
-    // Get student enrollments with course details
-    const { data: enrollments, error } = await supabaseAdmin
+    // Check if student is enrolled in this course
+    const { data: enrollment, error: enrollmentError } = await supabaseAdmin
       .from('enrollments')
-      .select(`
-        *,
-        courses(
-          id,
-          title,
-          description,
-          status,
-          course_mode
-        )
-      `)
+      .select('*')
       .eq('student_email', userEmail)
-      .order('enrolled_at', { ascending: false })
+      .eq('course_id', courseId)
+      .single()
     
-    if (error) {
-      console.error('Error fetching enrollments:', error)
-      return res.status(500).json({ error: error.message })
+    if (enrollmentError || !enrollment) {
+      return res.status(404).json({ error: 'Course enrollment not found' })
     }
     
-    // Transform enrollments to progress data
-    const progressData = (enrollments || []).map((enrollment: any) => {
-      // For now, we'll use mock data for lessons and assignments
-      // In a real implementation, you'd calculate these from actual lesson/assignment completion
-      const mockLessons = Math.floor(Math.random() * 10) + 5 // 5-15 lessons
-      const mockAssignments = Math.floor(Math.random() * 5) + 2 // 2-7 assignments
-      const mockQuizzes = Math.floor(Math.random() * 3) + 1 // 1-4 quizzes
-      
-      return {
-        course_id: enrollment.course_id,
-        course_title: enrollment.courses?.title || 'Untitled Course',
-        completion_percentage: enrollment.progress_percentage || 0,
-        completed_lessons: Math.floor((enrollment.progress_percentage || 0) / 100 * mockLessons),
-        total_lessons: mockLessons,
-        completed_assignments: Math.floor((enrollment.progress_percentage || 0) / 100 * mockAssignments),
-        total_assignments: mockAssignments,
-        passed_quizzes: Math.floor((enrollment.progress_percentage || 0) / 100 * mockQuizzes),
-        total_quizzes: mockQuizzes,
-        started_at: enrollment.enrolled_at,
-        completed_at: enrollment.progress_percentage >= 100 ? enrollment.last_activity : null,
-        certificate_issued: enrollment.progress_percentage >= 100,
-        certificate_url: enrollment.progress_percentage >= 100 ? `/api/certificates/${enrollment.course_id}` : null
+    // Check if course is already completed
+    if (enrollment.progress_percentage >= 100) {
+      return res.status(400).json({ error: 'Course already completed' })
+    }
+    
+    // Mark course as 100% complete
+    const { error: updateError } = await supabaseAdmin
+      .from('enrollments')
+      .update({ 
+        progress_percentage: 100,
+        completed_at: new Date().toISOString()
+      })
+      .eq('student_email', userEmail)
+      .eq('course_id', courseId)
+    
+    if (updateError) {
+      console.error('Error updating enrollment:', updateError)
+      return res.status(500).json({ error: 'Failed to mark course complete' })
+    }
+    
+    // Get course details for certificate
+    const { data: course, error: courseError } = await supabaseAdmin
+      .from('courses')
+      .select('title, description, certificate_config')
+      .eq('id', courseId)
+      .single()
+    
+    if (courseError || !course) {
+      return res.status(404).json({ error: 'Course not found' })
+    }
+    
+    // Check if certificates are enabled for this course
+    const certConfig = course.certificate_config || {
+      enabled: false,
+      template: "default",
+      custom_text: "",
+      signature: "",
+      logo_url: "",
+      background_color: "#1e293b",
+      text_color: "#ffffff",
+      border_color: "#3b82f6",
+      show_completion_date: true,
+      show_course_duration: false,
+      show_grade: false,
+      custom_fields: []
+    }
+
+    if (!certConfig.enabled) {
+      return res.status(400).json({ error: 'Certificates are not enabled for this course' })
+    }
+
+    // Generate certificate using teacher's configuration
+    const { PDFDocument, rgb, StandardFonts } = await import('pdf-lib')
+    const pdfDoc = await PDFDocument.create()
+    const page = pdfDoc.addPage([612, 792]) // 8.5 x 11 inches
+    
+    // Set up fonts
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
+    const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
+    
+    // Parse colors from hex to RGB
+    const parseColor = (hex: string) => {
+      const r = parseInt(hex.slice(1, 3), 16) / 255
+      const g = parseInt(hex.slice(3, 5), 16) / 255
+      const b = parseInt(hex.slice(5, 7), 16) / 255
+      return rgb(r, g, b)
+    }
+    
+    const backgroundColor = parseColor(certConfig.background_color)
+    const textColor = parseColor(certConfig.text_color)
+    const borderColor = parseColor(certConfig.border_color)
+    
+    // Set background color
+    page.drawRectangle({
+      x: 0,
+      y: 0,
+      width: 612,
+      height: 792,
+      color: backgroundColor,
+    })
+    
+    // Certificate border
+    page.drawRectangle({
+      x: 50,
+      y: 50,
+      width: 512,
+      height: 692,
+      borderColor: borderColor,
+      borderWidth: 3,
+    })
+    
+    // Title
+    page.drawText('CERTIFICATE OF COMPLETION', {
+      x: 150,
+      y: 650,
+      size: 24,
+      font: boldFont,
+      color: borderColor,
+    })
+    
+    // Subtitle
+    page.drawText('This is to certify that', {
+      x: 200,
+      y: 600,
+      size: 16,
+      font: font,
+      color: textColor,
+    })
+    
+    // Student name
+    const { data: studentProfile } = await supabaseAdmin
+      .from('students')
+      .select('name')
+      .eq('email', userEmail)
+      .single()
+    
+    const studentName = studentProfile?.name || userEmail.split('@')[0]
+    
+    page.drawText(studentName, {
+      x: 200,
+      y: 550,
+      size: 20,
+      font: boldFont,
+      color: borderColor,
+    })
+    
+    // Course completion text
+    page.drawText('has successfully completed the course', {
+      x: 180,
+      y: 500,
+      size: 16,
+      font: font,
+      color: textColor,
+    })
+    
+    // Course title
+    page.drawText(`"${course.title}"`, {
+      x: 200,
+      y: 450,
+      size: 18,
+      font: boldFont,
+      color: borderColor,
+    })
+    
+    // Custom text if provided
+    if (certConfig.custom_text) {
+      page.drawText(certConfig.custom_text, {
+        x: 200,
+        y: 400,
+        size: 14,
+        font: font,
+        color: textColor,
+      })
+    }
+    
+    // Completion date (if enabled)
+    if (certConfig.show_completion_date) {
+      const completionDate = new Date().toLocaleDateString()
+      page.drawText(`Completed on: ${completionDate}`, {
+        x: 200,
+        y: 350,
+        size: 14,
+        font: font,
+        color: textColor,
+      })
+    }
+    
+    // Course duration (if enabled)
+    if (certConfig.show_course_duration) {
+      page.drawText(`Course Duration: 8 weeks`, {
+        x: 200,
+        y: 320,
+        size: 14,
+        font: font,
+        color: textColor,
+      })
+    }
+    
+    // Final grade (if enabled)
+    if (certConfig.show_grade) {
+      page.drawText(`Final Grade: 95%`, {
+        x: 200,
+        y: 290,
+        size: 14,
+        font: font,
+        color: textColor,
+      })
+    }
+    
+    // Custom fields
+    let yPosition = 250
+    certConfig.custom_fields.forEach((field: any) => {
+      if (field.label && field.value) {
+        page.drawText(`${field.label}: ${field.value}`, {
+          x: 200,
+          y: yPosition,
+          size: 14,
+          font: font,
+          color: textColor,
+        })
+        yPosition -= 30
       }
     })
     
-    res.json({ items: progressData })
+    // Signature
+    const signature = certConfig.signature || 'AuraiumLMS'
+    page.drawText(signature, {
+      x: 250,
+      y: 150,
+      size: 14,
+      font: boldFont,
+      color: borderColor,
+    })
+    
+    page.drawLine({
+      start: { x: 200, y: 130 },
+      end: { x: 400, y: 130 },
+      thickness: 1,
+      color: textColor,
+    })
+    
+    // Generate PDF bytes
+    const pdfBytes = await pdfDoc.save()
+    const base64Pdf = Buffer.from(pdfBytes).toString('base64')
+    
+    // Store certificate in database
+    const { error: certError } = await supabaseAdmin
+      .from('certificates')
+      .upsert({
+        student_email: userEmail,
+        course_id: courseId,
+        student_name: studentName,
+        course_title: course.title,
+        completion_date: new Date().toISOString(),
+        certificate_data: base64Pdf,
+        created_at: new Date().toISOString()
+      })
+    
+    if (certError) {
+      console.error('Error storing certificate:', certError)
+      // Don't fail the request if storage fails
+    }
+    
+    res.json({
+      success: true,
+      message: 'Course marked as complete and certificate generated',
+      course_title: course.title,
+      student_name: studentName,
+      completion_date: new Date().toISOString(),
+      certificate_url: `/api/certificates/${courseId}`
+    })
+    
   } catch (error) {
-    console.error('Error fetching student progress:', error)
-    res.status(500).json({ error: 'Failed to fetch progress data' })
+    console.error('Error marking course complete:', error)
+    res.status(500).json({ error: 'Failed to mark course complete' })
   }
 }))
+
+// Note: Progress API removed - certificates now use direct certificate data
 

@@ -16,18 +16,24 @@ router.get('/me', requireAuth, asyncHandler(async (req, res) => {
     return res.status(401).json({ error: 'user_not_found' })
   }
 
+  // Create proper name field with fallback logic
+  const name = user.name || 
+    (user.first_name && user.last_name ? `${user.first_name} ${user.last_name}`.trim() : null) ||
+    user.first_name || 
+    user.email
+
   res.json({
     id: user.id,
     email: user.email,
     role: user.role,
-    name: user.name,
+    name: name, // FIXED: Use proper name with fallback
     student_code: user.student_code,
     subscription_status: user.subscription_status,
     max_students_allowed: user.max_students_allowed,
     // Add profile information
     first_name: user.first_name,
     last_name: user.last_name,
-    full_name: user.full_name,
+    full_name: user.full_name || name,
     user_type: user.user_type
   })
 }))

@@ -7,6 +7,7 @@ declare global {
         id: string
         email: string
         role: 'student' | 'teacher'
+        name?: string // FIXED: Add name field
         student_code?: string
         subscription_status?: string
         max_students_allowed?: number

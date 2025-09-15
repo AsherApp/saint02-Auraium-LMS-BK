@@ -16,7 +16,17 @@ router.get('/', requireAuth, asyncHandler(async (req, res) => {
   
   let query = supabaseAdmin
     .from('notes')
-    .select('*')
+    .select(`
+      *,
+      courses!left(
+        id,
+        title
+      ),
+      lessons!left(
+        id,
+        title
+      )
+    `)
     .eq('user_email', user_email)
     .order('updated_at', { ascending: false })
   
@@ -49,7 +59,17 @@ router.get('/:id', requireAuth, asyncHandler(async (req, res) => {
   
   const { data, error } = await supabaseAdmin
     .from('notes')
-    .select('*')
+    .select(`
+      *,
+      courses!left(
+        id,
+        title
+      ),
+      lessons!left(
+        id,
+        title
+      )
+    `)
     .eq('id', id)
     .eq('user_email', user_email)
     .single()
@@ -151,7 +171,17 @@ router.get('/search', requireAuth, asyncHandler(async (req, res) => {
   
   const { data, error } = await supabaseAdmin
     .from('notes')
-    .select('*')
+    .select(`
+      *,
+      courses!left(
+        id,
+        title
+      ),
+      lessons!left(
+        id,
+        title
+      )
+    `)
     .eq('user_email', user_email)
     .or(`title.ilike.%${q}%,content.ilike.%${q}%`)
     .order('updated_at', { ascending: false })
