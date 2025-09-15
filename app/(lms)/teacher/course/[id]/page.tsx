@@ -41,6 +41,7 @@ import {
   Presentation,
   FolderOpen,
   Code,
+  Award,
 } from "lucide-react"
 import { useInvitesFn } from "@/services/invites/hook"
 import { LessonContentEditor } from "@/components/teacher/lesson-content-editor"
@@ -579,6 +580,7 @@ export default function TeacherCourseDetailPage() {
               { id: 'curriculum', label: 'Curriculum', icon: <BookOpen className="h-4 w-4" />, badge: modules?.length || 0 },
               { id: 'students', label: 'Students', icon: <Users className="h-4 w-4" />, badge: rosterSvc.items?.length || 0 },
               { id: 'assignments', label: 'Assignments', icon: <ClipboardList className="h-4 w-4" />, badge: assignments?.length || 0 },
+              { id: 'certificates', label: 'Certificates', icon: <Award className="h-4 w-4" /> },
               { id: 'settings', label: 'Settings', icon: <SettingsIcon className="h-4 w-4" /> }
             ]}
             activeTab={activeTab}
@@ -962,6 +964,64 @@ export default function TeacherCourseDetailPage() {
             </GlassCard>
           </div>
         </TabsContent>
+
+            <TabsContent value="certificates" className="mt-4">
+              <div id="certificates" className="w-full">
+                <GlassCard className="p-6">
+                  <div className="flex items-center gap-3 mb-6">
+                    <Award className="h-6 w-6 text-yellow-400" />
+                    <h3 className="text-xl font-semibold text-white">Certificate Management</h3>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <p className="text-slate-300">
+                      Configure certificate settings for this course. Students will receive certificates upon course completion.
+                    </p>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <Link href={`/teacher/course/${params.id}/certificates`}>
+                        <Button 
+                          className="w-full bg-yellow-600/80 hover:bg-yellow-600 text-white h-20 flex flex-col items-center justify-center gap-2"
+                        >
+                          <Award className="h-6 w-6" />
+                          <span>Configure Certificates</span>
+                        </Button>
+                      </Link>
+                      
+                      <Link href={`/teacher/course/${params.id}/certificates/preview`}>
+                        <Button 
+                          variant="outline"
+                          className="w-full bg-white/10 text-white hover:bg-white/20 border-white/20 h-20 flex flex-col items-center justify-center gap-2"
+                        >
+                          <Eye className="h-6 w-6" />
+                          <span>Preview Certificate</span>
+                        </Button>
+                      </Link>
+                      
+                      <Link href={`/teacher/course/${params.id}/certificates/issued`}>
+                        <Button 
+                          variant="outline"
+                          className="w-full bg-white/10 text-white hover:bg-white/20 border-white/20 h-20 flex flex-col items-center justify-center gap-2"
+                        >
+                          <FileText className="h-6 w-6" />
+                          <span>View Issued</span>
+                        </Button>
+                      </Link>
+                    </div>
+                    
+                    <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                      <h4 className="text-blue-300 font-medium mb-2">Certificate Status</h4>
+                      <p className="text-slate-300 text-sm">
+                        {course?.certificate_config?.enabled 
+                          ? "✅ Certificates are enabled for this course. Students will receive certificates upon completion."
+                          : "⚠️ Certificates are not configured for this course. Click 'Configure Certificates' to set them up."
+                        }
+                      </p>
+                    </div>
+                  </div>
+                </GlassCard>
+              </div>
+            </TabsContent>
 
             <TabsContent value="settings" className="mt-4">
               <div id="settings" className="w-full">
