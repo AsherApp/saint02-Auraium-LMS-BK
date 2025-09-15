@@ -64,14 +64,19 @@ export const useNotificationStore = create<NotificationState>()(
 
         // Show toast notification
         if (typeof window !== 'undefined') {
-          // Import dynamically to avoid SSR issues
-          import('@/hooks/use-toast').then(({ toast }) => {
-            toast({
-              title: newNotification.title,
-              description: newNotification.message,
-              variant: newNotification.type === 'system' ? 'destructive' : 'default'
+          // Use setTimeout to ensure the notification is added to the store first
+          setTimeout(() => {
+            // Import dynamically to avoid SSR issues
+            import('@/hooks/use-toast').then(({ toast }) => {
+              toast({
+                title: newNotification.title,
+                description: newNotification.message,
+                variant: newNotification.type === 'system' ? 'destructive' : 'default'
+              })
+            }).catch(error => {
+              console.error('Error showing toast notification:', error)
             })
-          })
+          }, 100)
         }
       },
 

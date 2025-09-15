@@ -14,7 +14,7 @@ interface Notification {
   id: string
   title: string
   message: string
-  type: 'success' | 'error' | 'info' | 'warning' | 'announcement' | 'assignment' | 'course' | 'live' | 'grade' | 'deadline' | 'enrollment' | 'module_completed' | 'course_completed' | 'quiz_available' | 'live_session' | 'message' | 'system'
+  type: 'success' | 'error' | 'info' | 'warning' | 'announcement' | 'assignment' | 'course' | 'live' | 'grade' | 'deadline' | 'enrollment' | 'module_completed' | 'course_completed' | 'quiz_available' | 'live_session' | 'message' | 'system' | 'discussion' | 'live_class'
   timestamp: string
   read: boolean
   courseTitle?: string
@@ -94,6 +94,8 @@ export function NotificationSystem() {
       })
     } catch (error) {
       console.error('Failed to fetch notifications:', error)
+      // Don't show error toast for notification fetching failures
+      // as it might be due to network issues or missing API endpoint
     } finally {
       setLoading(false)
     }
@@ -102,8 +104,12 @@ export function NotificationSystem() {
   // Mark notification as read (using store function)
   const handleMarkAsRead = async (id: string) => {
     try {
-      await http(`/api/notifications/${id}/read`, {
-        method: 'POST'
+      await http(`/api/notifications/me`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          notificationId: id,
+          action: 'mark_read'
+        })
       })
       markAsRead(id)
     } catch (error) {
@@ -116,8 +122,11 @@ export function NotificationSystem() {
   // Mark all as read (using store function)
   const handleMarkAllAsRead = async () => {
     try {
-      await http(`/api/notifications/me/read-all`, {
-        method: 'POST'
+      await http(`/api/notifications/me`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          action: 'mark_all_read'
+        })
       })
       markAllAsRead()
     } catch (error) {
@@ -138,16 +147,24 @@ export function NotificationSystem() {
     }
   }, [user?.email]) // Only depend on email, not the entire user object
 
-  // Show toast for new notifications
+  // Show toast for new notifications (only for very recent ones)
   useEffect(() => {
-    const newNotifications = notifications.filter(n => !n.read && new Date(n.timestamp) > new Date(Date.now() - 30000))
+    const newNotifications = notifications.filter(n => 
+      !n.read && 
+      new Date(n.timestamp) > new Date(Date.now() - 10000) // Only show toasts for notifications less than 10 seconds old
+    )
     
     newNotifications.forEach(notification => {
-      toast({
-        title: notification.title,
-        description: notification.message,
-        duration: 5000,
-      })
+      // Don't show toast for system notifications or old signup notifications
+      if (notification.type !== 'system' && 
+          !notification.title.includes('Account successfully created') &&
+          !notification.title.includes('Welcome')) {
+        toast({
+          title: notification.title,
+          description: notification.message,
+          duration: 5000,
+        })
+      }
     })
   }, [notifications, toast])
 
