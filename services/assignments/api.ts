@@ -123,8 +123,15 @@ function getAuthHeaders() {
   if (!user?.email) {
     throw new Error('User not authenticated')
   }
+  
+  // Get token from localStorage
+  const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null
+  if (!token) {
+    throw new Error('No authentication token found')
+  }
+  
   return {
-    'Authorization': `Bearer ${user.token || ''}`,
+    'Authorization': `Bearer ${token}`,
     'x-user-email': user.email,
     'x-user-role': user.role || 'student'
   }
