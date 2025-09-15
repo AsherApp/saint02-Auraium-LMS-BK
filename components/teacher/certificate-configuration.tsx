@@ -20,12 +20,17 @@ import {
   FileText,
   Calendar,
   Clock,
-  Star
+  Star,
+  Image,
+  X,
+  CheckCircle,
+  AlertCircle
 } from "lucide-react"
 
 interface CertificateConfig {
   enabled: boolean
   template: string
+  custom_template_url?: string
   custom_text: string
   signature: string
   logo_url: string
@@ -50,7 +55,8 @@ const TEMPLATES = [
   { value: "default", label: "Default", description: "Clean and professional" },
   { value: "classic", label: "Classic", description: "Traditional academic style" },
   { value: "modern", label: "Modern", description: "Contemporary design" },
-  { value: "minimal", label: "Minimal", description: "Simple and elegant" }
+  { value: "minimal", label: "Minimal", description: "Simple and elegant" },
+  { value: "custom", label: "Custom Template", description: "Upload your own design" }
 ]
 
 const COLOR_PRESETS = [
@@ -79,6 +85,9 @@ export function CertificateConfiguration({ courseId, onSave }: CertificateConfig
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [previewMode, setPreviewMode] = useState(false)
+  const [uploadingTemplate, setUploadingTemplate] = useState(false)
+  const [templatePreview, setTemplatePreview] = useState<string | null>(null)
+  const [templateError, setTemplateError] = useState<string | null>(null)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -163,6 +172,79 @@ export function CertificateConfiguration({ courseId, onSave }: CertificateConfig
     const newFields = [...config.custom_fields]
     newFields[index][field] = value
     updateConfig({ custom_fields: newFields })
+  }
+
+  const handleTemplateUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setTemplateError('Please upload an image file (PNG, JPG, JPEG)')
+      return
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      setTemplateError('File size must be less than 10MB')
+      return
+    }
+
+    setUploadingTemplate(true)
+    setTemplateError(null)
+
+    try {
+      // Create a preview
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const result = e.target?.result as string
+        setTemplatePreview(result)
+      }
+      reader.readAsDataURL(file)
+
+      // Upload to storage
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('type', 'certificate-template')
+      formData.append('courseId', courseId)
+
+      const response = await http<any>('/api/upload', {
+        method: 'POST',
+        body: formData
+      })
+
+      if (response.url) {
+        // Update config with custom template
+        updateConfig({ 
+          template: 'custom',
+          custom_template_url: response.url
+        })
+        
+        toast({
+          title: "Template Uploaded",
+          description: "Your custom certificate template has been uploaded successfully.",
+        })
+      }
+    } catch (error: any) {
+      console.error('Error uploading template:', error)
+      setTemplateError(error.message || 'Failed to upload template')
+      toast({
+        title: "Upload Failed",
+        description: error.message || "Failed to upload template. Please try again.",
+        variant: "destructive"
+      })
+    } finally {
+      setUploadingTemplate(false)
+    }
+  }
+
+  const removeCustomTemplate = () => {
+    setTemplatePreview(null)
+    setTemplateError(null)
+    updateConfig({ 
+      template: 'default',
+      custom_template_url: ''
+    })
   }
 
   if (loading) {
@@ -323,6 +405,82 @@ export function CertificateConfiguration({ courseId, onSave }: CertificateConfig
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Custom Template Upload */}
+              {config.template === 'custom' && (
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-slate-300">Upload Custom Template</Label>
+                    <p className="text-sm text-slate-400 mb-3">
+                      Upload an A4 or Letter-sized template (PNG, JPG, JPEG). Max 10MB.
+                    </p>
+                    
+                    <div className="border-2 border-dashed border-slate-600 rounded-lg p-6 text-center hover:border-slate-500 transition-colors">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleTemplateUpload}
+                        className="hidden"
+                        id="template-upload"
+                        disabled={uploadingTemplate}
+                      />
+                      <label
+                        htmlFor="template-upload"
+                        className="cursor-pointer flex flex-col items-center gap-3"
+                      >
+                        {uploadingTemplate ? (
+                          <div className="flex items-center gap-2 text-blue-400">
+                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-400"></div>
+                            <span>Uploading...</span>
+                          </div>
+                        ) : (
+                          <>
+                            <Upload className="h-8 w-8 text-slate-400" />
+                            <div>
+                              <p className="text-white font-medium">Click to upload template</p>
+                              <p className="text-sm text-slate-400">A4 or Letter size recommended</p>
+                            </div>
+                          </>
+                        )}
+                      </label>
+                    </div>
+
+                    {templateError && (
+                      <div className="flex items-center gap-2 text-red-400 text-sm mt-2">
+                        <AlertCircle className="h-4 w-4" />
+                        {templateError}
+                      </div>
+                    )}
+
+                    {templatePreview && (
+                      <div className="mt-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <Label className="text-slate-300">Template Preview</Label>
+                          <Button
+                            onClick={removeCustomTemplate}
+                            variant="ghost"
+                            size="sm"
+                            className="text-slate-400 hover:text-red-400"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <div className="border border-slate-600 rounded-lg p-4 bg-slate-800/30">
+                          <img
+                            src={templatePreview}
+                            alt="Template preview"
+                            className="max-w-full h-auto max-h-64 mx-auto rounded"
+                          />
+                          <div className="flex items-center gap-2 text-green-400 text-sm mt-2">
+                            <CheckCircle className="h-4 w-4" />
+                            Template uploaded successfully
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div>
                 <Label htmlFor="custom_text" className="text-slate-300">Custom Text</Label>
