@@ -44,6 +44,16 @@ interface CertificateConfig {
     label: string
     value: string
   }>
+  dynamic_tags: Array<{
+    id: string
+    tag: string
+    x: number
+    y: number
+    fontSize: number
+    color: string
+    fontFamily: string
+    fontWeight: string
+  }>
 }
 
 interface CertificateConfigurationProps {
@@ -67,6 +77,18 @@ const COLOR_PRESETS = [
   { name: "Orange", background: "#9a3412", text: "#ffffff", border: "#f97316" }
 ]
 
+const AVAILABLE_TAGS = [
+  { value: "{{student_name}}", label: "Student Name", description: "Full name of the student" },
+  { value: "{{student_email}}", label: "Student Email", description: "Email address of the student" },
+  { value: "{{course_name}}", label: "Course Name", description: "Name of the completed course" },
+  { value: "{{completion_date}}", label: "Completion Date", description: "Date when course was completed" },
+  { value: "{{course_duration}}", label: "Course Duration", description: "Total time spent on course" },
+  { value: "{{final_grade}}", label: "Final Grade", description: "Overall grade achieved" },
+  { value: "{{teacher_name}}", label: "Teacher Name", description: "Name of the course instructor" },
+  { value: "{{institution_name}}", label: "Institution Name", description: "Name of the institution" },
+  { value: "{{certificate_id}}", label: "Certificate ID", description: "Unique certificate identifier" }
+]
+
 export function CertificateConfiguration({ courseId, onSave }: CertificateConfigurationProps) {
   const [config, setConfig] = useState<CertificateConfig>({
     enabled: false,
@@ -80,7 +102,8 @@ export function CertificateConfiguration({ courseId, onSave }: CertificateConfig
     show_completion_date: true,
     show_course_duration: false,
     show_grade: false,
-    custom_fields: []
+    custom_fields: [],
+    dynamic_tags: []
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -88,6 +111,8 @@ export function CertificateConfiguration({ courseId, onSave }: CertificateConfig
   const [uploadingTemplate, setUploadingTemplate] = useState(false)
   const [templatePreview, setTemplatePreview] = useState<string | null>(null)
   const [templateError, setTemplateError] = useState<string | null>(null)
+  const [showTagEditor, setShowTagEditor] = useState(false)
+  const [selectedTag, setSelectedTag] = useState<any>(null)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -245,6 +270,46 @@ export function CertificateConfiguration({ courseId, onSave }: CertificateConfig
       template: 'default',
       custom_template_url: ''
     })
+  }
+
+  const addDynamicTag = (tagValue: string) => {
+    const newTag = {
+      id: `tag_${Date.now()}`,
+      tag: tagValue,
+      x: 50,
+      y: 50,
+      fontSize: 16,
+      color: config.text_color,
+      fontFamily: 'Arial',
+      fontWeight: 'normal'
+    }
+    updateConfig({
+      dynamic_tags: [...config.dynamic_tags, newTag]
+    })
+    setSelectedTag(newTag)
+    setShowTagEditor(true)
+  }
+
+  const updateDynamicTag = (tagId: string, updates: Partial<any>) => {
+    const updatedTags = config.dynamic_tags.map(tag => 
+      tag.id === tagId ? { ...tag, ...updates } : tag
+    )
+    updateConfig({ dynamic_tags: updatedTags })
+  }
+
+  const removeDynamicTag = (tagId: string) => {
+    updateConfig({
+      dynamic_tags: config.dynamic_tags.filter(tag => tag.id !== tagId)
+    })
+    if (selectedTag?.id === tagId) {
+      setSelectedTag(null)
+      setShowTagEditor(false)
+    }
+  }
+
+  const getTagPreview = (tag: any) => {
+    const tagInfo = AVAILABLE_TAGS.find(t => t.value === tag.tag)
+    return tagInfo ? tagInfo.label : tag.tag
   }
 
   if (loading) {
@@ -474,6 +539,218 @@ export function CertificateConfiguration({ courseId, onSave }: CertificateConfig
                           <div className="flex items-center gap-2 text-green-400 text-sm mt-2">
                             <CheckCircle className="h-4 w-4" />
                             Template uploaded successfully
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Dynamic Tags Section */}
+              {config.template === 'custom' && templatePreview && (
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <Label className="text-slate-300">Dynamic Tags</Label>
+                      <Button
+                        onClick={() => setShowTagEditor(!showTagEditor)}
+                        variant="outline"
+                        size="sm"
+                        className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                      >
+                        <Settings className="h-4 w-4 mr-2" />
+                        {showTagEditor ? 'Hide Editor' : 'Show Editor'}
+                      </Button>
+                    </div>
+                    <p className="text-sm text-slate-400 mb-4">
+                      Add dynamic tags that will automatically populate with student data during certificate generation.
+                    </p>
+
+                    {/* Available Tags */}
+                    <div className="grid grid-cols-2 gap-2 mb-4">
+                      {AVAILABLE_TAGS.map((tag) => (
+                        <Button
+                          key={tag.value}
+                          onClick={() => addDynamicTag(tag.value)}
+                          variant="outline"
+                          size="sm"
+                          className="border-slate-600 text-slate-300 hover:bg-slate-700 text-left justify-start"
+                        >
+                          <FileText className="h-3 w-3 mr-2" />
+                          <div>
+                            <div className="font-medium text-xs">{tag.label}</div>
+                            <div className="text-xs text-slate-400">{tag.description}</div>
+                          </div>
+                        </Button>
+                      ))}
+                    </div>
+
+                    {/* Current Tags */}
+                    {config.dynamic_tags.length > 0 && (
+                      <div className="space-y-2">
+                        <Label className="text-slate-300">Current Tags</Label>
+                        {config.dynamic_tags.map((tag) => (
+                          <div
+                            key={tag.id}
+                            className="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg border border-slate-600"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: tag.color }}
+                              />
+                              <div>
+                                <div className="text-white font-medium">{getTagPreview(tag)}</div>
+                                <div className="text-sm text-slate-400">
+                                  Position: {tag.x}%, {tag.y}% | Size: {tag.fontSize}px
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                onClick={() => {
+                                  setSelectedTag(tag)
+                                  setShowTagEditor(true)
+                                }}
+                                variant="ghost"
+                                size="sm"
+                                className="text-blue-400 hover:text-blue-300"
+                              >
+                                <Settings className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                onClick={() => removeDynamicTag(tag.id)}
+                                variant="ghost"
+                                size="sm"
+                                className="text-red-400 hover:text-red-300"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Tag Editor */}
+                    {showTagEditor && selectedTag && (
+                      <div className="mt-4 p-4 bg-slate-800/50 rounded-lg border border-slate-600">
+                        <div className="flex items-center justify-between mb-4">
+                          <h4 className="text-white font-medium">Edit Tag: {getTagPreview(selectedTag)}</h4>
+                          <Button
+                            onClick={() => {
+                              setSelectedTag(null)
+                              setShowTagEditor(false)
+                            }}
+                            variant="ghost"
+                            size="sm"
+                            className="text-slate-400 hover:text-white"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label className="text-slate-300 text-sm">X Position (%)</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              max="100"
+                              value={selectedTag.x}
+                              onChange={(e) => {
+                                const updatedTag = { ...selectedTag, x: parseInt(e.target.value) }
+                                setSelectedTag(updatedTag)
+                                updateDynamicTag(selectedTag.id, { x: parseInt(e.target.value) })
+                              }}
+                              className="bg-slate-700 border-slate-600 text-white"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-slate-300 text-sm">Y Position (%)</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              max="100"
+                              value={selectedTag.y}
+                              onChange={(e) => {
+                                const updatedTag = { ...selectedTag, y: parseInt(e.target.value) }
+                                setSelectedTag(updatedTag)
+                                updateDynamicTag(selectedTag.id, { y: parseInt(e.target.value) })
+                              }}
+                              className="bg-slate-700 border-slate-600 text-white"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-slate-300 text-sm">Font Size (px)</Label>
+                            <Input
+                              type="number"
+                              min="8"
+                              max="72"
+                              value={selectedTag.fontSize}
+                              onChange={(e) => {
+                                const updatedTag = { ...selectedTag, fontSize: parseInt(e.target.value) }
+                                setSelectedTag(updatedTag)
+                                updateDynamicTag(selectedTag.id, { fontSize: parseInt(e.target.value) })
+                              }}
+                              className="bg-slate-700 border-slate-600 text-white"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-slate-300 text-sm">Text Color</Label>
+                            <Input
+                              type="color"
+                              value={selectedTag.color}
+                              onChange={(e) => {
+                                const updatedTag = { ...selectedTag, color: e.target.value }
+                                setSelectedTag(updatedTag)
+                                updateDynamicTag(selectedTag.id, { color: e.target.value })
+                              }}
+                              className="bg-slate-700 border-slate-600 text-white h-10"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-slate-300 text-sm">Font Family</Label>
+                            <Select
+                              value={selectedTag.fontFamily}
+                              onValueChange={(value) => {
+                                const updatedTag = { ...selectedTag, fontFamily: value }
+                                setSelectedTag(updatedTag)
+                                updateDynamicTag(selectedTag.id, { fontFamily: value })
+                              }}
+                            >
+                              <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Arial">Arial</SelectItem>
+                                <SelectItem value="Times New Roman">Times New Roman</SelectItem>
+                                <SelectItem value="Helvetica">Helvetica</SelectItem>
+                                <SelectItem value="Georgia">Georgia</SelectItem>
+                                <SelectItem value="Verdana">Verdana</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="text-slate-300 text-sm">Font Weight</Label>
+                            <Select
+                              value={selectedTag.fontWeight}
+                              onValueChange={(value) => {
+                                const updatedTag = { ...selectedTag, fontWeight: value }
+                                setSelectedTag(updatedTag)
+                                updateDynamicTag(selectedTag.id, { fontWeight: value })
+                              }}
+                            >
+                              <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="normal">Normal</SelectItem>
+                                <SelectItem value="bold">Bold</SelectItem>
+                                <SelectItem value="lighter">Light</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </div>
                         </div>
                       </div>
