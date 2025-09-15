@@ -95,6 +95,12 @@ export const SimplifiedAssignmentsAPI = {
     return response || []
   },
 
+  // Get all student submissions for an assignment (for teachers)
+  getAssignmentSubmissions: async (assignmentId: string): Promise<any[]> => {
+    const response = await http<any[]>(`/api/assignments/simplified/${assignmentId}/submissions`)
+    return response || []
+  },
+
   // Submit assignment
   submitAssignment: async (assignmentId: string, data: {
     response: string

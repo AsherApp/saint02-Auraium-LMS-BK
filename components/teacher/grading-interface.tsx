@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Checkbox } from "@/components/ui/checkbox"
 import { Progress } from "@/components/ui/progress"
 import { AssignmentAPI, type Assignment, type Submission } from "@/services/assignments/api"
+import { SimplifiedAssignmentsAPI } from '@/services/assignments/simplified-assignments'
 import { DocumentViewer } from "@/components/shared/document-viewer"
 import { PresentationViewer } from "@/components/shared/presentation-viewer"
 import { CodeViewer } from "@/components/shared/code-viewer"
@@ -80,7 +81,7 @@ export function GradingInterface({ assignment, onClose }: GradingInterfaceProps)
   useEffect(() => {
     const fetchSubmissions = async () => {
       try {
-        const submissionData = await AssignmentAPI.listAssignmentSubmissions(assignment.id)
+        const submissionData = await SimplifiedAssignmentsAPI.getAssignmentSubmissions(assignment.id)
         console.log('Fetched submissions:', submissionData)
         setSubmissions(submissionData)
       } catch (error) {
