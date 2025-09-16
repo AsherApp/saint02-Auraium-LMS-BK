@@ -66,6 +66,116 @@ router.get('/', requireAuth, asyncHandler(async (req, res) => {
   }
 }))
 
+// Get all assignments for a student (from enrolled courses only)
+router.get('/student', requireAuth, asyncHandler(async (req, res) => {
+  const userEmail = (req as any).user?.email
+  const userRole = (req as any).user?.role
+
+  if (userRole !== 'student') {
+    return res.status(403).json({ error: 'Only students can access this endpoint' })
+  }
+
+  try {
+    console.log('Fetching assignments for student:', userEmail)
+    
+    // First, get all courses the student is enrolled in
+    const { data: enrollments, error: enrollmentError } = await supabaseAdmin
+      .from('enrollments')
+      .select(`
+        course_id,
+        courses!inner(
+          id,
+          title,
+          teacher_email
+        )
+      `)
+      .eq('student_email', userEmail)
+      .eq('status', 'active')
+
+    if (enrollmentError) {
+      console.error('Error fetching student enrollments:', enrollmentError)
+      return res.status(500).json({ error: 'Failed to fetch enrolled courses' })
+    }
+
+    if (!enrollments || enrollments.length === 0) {
+      console.log('No enrolled courses found for student:', userEmail)
+      return res.json([])
+    }
+
+    const enrolledCourseIds = enrollments.map(e => e.course_id)
+    console.log('Student enrolled in courses:', enrolledCourseIds)
+
+    // Get assignments from enrolled courses only
+    const { data: assignments, error } = await supabaseAdmin
+      .from('assignments')
+      .select(`
+        *,
+        courses!inner(
+          id,
+          title,
+          teacher_email
+        )
+      `)
+      .in('course_id', enrolledCourseIds)
+      .eq('is_published', true)
+
+    if (error) {
+      console.error('Error fetching student assignments:', error)
+      return res.status(500).json({ error: 'Failed to fetch assignments' })
+    }
+
+    console.log('Found assignments for student:', assignments?.length || 0)
+
+    // Get student's submissions for these assignments
+    const { data: submissions, error: submissionError } = await supabaseAdmin
+      .from('submissions')
+      .select('*')
+      .eq('student_email', userEmail)
+      .in('assignment_id', (assignments || []).map(a => a.id))
+
+    if (submissionError) {
+      console.error('Error fetching student submissions:', submissionError)
+      // Continue without submissions rather than failing
+    }
+
+    // Create a map of submissions by assignment ID
+    const submissionMap = new Map()
+    if (submissions) {
+      submissions.forEach(submission => {
+        submissionMap.set(submission.assignment_id, submission)
+      })
+    }
+
+    // Add computed fields and student submission data
+    const assignmentsWithStudentData = (assignments || []).map(assignment => {
+      const now = new Date()
+      const availableFrom = assignment.available_from ? new Date(assignment.available_from) : null
+      const availableUntil = assignment.available_until ? new Date(assignment.available_until) : null
+      const dueAt = assignment.due_at ? new Date(assignment.due_at) : null
+      const studentSubmission = submissionMap.get(assignment.id)
+
+      return {
+        ...assignment,
+        course_title: assignment.courses?.title || 'Unknown Course',
+        is_available: !availableFrom || now >= availableFrom,
+        is_overdue: dueAt ? now > dueAt : false,
+        is_late: dueAt ? now > dueAt : false,
+        is_published: assignment.is_published || false,
+        // Student-specific fields
+        student_submission: studentSubmission || null,
+        is_submitted: !!studentSubmission,
+        is_graded: studentSubmission?.status === 'graded',
+        status: studentSubmission?.status || 'not_started'
+      }
+    })
+
+    res.json(assignmentsWithStudentData)
+  } catch (error) {
+    console.error('Error in get student assignments:', error)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+}))
+
 // Get assignments for a course
 router.get('/course/:courseId', requireAuth, asyncHandler(async (req, res) => {
   const { courseId } = req.params
