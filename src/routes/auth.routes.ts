@@ -10,31 +10,79 @@ export const router = Router()
 
 // Get current user info (requires JWT token)
 router.get('/me', requireAuth, asyncHandler(async (req, res) => {
-  const user = (req as any).user
+  const jwtUser = (req as any).user
   
-  if (!user) {
+  if (!jwtUser) {
     return res.status(401).json({ error: 'user_not_found' })
   }
 
-  // Create proper name field with fallback logic
-  const name = user.name || 
-    (user.first_name && user.last_name ? `${user.first_name} ${user.last_name}`.trim() : null) ||
-    user.first_name || 
-    user.email
+  // Always fetch fresh profile data from DB to avoid stale JWT payload values
+  const { data: profile, error: profileError } = await supabaseAdmin
+    .from('user_profiles')
+    .select('id, email, first_name, last_name, user_type')
+    .eq('id', jwtUser.id)
+    .single()
+
+  if (profileError || !profile) {
+    // Fallback to JWT payload if DB lookup fails, but this should be rare
+    const fallbackName = jwtUser.name || 
+      (jwtUser.first_name && jwtUser.last_name ? `${jwtUser.first_name} ${jwtUser.last_name}`.trim() : null) ||
+      jwtUser.first_name || 
+      jwtUser.email
+
+    return res.json({
+      id: jwtUser.id,
+      email: jwtUser.email,
+      role: jwtUser.role,
+      name: fallbackName,
+      student_code: jwtUser.student_code,
+      subscription_status: jwtUser.subscription_status,
+      max_students_allowed: jwtUser.max_students_allowed,
+      first_name: jwtUser.first_name,
+      last_name: jwtUser.last_name,
+      full_name: jwtUser.full_name || fallbackName,
+      user_type: jwtUser.user_type
+    })
+  }
+
+  // Optionally enrich with role-specific data
+  let subscription_status: string | undefined
+  let max_students_allowed: number | undefined
+  let student_code: string | undefined
+
+  if (jwtUser.role === 'teacher') {
+    const { data: teacherInfo } = await supabaseAdmin
+      .from('teachers')
+      .select('subscription_status, max_students_allowed')
+      .eq('email', profile.email.toLowerCase())
+      .single()
+    subscription_status = teacherInfo?.subscription_status
+    max_students_allowed = teacherInfo?.max_students_allowed
+  } else if (jwtUser.role === 'student') {
+    const { data: studentInfo } = await supabaseAdmin
+      .from('students')
+      .select('student_code')
+      .eq('email', profile.email.toLowerCase())
+      .single()
+    student_code = studentInfo?.student_code
+  }
+
+  const freshName = (profile.first_name && profile.last_name
+    ? `${profile.first_name} ${profile.last_name}`.trim()
+    : profile.first_name) || profile.email
 
   res.json({
-    id: user.id,
-    email: user.email,
-    role: user.role,
-    name: name, // FIXED: Use proper name with fallback
-    student_code: user.student_code,
-    subscription_status: user.subscription_status,
-    max_students_allowed: user.max_students_allowed,
-    // Add profile information
-    first_name: user.first_name,
-    last_name: user.last_name,
-    full_name: user.full_name || name,
-    user_type: user.user_type
+    id: profile.id,
+    email: profile.email,
+    role: jwtUser.role,
+    name: freshName,
+    student_code,
+    subscription_status,
+    max_students_allowed,
+    first_name: profile.first_name,
+    last_name: profile.last_name,
+    full_name: freshName,
+    user_type: profile.user_type
   })
 }))
 
