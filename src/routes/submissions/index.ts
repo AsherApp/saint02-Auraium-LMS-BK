@@ -121,11 +121,18 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
     return res.status(403).json({ error: 'Only students can create submissions' })
   }
 
-  const { assignment_id, content, response } = req.body
-
-  // Debug: Log the received data
-  console.log('🔍 Received submission data:', { assignment_id, content, response });
-  console.log('🔍 Content essay:', content?.essay);
+  const { 
+    assignment_id, 
+    essay_content,
+    project_description,
+    discussion_response,
+    presentation_notes,
+    code_submission,
+    peer_review_content,
+    quiz_answers,
+    uploaded_files,
+    response 
+  } = req.body
 
   try {
     // Check if student is enrolled in the course
@@ -172,7 +179,14 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
       const { data: updatedSubmission, error: updateError } = await supabaseAdmin
         .from('submissions')
         .update({
-          content,
+          essay_content,
+          project_description,
+          discussion_response,
+          presentation_notes,
+          code_submission,
+          peer_review_content,
+          quiz_answers,
+          uploaded_files,
           response,
           updated_at: new Date().toISOString()
         })
@@ -209,12 +223,18 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
         assignment_id,
         student_id: userId,
         student_email: userEmail,
-        content,
+        essay_content,
+        project_description,
+        discussion_response,
+        presentation_notes,
+        code_submission,
+        peer_review_content,
+        quiz_answers,
+        uploaded_files,
         response,
         status: 'submitted',
         attempt_number: attemptNumber,
         submitted_at: new Date().toISOString(),
-        // late_submission: dueAt && now > dueAt  // Column doesn't exist in schema
       })
       .select()
       .single()
@@ -237,7 +257,17 @@ router.put('/:submissionId', requireAuth, asyncHandler(async (req, res) => {
   const userEmail = (req as any).user?.email
   const userRole = (req as any).user?.role
 
-  const { content, response } = req.body
+  const { 
+    essay_content,
+    project_description,
+    discussion_response,
+    presentation_notes,
+    code_submission,
+    peer_review_content,
+    quiz_answers,
+    uploaded_files,
+    response 
+  } = req.body
 
   try {
     // Get existing submission
@@ -275,7 +305,14 @@ router.put('/:submissionId', requireAuth, asyncHandler(async (req, res) => {
     const { data: updatedSubmission, error } = await supabaseAdmin
       .from('submissions')
       .update({
-        content,
+        essay_content,
+        project_description,
+        discussion_response,
+        presentation_notes,
+        code_submission,
+        peer_review_content,
+        quiz_answers,
+        uploaded_files,
         response,
         status: 'submitted',
         submitted_at: new Date().toISOString(),
