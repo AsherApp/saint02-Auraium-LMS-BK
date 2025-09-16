@@ -136,7 +136,6 @@ router.get('/:assignmentId', requireAuth, asyncHandler(async (req, res) => {
     // For students, get their submission status
     let studentSubmission = null
     if (userRole === 'student') {
-      console.log(`🔍 Looking for submission: assignmentId=${assignmentId}, userId=${userId}`)
       const { data: submission, error: submissionError } = await supabaseAdmin
         .from('submissions')
         .select('*')
@@ -146,12 +145,8 @@ router.get('/:assignmentId', requireAuth, asyncHandler(async (req, res) => {
         .limit(1)
         .single()
 
-      console.log(`📊 Submission query result:`, { submission, error: submissionError })
       if (!submissionError && submission) {
         studentSubmission = submission
-        console.log(`✅ Found submission with status: ${submission.status}`)
-      } else {
-        console.log(`❌ No submission found or error:`, submissionError)
       }
     }
 
@@ -166,17 +161,11 @@ router.get('/:assignmentId', requireAuth, asyncHandler(async (req, res) => {
       ...(userRole === 'student' ? {
         is_submitted: !!studentSubmission,
         is_graded: studentSubmission?.status === 'graded',
-        status: (() => {
-          if (!studentSubmission) {
-            console.log(`📝 No submission found, status: not_started`)
-            return 'not_started'
-          }
-          const computedStatus = studentSubmission.status === 'returned' ? 'awaiting_response' : 
-                                studentSubmission.status === 'graded' ? 'graded' : 
-                                studentSubmission.status === 'submitted' ? 'submitted' : 'not_started'
-          console.log(`📝 Computed status: ${studentSubmission.status} → ${computedStatus}`)
-          return computedStatus
-        })(),
+        status: studentSubmission ? 
+          (studentSubmission.status === 'returned' ? 'awaiting_response' : 
+           studentSubmission.status === 'graded' ? 'graded' : 
+           studentSubmission.status === 'submitted' ? 'submitted' : 'not_started') : 
+          'not_started',
         can_resubmit: studentSubmission?.status === 'returned',
         student_submission: studentSubmission
       } : {}),
