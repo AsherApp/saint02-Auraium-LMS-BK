@@ -5,52 +5,137 @@ import { requireAuth } from '../../middlewares/auth.js'
 
 const router = Router()
 
-// Get all assignments for a teacher
+// Get all assignments for a teacher or student
 router.get('/', requireAuth, asyncHandler(async (req, res) => {
   const userEmail = (req as any).user?.email
   const userRole = (req as any).user?.role
+  const userId = (req as any).user?.id
 
-  if (userRole !== 'teacher') {
-    return res.status(403).json({ error: 'Only teachers can view all assignments' })
-  }
+  if (userRole === 'teacher') {
+    // Teacher logic - get all assignments for their courses
+    try {
+      const { data: assignments, error } = await supabaseAdmin
+        .from('assignments')
+        .select(`
+          *,
+          courses!inner(title, teacher_email)
+        `)
+        .eq('courses.teacher_email', userEmail)
 
-  try {
-    const { data: assignments, error } = await supabaseAdmin
-      .from('assignments')
-      .select(`
-        *,
-        courses!inner(title, teacher_email)
-      `)
-      .eq('courses.teacher_email', userEmail)
-
-    if (error) {
-      console.error('Error fetching assignments:', error)
-      return res.status(500).json({ error: 'Failed to fetch assignments' })
-    }
-
-    // Add computed fields for each assignment
-    const assignmentsWithComputedFields = (assignments || []).map(assignment => {
-      const now = new Date()
-      const availableFrom = assignment.available_from ? new Date(assignment.available_from) : null
-      const availableUntil = assignment.available_until ? new Date(assignment.available_until) : null
-      const dueAt = assignment.due_at ? new Date(assignment.due_at) : null
-
-      return {
-        ...assignment,
-        course_title: assignment.courses?.[0]?.title || 'Unknown Course',
-        is_available: !availableFrom || now >= availableFrom,
-        is_overdue: dueAt ? now > dueAt : false,
-        is_late: dueAt ? now > dueAt : false,
-        is_published: assignment.is_published || false,
-        submission_count: 0, // Will be calculated separately if needed
-        graded_count: 0 // Will be calculated separately if needed
+      if (error) {
+        console.error('Error fetching assignments:', error)
+        return res.status(500).json({ error: 'Failed to fetch assignments' })
       }
-    })
 
-    res.json(assignmentsWithComputedFields)
-  } catch (error) {
-    console.error('Error in get all assignments:', error)
-    res.status(500).json({ error: 'Internal server error' })
+      // Add computed fields for each assignment
+      const assignmentsWithComputedFields = (assignments || []).map(assignment => {
+        const now = new Date()
+        const availableFrom = assignment.available_from ? new Date(assignment.available_from) : null
+        const availableUntil = assignment.available_until ? new Date(assignment.available_until) : null
+        const dueAt = assignment.due_at ? new Date(assignment.due_at) : null
+
+        return {
+          ...assignment,
+          course_title: assignment.courses?.[0]?.title || 'Unknown Course',
+          is_available: !availableFrom || now >= availableFrom,
+          is_overdue: dueAt ? now > dueAt : false,
+          is_late: dueAt ? now > dueAt : false,
+          is_published: assignment.is_published || false,
+          submission_count: 0, // Will be calculated separately if needed
+          graded_count: 0 // Will be calculated separately if needed
+        }
+      })
+
+      res.json(assignmentsWithComputedFields)
+    } catch (error) {
+      console.error('Error in get all assignments:', error)
+      res.status(500).json({ error: 'Internal server error' })
+    }
+  } else if (userRole === 'student') {
+    // Student logic - get all assignments for enrolled courses
+    try {
+      // First, get student's enrolled courses
+      const { data: enrollments, error: enrollmentError } = await supabaseAdmin
+        .from('enrollments')
+        .select(`
+          course_id,
+          courses(title, description)
+        `)
+        .eq('student_email', userEmail)
+
+      if (enrollmentError) {
+        console.error('Error fetching enrollments:', enrollmentError)
+        return res.status(500).json({ error: 'Failed to fetch enrollments' })
+      }
+
+      if (!enrollments || enrollments.length === 0) {
+        return res.json([])
+      }
+
+      const courseIds = enrollments.map(e => e.course_id)
+
+      // Get assignments for all enrolled courses
+      const { data: assignments, error } = await supabaseAdmin
+        .from('assignments')
+        .select(`
+          *,
+          courses(title, description)
+        `)
+        .in('course_id', courseIds)
+        .eq('is_published', true)
+
+      if (error) {
+        console.error('Error fetching assignments:', error)
+        return res.status(500).json({ error: 'Failed to fetch assignments' })
+      }
+
+      // For each assignment, get student's submission status
+      const assignmentsWithSubmissions = await Promise.all(
+        (assignments || []).map(async (assignment) => {
+          const now = new Date()
+          const availableFrom = assignment.available_from ? new Date(assignment.available_from) : null
+          const availableUntil = assignment.available_until ? new Date(assignment.available_until) : null
+          const dueAt = assignment.due_at ? new Date(assignment.due_at) : null
+
+          // Get student's submission for this assignment
+          const { data: submission } = await supabaseAdmin
+            .from('submissions')
+            .select('*')
+            .eq('assignment_id', assignment.id)
+            .eq('student_id', userId)
+            .order('attempt_number', { ascending: false })
+            .limit(1)
+            .single()
+
+          return {
+            ...assignment,
+            course_title: assignment.courses?.title || 'Unknown Course',
+            is_available: !availableFrom || now >= availableFrom,
+            is_overdue: dueAt ? now > dueAt : false,
+            is_late: dueAt ? now > dueAt : false,
+            is_published: assignment.is_published || false,
+            // Student-specific computed fields
+            is_submitted: !!submission,
+            is_graded: submission?.status === 'graded',
+            status: submission ? 
+              (submission.status === 'returned' ? 'awaiting_response' : 
+               submission.status === 'graded' ? 'graded' : 
+               submission.status === 'submitted' ? 'submitted' : 'not_started') : 
+              'not_started',
+            can_resubmit: submission?.status === 'returned',
+            student_submission: submission,
+            time_remaining: dueAt ? Math.max(0, dueAt.getTime() - now.getTime()) : null
+          }
+        })
+      )
+
+      res.json(assignmentsWithSubmissions)
+    } catch (error) {
+      console.error('Error in get student assignments:', error)
+      res.status(500).json({ error: 'Internal server error' })
+    }
+  } else {
+    return res.status(403).json({ error: 'Invalid user role' })
   }
 }))
 
