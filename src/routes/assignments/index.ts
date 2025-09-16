@@ -136,7 +136,6 @@ router.get('/:assignmentId', requireAuth, asyncHandler(async (req, res) => {
     // For students, get their submission status
     let studentSubmission = null
     if (userRole === 'student') {
-      console.log(`Looking for submission: assignmentId=${assignmentId}, userId=${userId}`)
       const { data: submission, error: submissionError } = await supabaseAdmin
         .from('submissions')
         .select('*')
@@ -146,12 +145,8 @@ router.get('/:assignmentId', requireAuth, asyncHandler(async (req, res) => {
         .limit(1)
         .single()
 
-      console.log(`Submission query result:`, { submission, error: submissionError })
       if (!submissionError && submission) {
         studentSubmission = submission
-        console.log(`Found submission with status: ${submission.status}`)
-      } else {
-        console.log(`No submission found or error:`, submissionError)
       }
     }
 
