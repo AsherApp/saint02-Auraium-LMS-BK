@@ -123,6 +123,10 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
 
   const { assignment_id, content, response } = req.body
 
+  // Debug: Log the received data
+  console.log('🔍 Received submission data:', { assignment_id, content, response });
+  console.log('🔍 Content essay:', content?.essay);
+
   try {
     // Check if student is enrolled in the course
     const { data: assignment, error: assignmentError } = await supabaseAdmin
