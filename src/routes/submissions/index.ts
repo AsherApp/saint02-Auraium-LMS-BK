@@ -69,28 +69,46 @@ router.get('/:submissionId', requireAuth, asyncHandler(async (req, res) => {
   const userRole = (req as any).user?.role
 
   try {
-    let query = supabaseAdmin
+    // First, get the submission with basic info
+    const { data: submission, error: submissionError } = await supabaseAdmin
       .from('submissions')
       .select(`
         *,
-        students(id, first_name, last_name, email),
-        assignments(id, title, points, type, courses!inner(teacher_email))
+        students(id, first_name, last_name, email)
       `)
       .eq('id', submissionId)
+      .single()
+
+    if (submissionError || !submission) {
+      console.error('Error fetching submission:', submissionError)
+      return res.status(404).json({ error: 'Submission not found' })
+    }
 
     // Add access control based on user role
     if (userRole === 'student') {
-      query = query.eq('student_id', userId)
+      if (submission.student_id !== userId) {
+        return res.status(403).json({ error: 'Access denied - not your submission' })
+      }
     } else if (userRole === 'teacher') {
-      // For teachers, filter by assignment ownership at the database level
-      query = query.eq('assignments.courses.teacher_email', (req as any).user?.email)
-    }
+      // For teachers, check if they own the assignment
+      const { data: assignment, error: assignmentError } = await supabaseAdmin
+        .from('assignments')
+        .select(`
+          id, title, points, type,
+          courses!inner(teacher_email)
+        `)
+        .eq('id', submission.assignment_id)
+        .eq('courses.teacher_email', (req as any).user?.email)
+        .single()
 
-    const { data: submission, error } = await query.single()
+      if (assignmentError || !assignment) {
+        return res.status(403).json({ error: 'Access denied - assignment not found or not owned by you' })
+      }
 
-    if (error) {
-      console.error('Error fetching submission:', error)
-      return res.status(404).json({ error: 'Submission not found or access denied' })
+      // Add assignment info to submission
+      submission.assignment = assignment
+    } else {
+      return res.status(403).json({ error: 'Invalid user role' })
     }
 
     // Transform the data
@@ -100,9 +118,9 @@ router.get('/:submissionId', requireAuth, asyncHandler(async (req, res) => {
                    `${submission.students?.first_name || ''} ${submission.students?.last_name || ''}`.trim() ||
                    'Unknown Student',
       student_email: submission.students?.email || submission.student_email,
-      assignment_title: submission.assignments?.title,
-      assignment_points: submission.assignments?.points,
-      assignment_type: submission.assignments?.type
+      assignment_title: submission.assignment?.title,
+      assignment_points: submission.assignment?.points,
+      assignment_type: submission.assignment?.type
     }
 
     res.json(transformedSubmission)

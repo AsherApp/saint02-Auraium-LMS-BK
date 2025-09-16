@@ -61,6 +61,35 @@ router.get('/course/:courseId', requireAuth, asyncHandler(async (req, res) => {
   const userRole = (req as any).user?.role
 
   try {
+    // First, verify access to the course
+    if (userRole === 'teacher') {
+      // Teachers can only see assignments from their own courses
+      const { data: course, error: courseError } = await supabaseAdmin
+        .from('courses')
+        .select('id, teacher_email')
+        .eq('id', courseId)
+        .eq('teacher_email', (req as any).user?.email)
+        .single()
+
+      if (courseError || !course) {
+        return res.status(403).json({ error: 'Access denied - course not found or not owned by you' })
+      }
+    } else if (userRole === 'student') {
+      // Students can only see assignments from courses they're enrolled in
+      const { data: enrollment, error: enrollmentError } = await supabaseAdmin
+        .from('enrollments')
+        .select('id')
+        .eq('student_id', userId)
+        .eq('course_id', courseId)
+        .single()
+
+      if (enrollmentError || !enrollment) {
+        return res.status(403).json({ error: 'Access denied - not enrolled in this course' })
+      }
+    } else {
+      return res.status(403).json({ error: 'Invalid user role' })
+    }
+
     let query = supabaseAdmin
       .from('assignments')
       .select(`
@@ -206,18 +235,44 @@ router.get('/:assignmentId', requireAuth, asyncHandler(async (req, res) => {
   const userRole = (req as any).user?.role
 
   try {
-    const { data: assignment, error } = await supabaseAdmin
+    let query = supabaseAdmin
       .from('assignments')
       .select(`
         *,
         courses(title, teacher_email)
       `)
       .eq('id', assignmentId)
-      .single()
+
+    // Add access control based on user role
+    if (userRole === 'teacher') {
+      // Teachers can only see their own assignments
+      query = query.eq('courses.teacher_email', (req as any).user?.email)
+    } else if (userRole === 'student') {
+      // Students can only see assignments from courses they're enrolled in
+      // We'll check enrollment after getting the assignment
+    } else {
+      return res.status(403).json({ error: 'Invalid user role' })
+    }
+
+    const { data: assignment, error } = await query.single()
 
     if (error) {
       console.error('Error fetching assignment:', error)
-      return res.status(404).json({ error: 'Assignment not found' })
+      return res.status(404).json({ error: 'Assignment not found or access denied' })
+    }
+
+    // For students, verify they are enrolled in the course
+    if (userRole === 'student') {
+      const { data: enrollment, error: enrollmentError } = await supabaseAdmin
+        .from('enrollments')
+        .select('id')
+        .eq('student_id', userId)
+        .eq('course_id', assignment.course_id)
+        .single()
+
+      if (enrollmentError || !enrollment) {
+        return res.status(403).json({ error: 'Access denied - not enrolled in this course' })
+      }
     }
 
     // Add computed fields
