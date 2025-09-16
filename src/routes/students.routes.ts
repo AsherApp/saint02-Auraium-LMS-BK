@@ -7,6 +7,43 @@ import bcrypt from 'bcrypt'
 
 export const router = Router()
 
+// Get student's enrolled courses
+router.get('/me/courses', requireAuth, asyncHandler(async (req, res) => {
+  const userEmail = (req as any).user?.email
+  const userRole = (req as any).user?.role
+  
+  if (!userEmail || userRole !== 'student') {
+    return res.status(401).json({ error: 'Unauthorized - Students only' })
+  }
+
+  try {
+    const { data: enrollments, error } = await supabaseAdmin
+      .from('enrollments')
+      .select(`
+        *,
+        courses!inner(
+          id,
+          title,
+          description,
+          status,
+          created_at
+        )
+      `)
+      .eq('student_email', userEmail)
+      .eq('status', 'active')
+
+    if (error) {
+      console.error('Error fetching student courses:', error)
+      return res.status(500).json({ error: 'Failed to fetch courses' })
+    }
+
+    res.json({ items: enrollments || [] })
+  } catch (error) {
+    console.error('Error in get student courses:', error)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+}))
+
 // Test endpoint to check database state - SECURITY FIXED
 router.get('/debug/courses', requireAuth, asyncHandler(async (req, res) => {
   const teacherEmail = (req as any).user?.email
@@ -501,12 +538,12 @@ router.get('/with-enrollments', requireAuth, asyncHandler(async (req, res) => {
         first_name,
         last_name
       ),
-      courses!inner(
-        id,
-        title,
-        description,
-        status,
-        teacher_email
+        courses!inner(
+          id,
+          title,
+          description,
+          status,
+          teacher_email
       )
     `)
     .eq('courses.teacher_email', teacherEmail)
@@ -573,12 +610,12 @@ router.get('/consolidated', requireAuth, asyncHandler(async (req, res) => {
         first_name,
         last_name
       ),
-      courses!inner(
-        id,
-        title,
-        description,
-        status,
-        teacher_email
+        courses!inner(
+          id,
+          title,
+          description,
+          status,
+          teacher_email
       )
     `)
     .eq('courses.teacher_email', teacherEmail)
@@ -629,9 +666,9 @@ router.get('/consolidated', requireAuth, asyncHandler(async (req, res) => {
       
       if (!studentMap.has(student.id)) {
         studentMap.set(student.id, {
-          ...student,
+      ...student,
           name: studentName, // Use the fixed name
-          status: 'active',
+      status: 'active',
           enrollment_status: 'enrolled',
           enrollments: []
         })
