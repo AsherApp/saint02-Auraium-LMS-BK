@@ -15,6 +15,8 @@ router.get('/', requireAuth, asyncHandler(async (req, res) => {
   }
 
   try {
+    console.log('Fetching assignments for teacher:', userEmail)
+    
     const { data: assignments, error } = await supabaseAdmin
       .from('assignments')
       .select(`
@@ -28,6 +30,16 @@ router.get('/', requireAuth, asyncHandler(async (req, res) => {
       return res.status(500).json({ error: 'Failed to fetch assignments' })
     }
 
+    console.log('Found assignments:', assignments?.length || 0)
+    if (assignments && assignments.length > 0) {
+      console.log('Sample assignment:', {
+        id: assignments[0].id,
+        title: assignments[0].title,
+        course_title: assignments[0].courses?.title,
+        teacher_email: assignments[0].courses?.teacher_email
+      })
+    }
+
     // Add computed fields for each assignment
     const assignmentsWithComputedFields = (assignments || []).map(assignment => {
       const now = new Date()
@@ -37,7 +49,7 @@ router.get('/', requireAuth, asyncHandler(async (req, res) => {
 
       return {
         ...assignment,
-        course_title: assignment.courses?.[0]?.title || 'Unknown Course',
+        course_title: assignment.courses?.title || 'Unknown Course',
         is_available: !availableFrom || now >= availableFrom,
         is_overdue: dueAt ? now > dueAt : false,
         is_late: dueAt ? now > dueAt : false,
@@ -119,7 +131,7 @@ router.get('/course/:courseId', requireAuth, asyncHandler(async (req, res) => {
 
       return {
         ...assignment,
-        course_title: assignment.courses?.[0]?.title || 'Unknown Course',
+        course_title: assignment.courses?.title || 'Unknown Course',
         is_available: !availableFrom || now >= availableFrom,
         is_overdue: dueAt ? now > dueAt : false,
         is_late: dueAt ? now > dueAt : false,
