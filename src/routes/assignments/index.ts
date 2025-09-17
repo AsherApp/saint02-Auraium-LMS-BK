@@ -41,11 +41,35 @@ router.get('/', requireAuth, asyncHandler(async (req, res) => {
     }
 
     // Add computed fields for each assignment
-    const assignmentsWithComputedFields = (assignments || []).map(assignment => {
+    const assignmentsWithComputedFields = await Promise.all((assignments || []).map(async (assignment) => {
       const now = new Date()
       const availableFrom = assignment.available_from ? new Date(assignment.available_from) : null
       const availableUntil = assignment.available_until ? new Date(assignment.available_until) : null
       const dueAt = assignment.due_at ? new Date(assignment.due_at) : null
+
+      // Get submission count for this assignment
+      const { count: submissionCount } = await supabaseAdmin
+        .from('submissions')
+        .select('*', { count: 'exact', head: true })
+        .eq('assignment_id', assignment.id)
+
+      // Get graded count for this assignment
+      const { count: gradedCount } = await supabaseAdmin
+        .from('submissions')
+        .select('*', { count: 'exact', head: true })
+        .eq('assignment_id', assignment.id)
+        .not('grade', 'is', null)
+
+      // Calculate average grade
+      const { data: gradedSubmissions } = await supabaseAdmin
+        .from('submissions')
+        .select('grade')
+        .eq('assignment_id', assignment.id)
+        .not('grade', 'is', null)
+
+      const avgGrade = gradedSubmissions && gradedSubmissions.length > 0
+        ? gradedSubmissions.reduce((sum, sub) => sum + (sub.grade || 0), 0) / gradedSubmissions.length
+        : null
 
       return {
         ...assignment,
@@ -54,10 +78,11 @@ router.get('/', requireAuth, asyncHandler(async (req, res) => {
         is_overdue: dueAt ? now > dueAt : false,
         is_late: dueAt ? now > dueAt : false,
         is_published: assignment.is_published || false,
-        submission_count: 0, // Will be calculated separately if needed
-        graded_count: 0 // Will be calculated separately if needed
+        submission_count: submissionCount || 0,
+        graded_count: gradedCount || 0,
+        avg_grade: avgGrade
       }
-    })
+    }))
 
     res.json(assignmentsWithComputedFields)
   } catch (error) {
