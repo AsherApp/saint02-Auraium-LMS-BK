@@ -5,6 +5,8 @@
     "moduleResolution": "Node",
     "outDir": "dist",
     "rootDir": ".",
+    "allowJs": true,
+    "checkJs": true,
     "strict": false,
     "esModuleInterop": true,
     "skipLibCheck": true,
