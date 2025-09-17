@@ -38,16 +38,14 @@ export class EmailService {
       }
     }
 
-    // If no SMTP credentials, use a test account (for development)
+    // If no SMTP credentials, use Gmail with app password (for development/production)
     if (!emailConfig.auth.user || !emailConfig.auth.pass) {
-      console.warn('No SMTP credentials found, using test account')
+      console.warn('No SMTP credentials found, using Gmail fallback')
       this.transporter = nodemailer.createTransport({
-        host: 'smtp.ethereal.email',
-        port: 587,
-        secure: false,
+        service: 'gmail',
         auth: {
-          user: 'ethereal.user@ethereal.email',
-          pass: 'ethereal.pass'
+          user: process.env.GMAIL_USER || 'auraiumlms@gmail.com',
+          pass: process.env.GMAIL_APP_PASSWORD || process.env.SMTP_PASS
         }
       })
     } else {

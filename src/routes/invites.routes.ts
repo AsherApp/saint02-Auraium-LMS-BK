@@ -142,6 +142,28 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
 
   if (error) return res.status(500).json({ error: error.message })
   
+  // Create notification preferences for the invited student (if they don't exist)
+  try {
+    await supabaseAdmin
+      .from('notification_preferences')
+      .upsert({
+        user_email: finalStudentEmail.toLowerCase(),
+        user_type: 'student',
+        email_notifications: true,
+        push_notifications: true,
+        course_completion_emails: true,
+        module_completion_emails: true,
+        assignment_emails: true,
+        live_session_emails: true,
+        announcement_emails: true
+      }, {
+        onConflict: 'user_email,user_type'
+      })
+  } catch (prefError) {
+    console.error('Failed to create notification preferences for invited student:', prefError)
+    // Don't fail the invite creation if preferences creation fails
+  }
+  
   // Send invitation email notification
   try {
     // Get course details for the notification
@@ -315,6 +337,28 @@ router.post('/:code/complete', asyncHandler(async (req, res) => {
     .single()
 
   if (studentError) return res.status(500).json({ error: studentError.message })
+  
+  // Create notification preferences for the new student
+  try {
+    await supabaseAdmin
+      .from('notification_preferences')
+      .upsert({
+        user_email: email.toLowerCase(),
+        user_type: 'student',
+        email_notifications: true,
+        push_notifications: true,
+        course_completion_emails: true,
+        module_completion_emails: true,
+        assignment_emails: true,
+        live_session_emails: true,
+        announcement_emails: true
+      }, {
+        onConflict: 'user_email,user_type'
+      })
+  } catch (prefError) {
+    console.error('Failed to create notification preferences:', prefError)
+    // Don't fail the registration if preferences creation fails
+  }
   
   // Mark invite as used
   const { error: updateError } = await supabaseAdmin

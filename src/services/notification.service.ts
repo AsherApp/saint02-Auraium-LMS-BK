@@ -1,5 +1,5 @@
 import { supabaseAdmin } from '../lib/supabase.js'
-import { sendEmail } from './email.service.js'
+import { EmailService } from './email.service.js'
 
 export interface NotificationData {
   user_email: string
@@ -78,17 +78,18 @@ export class NotificationService {
         return
       }
 
-      // Get user profile for personalization
+      // Get user profile for personalization (optional for course invitations)
       const userProfile = await this.getUserProfile(notificationData.user_email)
-      if (!userProfile) {
-        console.log(`No user profile found for: ${notificationData.user_email}`)
-        return
-      }
+      
+      // For course invitations, use data from notification if no profile exists
+      const userName = userProfile 
+        ? `${userProfile.first_name} ${userProfile.last_name}`
+        : notificationData.data?.student_name || notificationData.data?.user_name || 'Student'
 
       // Prepare template data
       const templateData = {
         ...notificationData.data,
-        user_name: `${userProfile.first_name} ${userProfile.last_name}`,
+        user_name: userName,
         user_email: notificationData.user_email,
         notification_title: notificationData.title,
         notification_message: notificationData.message,
@@ -109,7 +110,7 @@ export class NotificationService {
         .insert({
           notification_id: notificationId,
           recipient_email: notificationData.user_email,
-          recipient_name: `${userProfile.first_name} ${userProfile.last_name}`,
+          recipient_name: userName,
           subject,
           template_name: template.name,
           template_data: templateData,
@@ -124,9 +125,9 @@ export class NotificationService {
       }
 
       // Send email
-      const emailResult = await sendEmail({
+      const emailResult = await EmailService.sendEmail({
         to: notificationData.user_email,
-        toName: `${userProfile.first_name} ${userProfile.last_name}`,
+        toName: userName,
         subject,
         html: htmlContent,
         text: textContent
