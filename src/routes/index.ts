@@ -7,7 +7,6 @@ import storageRoutes from './storage.routes.js'
 import { router as billingRoutes } from './billing.routes.js'
 import inviteRoutes from './invites.routes.js'
 import { router as studentRoutes } from './students.routes.js'
-import { studentsRouter } from './students/index'
 import { router as liveRoutes } from './live.routes.js'
 import { router as authRoutes } from './auth.routes.js'
 import { router as seedRoutes } from './seed.routes.js'
@@ -31,7 +30,6 @@ import { router as certificateRoutes } from './certificates.routes.js'
 import { router as bulkCoursesRoutes } from './bulk-courses.routes.js'
 import { router as messagesRoutes } from './messages.routes.js'
 import recordingsRoutes from './recordings.routes.js'
-import passwordResetRoutes from './password-reset.routes'
 
 export const router = Router()
 
@@ -43,7 +41,6 @@ router.use('/storage', storageRoutes)
 router.use('/billing', billingRoutes)
 router.use('/invites', inviteRoutes)
 router.use('/students', studentRoutes)
-router.use('/students', studentsRouter)
 router.use('/live', liveRoutes)
 router.use('/auth', authRoutes)
 router.use('/seed', seedRoutes)
@@ -67,4 +64,3 @@ router.use('/certificates', certificateRoutes)
 router.use('/bulk-courses', bulkCoursesRoutes)
 router.use('/messages', messagesRoutes)
 router.use('/recordings', recordingsRoutes)
-router.use('/password-reset', passwordResetRoutes)
