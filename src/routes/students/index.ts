@@ -1,7 +1,7 @@
 import { Router } from 'express'
-import { router as debugRoutes } from './debug.routes.js'
-import { router as profileRoutes } from './profile.routes.js'
-import { router as enrollmentRoutes } from './enrollments.routes.js'
+import { router as debugRoutes } from './debug.routes'
+import { router as profileRoutes } from './profile.routes'
+import { router as enrollmentRoutes } from './enrollments.routes'
 
 export const router = Router()
 
