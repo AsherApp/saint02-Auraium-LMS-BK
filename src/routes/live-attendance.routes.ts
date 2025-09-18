@@ -7,6 +7,65 @@ const router = Router()
 
 // ===== ATTENDANCE MANAGEMENT =====
 
+// Get attendance records for a session
+router.get('/session/:sessionId/records', requireAuth, asyncHandler(async (req, res) => {
+  const userEmail = String(req.headers['x-user-email'] || '').toLowerCase()
+  const userRole = String(req.headers['x-user-role'] || '').toLowerCase()
+  const { sessionId } = req.params
+
+  // Check if user has access to this session
+  const { data: session } = await supabaseAdmin
+    .from('live_sessions')
+    .select('course_id, host_email')
+    .eq('id', sessionId)
+    .single()
+
+  if (!session) {
+    return res.status(404).json({ error: 'Session not found' })
+  }
+
+  // For students, check if they're enrolled in the course
+  if (userRole === 'student') {
+    const { data: enrollment } = await supabaseAdmin
+      .from('enrollments')
+      .select('*')
+      .eq('course_id', session.course_id)
+      .eq('student_email', userEmail)
+      .single()
+
+    if (!enrollment) {
+      return res.status(403).json({ error: 'Not enrolled in this course' })
+    }
+  }
+
+  // For teachers, check if they're the host or course teacher
+  if (userRole === 'teacher' && session.host_email !== userEmail) {
+    const { data: course } = await supabaseAdmin
+      .from('courses')
+      .select('teacher_email')
+      .eq('id', session.course_id)
+      .single()
+
+    if (!course || course.teacher_email !== userEmail) {
+      return res.status(403).json({ error: 'Not authorized to view this session' })
+    }
+  }
+
+  // Get attendance records
+  const { data: attendanceRecords, error } = await supabaseAdmin
+    .from('live_attendance_records')
+    .select(`
+      *,
+      students(name, email)
+    `)
+    .eq('session_id', sessionId)
+    .order('check_in_time', { ascending: true })
+
+  if (error) return res.status(500).json({ error: error.message })
+
+  res.json(attendanceRecords || [])
+}))
+
 // Get attendance for a live session
 router.get('/session/:sessionId', requireAuth, asyncHandler(async (req, res) => {
   const userEmail = String(req.headers['x-user-email'] || '').toLowerCase()
