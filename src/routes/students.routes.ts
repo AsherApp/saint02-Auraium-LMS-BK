@@ -975,7 +975,79 @@ router.delete('/:id', requireAuth, asyncHandler(async (req, res) => {
   res.json({ ok: true })
 }))
 
-// Enroll a student in a course
+// Enroll a student in a course by email (for teachers)
+router.post('/enroll', requireAuth, asyncHandler(async (req, res) => {
+  const { student_email, course_id } = req.body || {}
+  const teacherEmail = (req as any).user?.email
+  const userRole = (req as any).user?.role
+  
+  if (!student_email || !course_id) {
+    return res.status(400).json({ error: 'Missing student_email or course_id' })
+  }
+  
+  // Only teachers can enroll students
+  if (userRole !== 'teacher') {
+    return res.status(403).json({ error: 'Access denied. Only teachers can enroll students.' })
+  }
+  
+  // Check if course exists and belongs to the teacher
+  const { data: course } = await supabaseAdmin
+    .from('courses')
+    .select('id, teacher_email')
+    .eq('id', course_id)
+    .eq('teacher_email', teacherEmail)
+    .single()
+  
+  if (!course) {
+    return res.status(404).json({ error: 'Course not found or access denied' })
+  }
+  
+  // Check if student exists
+  const { data: student } = await supabaseAdmin
+    .from('students')
+    .select('id, email')
+    .eq('email', student_email)
+    .single()
+  
+  if (!student) {
+    return res.status(404).json({ error: 'Student not found' })
+  }
+  
+  // Check if already enrolled
+  const { data: existingEnrollment } = await supabaseAdmin
+    .from('enrollments')
+    .select('id')
+    .eq('course_id', course_id)
+    .eq('student_email', student_email)
+    .single()
+  
+  if (existingEnrollment) {
+    return res.status(400).json({ error: 'Student is already enrolled in this course' })
+  }
+  
+  // Create enrollment
+  const { data, error } = await supabaseAdmin
+    .from('enrollments')
+    .insert({ 
+      course_id, 
+      student_id: student.id,
+      student_email: student.email,
+      enrolled_at: new Date().toISOString(),
+      status: 'active',
+      progress_percentage: 0
+    })
+    .select()
+    .single()
+  
+  if (error) {
+    console.error('Enrollment error:', error)
+    return res.status(500).json({ error: error.message })
+  }
+  
+  res.json({ success: true, enrollment: data })
+}))
+
+// Enroll a student in a course by ID
 router.post('/:id/enroll', requireAuth, asyncHandler(async (req, res) => {
   const { id } = req.params
   const { course_id } = req.body || {}

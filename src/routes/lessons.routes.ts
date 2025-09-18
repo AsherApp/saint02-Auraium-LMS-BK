@@ -143,8 +143,8 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
       type,
       description: description || '',
       content: content || null,
-      duration: duration || 30,
-      points: points || 10,
+      duration: duration || 0,
+      points: points || 0,
       required: required !== undefined ? required : true
     })
     .select()
