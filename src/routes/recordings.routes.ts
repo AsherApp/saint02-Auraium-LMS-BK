@@ -176,23 +176,19 @@ router.get('/session/:sessionId', requireAuth, asyncHandler(async (req, res) => 
       query = query.eq('teacher_email', userEmail)
     }
 
-    const { data: recording, error } = await query.maybeSingle()
+    const { data: recordings, error } = await query
 
     if (error) {
-      console.error('Error fetching recording by session ID:', error)
-      // If table doesn't exist, return 404 instead of error
+      console.error('Error fetching recordings by session ID:', error)
+      // If table doesn't exist, return empty array instead of error
       if (error.code === 'PGRST205' || error.message?.includes('Could not find the table')) {
-        return res.status(404).json({ error: 'Recording not found' })
+        return res.json([])
       }
-      return res.status(500).json({ error: 'Failed to fetch recording' })
-    }
-
-    if (!recording) {
-      return res.status(404).json({ error: 'Recording not found' })
+      return res.status(500).json({ error: 'Failed to fetch recordings' })
     }
 
     // Transform the data
-    const transformedRecording = {
+    const transformedRecordings = (recordings || []).map(recording => ({
       id: recording.id,
       title: recording.title,
       description: recording.description,
@@ -212,9 +208,9 @@ router.get('/session/:sessionId', requireAuth, asyncHandler(async (req, res) => 
       tags: recording.tags || [],
       quality: recording.quality || 'medium',
       format: recording.format || 'mp4'
-    }
+    }))
 
-    res.json(transformedRecording)
+    res.json(transformedRecordings)
   } catch (error) {
     console.error('Error in get recording by session ID route:', error)
     res.status(500).json({ error: 'Internal server error' })
