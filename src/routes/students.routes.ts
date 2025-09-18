@@ -7,8 +7,8 @@ import bcrypt from 'bcrypt'
 
 export const router = Router()
 
-// Get student's enrolled courses
-router.get('/me/courses', requireAuth, asyncHandler(async (req, res) => {
+// Get student's poll participation data
+router.get('/me/poll-participation', requireAuth, asyncHandler(async (req, res) => {
   const userEmail = (req as any).user?.email
   const userRole = (req as any).user?.role
   
@@ -17,32 +17,142 @@ router.get('/me/courses', requireAuth, asyncHandler(async (req, res) => {
   }
 
   try {
-    const { data: enrollments, error } = await supabaseAdmin
-      .from('enrollments')
+    // Get all poll votes by this student
+    const { data: pollVotes, error: votesError } = await supabaseAdmin
+      .from('poll_votes')
+      .select(`
+        *,
+        polls!inner(
+          id,
+          question,
+          session_id,
+          created_at,
+          live_sessions!inner(
+            id,
+            title,
+            course_id,
+            courses!inner(title)
+          )
+        ),
+        poll_options!inner(
+          id,
+          text
+        )
+      `)
+      .eq('voter_email', userEmail)
+      .order('created_at', { ascending: false })
+
+    if (votesError) {
+      console.error('Error fetching poll participation:', votesError)
+      return res.status(500).json({ error: 'Failed to fetch poll participation data' })
+    }
+
+    // Transform the data to include session and course information
+    const participationData = (pollVotes || []).map(vote => ({
+      id: vote.id,
+      poll_id: vote.poll_id,
+      poll_question: vote.polls?.question,
+      selected_option: vote.poll_options?.text,
+      session_id: vote.polls?.session_id,
+      session_title: vote.polls?.live_sessions?.title,
+      course_id: vote.polls?.live_sessions?.course_id,
+      course_title: vote.polls?.live_sessions?.courses?.title,
+      voted_at: vote.created_at,
+      poll_created_at: vote.polls?.created_at
+    }))
+
+    res.json(participationData)
+  } catch (error) {
+    console.error('Error in get poll participation:', error)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+}))
+
+// Get student's discussion participation data
+router.get('/me/discussion-participation', requireAuth, asyncHandler(async (req, res) => {
+  const userEmail = (req as any).user?.email
+  const userRole = (req as any).user?.role
+  
+  if (!userEmail || userRole !== 'student') {
+    return res.status(401).json({ error: 'Unauthorized - Students only' })
+  }
+
+  try {
+    // Get all discussion posts by this student
+    const { data: discussionPosts, error: postsError } = await supabaseAdmin
+      .from('discussions')
       .select(`
         *,
         courses!inner(
           id,
-          title,
-          description,
-          status,
-          created_at
+          title
         )
       `)
-      .eq('student_email', userEmail)
-      .eq('status', 'active')
+      .eq('author_email', userEmail)
+      .order('created_at', { ascending: false })
 
-    if (error) {
-      console.error('Error fetching student courses:', error)
-      return res.status(500).json({ error: 'Failed to fetch courses' })
+    if (postsError) {
+      console.error('Error fetching discussion participation:', postsError)
+      return res.status(500).json({ error: 'Failed to fetch discussion participation data' })
     }
 
-    res.json({ items: enrollments || [] })
+    // Transform the data
+    const participationData = (discussionPosts || []).map(post => ({
+      id: post.id,
+      title: post.title,
+      content: post.content,
+      course_id: post.course_id,
+      course_title: post.courses?.title,
+      created_at: post.created_at,
+      updated_at: post.updated_at,
+      likes_count: post.likes_count || 0,
+      replies_count: post.replies_count || 0
+    }))
+
+    res.json(participationData)
   } catch (error) {
-    console.error('Error in get student courses:', error)
+    console.error('Error in get discussion participation:', error)
     res.status(500).json({ error: 'Internal server error' })
   }
 }))
+
+// Get student's study time data
+router.get('/me/study-time', requireAuth, asyncHandler(async (req, res) => {
+  const userEmail = (req as any).user?.email
+  const userRole = (req as any).user?.role
+  
+  if (!userEmail || userRole !== 'student') {
+    return res.status(401).json({ error: 'Unauthorized - Students only' })
+  }
+
+  try {
+    // Get study time data from student progress or create a default response
+    const { data: progressData, error: progressError } = await supabaseAdmin
+      .from('student_progress')
+      .select('total_study_time_seconds, updated_at')
+      .eq('student_email', userEmail)
+      .single()
+
+    if (progressError && progressError.code !== 'PGRST116') {
+      console.error('Error fetching study time:', progressError)
+      return res.status(500).json({ error: 'Failed to fetch study time data' })
+    }
+
+    // Return study time data (default to 0 if no data found)
+    const studyTimeData = {
+      total_seconds: progressData?.total_study_time_seconds || 0,
+      total_hours: Math.round((progressData?.total_study_time_seconds || 0) / 3600 * 100) / 100,
+      last_updated: progressData?.updated_at || new Date().toISOString()
+    }
+
+    res.json(studyTimeData)
+  } catch (error) {
+    console.error('Error in get study time:', error)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+}))
+
+// Get student's enrolled courses - REMOVED DUPLICATE ENDPOINT
 
 // Test endpoint to check database state - SECURITY FIXED
 router.get('/debug/courses', requireAuth, asyncHandler(async (req, res) => {
@@ -333,6 +443,7 @@ router.get('/me/enrollments', requireAuth, asyncHandler(async (req, res) => {
         description,
         status,
         teacher_email,
+        teacher_name,
         thumbnail_url,
         visibility,
         enrollment_policy,
@@ -390,6 +501,7 @@ router.get('/me/courses', requireAuth, asyncHandler(async (req, res) => {
         description,
         status,
         teacher_email,
+        teacher_name,
         thumbnail_url,
         visibility,
         enrollment_policy,
@@ -1101,36 +1213,7 @@ router.post('/:id/enroll', requireAuth, asyncHandler(async (req, res) => {
 }))
 
 // Get current student's enrolled courses (secure - no email in URL)
-router.get('/me/courses', requireAuth, asyncHandler(async (req, res) => {
-  const userEmail = (req as any).user?.email
-  const userRole = (req as any).user?.role
-  
-  // Only students can access their own courses
-  if (userRole !== 'student') {
-    return res.status(403).json({ error: 'Access denied - Students only' })
-  }
-  
-  const { data, error } = await supabaseAdmin
-    .from('enrollments')
-    .select(`
-      *,
-      courses!inner(
-        id,
-        title,
-        description,
-        status,
-        teacher_email,
-        thumbnail_url,
-        visibility,
-        enrollment_policy,
-        course_mode
-      )
-    `)
-    .eq('student_email', userEmail)
-  
-  if (error) return res.status(500).json({ error: error.message })
-  res.json({ items: data || [] })
-}))
+// REMOVED DUPLICATE ENDPOINT - Using the one above with proper teacher data
 
 // Get student's enrolled courses (for teachers accessing their students)
 router.get('/:id/courses', requireAuth, asyncHandler(async (req, res) => {
@@ -1175,6 +1258,7 @@ router.get('/:id/courses', requireAuth, asyncHandler(async (req, res) => {
         description,
         status,
         teacher_email,
+        teacher_name,
         thumbnail_url,
         visibility,
         enrollment_policy,

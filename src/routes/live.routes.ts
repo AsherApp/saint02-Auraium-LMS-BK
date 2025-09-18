@@ -503,18 +503,41 @@ router.get('/my-sessions', requireAuth, asyncHandler(async (req, res) => {
     // Teacher sees sessions they created
     query = query.eq('teacher_email', userEmail)
   } else {
-    // Student sees sessions for courses they are enrolled in
+    // Student sees sessions for courses they are enrolled in OR sessions they are explicitly added to
     // First get the courses the student is enrolled in
     const { data: enrollments } = await supabaseAdmin
       .from('enrollments')
       .select('course_id')
       .eq('student_email', userEmail)
     
+    // Get sessions where student is explicitly added as participant
+    const { data: participantSessions } = await supabaseAdmin
+      .from('live_participants')
+      .select('session_id')
+      .eq('student_email', userEmail)
+    
+    let courseIds = []
+    let participantSessionIds = []
+    
     if (enrollments && enrollments.length > 0) {
-      const courseIds = enrollments.map(e => e.course_id)
+      courseIds = enrollments.map(e => e.course_id)
+    }
+    
+    if (participantSessions && participantSessions.length > 0) {
+      participantSessionIds = participantSessions.map(p => p.session_id)
+    }
+    
+    // If student has both course enrollments and explicit participants
+    if (courseIds.length > 0 && participantSessionIds.length > 0) {
+      query = query.or(`course_id.in.(${courseIds.join(',')}),id.in.(${participantSessionIds.join(',')})`)
+    } else if (courseIds.length > 0) {
+      // Only course enrollments
       query = query.in('course_id', courseIds)
+    } else if (participantSessionIds.length > 0) {
+      // Only explicit participants
+      query = query.in('id', participantSessionIds)
     } else {
-      // If no enrollments, return empty array
+      // If no enrollments or participants, return empty array
       return res.json({ items: [] })
     }
   }
@@ -571,7 +594,7 @@ router.get('/:id', requireAuth, asyncHandler(async (req, res) => {
     data = result.data
     error = result.error
   } else if (userRole === 'student') {
-    // Students can access any session (simplified approach)
+    // Students can access sessions they are enrolled in OR explicitly added to
     const result = await supabaseAdmin
       .from('live_sessions')
       .select(`
@@ -582,17 +605,37 @@ router.get('/:id', requireAuth, asyncHandler(async (req, res) => {
       .eq('id', req.params.id)
       .maybeSingle()
     
-    // For course-associated sessions, verify student enrollment
-    if (result.data && result.data.course_id) {
-      const enrollmentCheck = await supabaseAdmin
-        .from('enrollments')
+    if (result.data) {
+      let hasAccess = false
+      
+      // Check if student is explicitly added as participant
+      const participantCheck = await supabaseAdmin
+        .from('live_participants')
         .select('student_email')
-        .eq('course_id', result.data.course_id)
+        .eq('session_id', req.params.id)
         .eq('student_email', userEmail)
         .maybeSingle()
       
-      if (!enrollmentCheck.data) {
-        return res.status(403).json({ error: 'Access denied. You are not enrolled in this course.' })
+      if (participantCheck.data) {
+        hasAccess = true
+      }
+      
+      // For course-associated sessions, also check enrollment
+      if (!hasAccess && result.data.course_id) {
+        const enrollmentCheck = await supabaseAdmin
+          .from('enrollments')
+          .select('student_email')
+          .eq('course_id', result.data.course_id)
+          .eq('student_email', userEmail)
+          .maybeSingle()
+        
+        if (enrollmentCheck.data) {
+          hasAccess = true
+        }
+      }
+      
+      if (!hasAccess) {
+        return res.status(403).json({ error: 'Access denied. You are not enrolled in this course or added as a participant.' })
       }
     }
     
@@ -685,6 +728,7 @@ router.get('/:id/participants', requireAuth, asyncHandler(async (req, res) => {
     .from('live_participants')
     .select('*')
     .eq('session_id', req.params.id)
+    .neq('student_email', userEmail) // Exclude the teacher/host from participants list
 
   if (error) return res.status(500).json({ error: error.message })
   
