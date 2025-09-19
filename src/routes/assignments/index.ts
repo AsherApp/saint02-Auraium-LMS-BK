@@ -77,7 +77,7 @@ router.get('/student', requireAuth, asyncHandler(async (req, res) => {
         .select('*')
         .eq('assignment_id', assignment.id)
         .eq('student_email', userEmail)
-        .single()
+        .maybeSingle()
 
       return {
         ...assignment,
@@ -430,10 +430,10 @@ router.get('/student', requireAuth, asyncHandler(async (req, res) => {
           .from('submissions')
           .select('*')
           .eq('assignment_id', assignment.id)
-          .eq('student_id', userId)
+          .or(`student_id.eq.${userId},student_email.eq.${userEmail}`)
           .order('attempt_number', { ascending: false })
           .limit(1)
-          .single()
+          .maybeSingle()
 
         return {
           ...assignment,
@@ -468,6 +468,7 @@ router.get('/student', requireAuth, asyncHandler(async (req, res) => {
 router.get('/:assignmentId', requireAuth, asyncHandler(async (req, res) => {
   const { assignmentId } = req.params
   const userId = (req as any).user?.id
+  const userEmail = (req as any).user?.email
   const userRole = (req as any).user?.role
 
   try {
@@ -521,14 +522,16 @@ router.get('/:assignmentId', requireAuth, asyncHandler(async (req, res) => {
     let studentSubmission = null
     if (userRole === 'student') {
       console.log(`🔍 Looking for submission: assignmentId=${assignmentId}, userId=${userId}`)
+      
+      // Try both student_id and student_email to find the submission
       const { data: submission, error: submissionError } = await supabaseAdmin
         .from('submissions')
         .select('*')
         .eq('assignment_id', assignmentId)
-        .eq('student_id', userId)
+        .or(`student_id.eq.${userId},student_email.eq.${userEmail}`)
         .order('attempt_number', { ascending: false })
         .limit(1)
-        .single()
+        .maybeSingle()
 
       console.log(`📊 Submission query result:`, { submission, error: submissionError })
       if (!submissionError && submission) {
