@@ -5,6 +5,95 @@ import { requireAuth } from '../../middlewares/auth.js'
 
 const router = Router()
 
+// Get all assignments for a student
+router.get('/student', requireAuth, asyncHandler(async (req, res) => {
+  const userEmail = (req as any).user?.email
+  const userRole = (req as any).user?.role
+
+  if (userRole !== 'student') {
+    return res.status(403).json({ error: 'Only students can access this endpoint' })
+  }
+
+  try {
+    console.log('Fetching assignments for student:', userEmail)
+    
+    // First get enrolled course IDs
+    const { data: enrollments, error: enrollmentError } = await supabaseAdmin
+      .from('enrollments')
+      .select('course_id')
+      .eq('student_email', userEmail)
+      .eq('status', 'active')
+
+    if (enrollmentError) {
+      console.error('Error fetching enrollments:', enrollmentError)
+      return res.status(500).json({ error: 'Failed to fetch enrollments' })
+    }
+
+    const courseIds = enrollments?.map(e => e.course_id) || []
+
+    if (courseIds.length === 0) {
+      return res.json([])
+    }
+
+    // Get assignments from enrolled courses
+    const { data: assignments, error } = await supabaseAdmin
+      .from('assignments')
+      .select(`
+        *,
+        courses!inner(
+          id,
+          title,
+          teacher_email,
+          teacher_name
+        )
+      `)
+      .eq('is_published', true)
+      .in('course_id', courseIds)
+
+    if (error) {
+      console.error('Error fetching student assignments:', error)
+      return res.status(500).json({ error: 'Failed to fetch assignments' })
+    }
+
+    console.log('Found student assignments:', assignments?.length || 0)
+
+    // Add computed fields for each assignment
+    const assignmentsWithComputedFields = await Promise.all((assignments || []).map(async (assignment) => {
+      const now = new Date()
+      const availableFrom = assignment.available_from ? new Date(assignment.available_from) : null
+      const availableUntil = assignment.available_until ? new Date(assignment.available_until) : null
+      const dueAt = assignment.due_at ? new Date(assignment.due_at) : null
+
+      // Check if assignment is available
+      const isAvailable = (!availableFrom || now >= availableFrom) && 
+                         (!availableUntil || now <= availableUntil)
+
+      // Check if assignment is overdue
+      const isOverdue = dueAt && now > dueAt
+
+      // Get student submission for this assignment
+      const { data: submission } = await supabaseAdmin
+        .from('submissions')
+        .select('*')
+        .eq('assignment_id', assignment.id)
+        .eq('student_email', userEmail)
+        .single()
+
+      return {
+        ...assignment,
+        is_available: isAvailable,
+        is_overdue: isOverdue,
+        student_submission: submission || null
+      }
+    }))
+
+    res.json(assignmentsWithComputedFields)
+  } catch (error) {
+    console.error('Error in get student assignments:', error)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+}))
+
 // Get all assignments for a teacher
 router.get('/', requireAuth, asyncHandler(async (req, res) => {
   const userEmail = (req as any).user?.email

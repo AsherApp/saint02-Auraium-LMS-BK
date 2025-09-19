@@ -129,6 +129,14 @@ router.get('/:discussionId', requireAuth, asyncHandler(async (req, res) => {
       .eq('is_approved', true)
       .order('created_at', { ascending: true })
 
+    // Transform the data to match frontend expectations
+    const transformedPosts = posts?.map(post => ({
+      ...post,
+      author_email: post.students?.email || post.created_by,
+      author_name: post.students ? `${post.students.first_name} ${post.students.last_name}`.trim() : null,
+      author_role: 'student'
+    })) || []
+
     if (postsError) {
       console.error('Error fetching discussion posts:', postsError)
       return res.status(500).json({ error: 'Failed to fetch discussion posts' })
@@ -136,7 +144,7 @@ router.get('/:discussionId', requireAuth, asyncHandler(async (req, res) => {
 
     res.json({
       discussion,
-      posts: posts || []
+      posts: transformedPosts
     })
   } catch (error) {
     console.error('Error in get discussion:', error)
