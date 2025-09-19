@@ -21,7 +21,7 @@ import eventsRoutes from './events.routes.js'
 import liveAttendanceRoutes from './live-attendance.routes.js'
 import quizzesRoutes from './quizzes.routes.js'
 import pollsRoutes from './polls.routes.js'
-import discussionsRoutes from './discussions.routes.js'
+import { router as discussionsRoutes } from './discussions.routes.js'
 import { router as forumRoutes } from './forum.routes.js'
 import studentAnalyticsRoutes from './student.routes.js'
 import { router as notificationsRoutes } from './notifications.routes.js'
@@ -31,6 +31,7 @@ import { router as bulkCoursesRoutes } from './bulk-courses.routes.js'
 import { router as messagesRoutes } from './messages.routes.js'
 import recordingsRoutes from './recordings.routes.js'
 import { router as classworkRoutes } from './classwork.routes.js'
+import { router as studentActivityRoutes } from './student-activity.routes.js'
 
 export const router = Router()
 
@@ -66,3 +67,4 @@ router.use('/bulk-courses', bulkCoursesRoutes)
 router.use('/messages', messagesRoutes)
 router.use('/recordings', recordingsRoutes)
 router.use('/classwork', classworkRoutes)
+router.use('/student-activity', studentActivityRoutes)

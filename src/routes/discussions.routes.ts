@@ -5,518 +5,325 @@ import { requireAuth } from '../middlewares/auth.js'
 
 export const router = Router()
 
-// Get all discussions for a course
+// Get discussions for a course
 router.get('/course/:courseId', requireAuth, asyncHandler(async (req, res) => {
-  const userEmail = (req as any).user?.email
-  const userRole = (req as any).user?.role
   const { courseId } = req.params
-  
-  if (!userEmail) {
-    return res.status(401).json({ error: 'Unauthorized' })
-  }
-
-  // Check access permissions
-  if (userRole === 'teacher') {
-    // Teacher can only access their own courses
-    const { data: course, error: courseError } = await supabaseAdmin
-      .from('courses')
-      .select('id')
-      .eq('id', courseId)
-      .eq('teacher_email', userEmail)
-      .single()
-
-    if (courseError || !course) {
-      return res.status(403).json({ error: 'Access denied' })
-    }
-  } else if (userRole === 'student') {
-    // Student must be enrolled in the course
-    const { data: enrollment, error: enrollmentError } = await supabaseAdmin
-      .from('enrollments')
-      .select('id')
-      .eq('course_id', courseId)
-      .eq('student_email', userEmail)
-      .single()
-
-    if (enrollmentError || !enrollment) {
-      return res.status(403).json({ error: 'Access denied' })
-    }
-
-    // Check if teacher allows student discussions
-    const { data: course, error: courseError } = await supabaseAdmin
-      .from('courses')
-      .select('allow_discussions')
-      .eq('id', courseId)
-      .single()
-
-    if (courseError || !course) {
-      return res.status(404).json({ error: 'Course not found' })
-    }
-
-    if (!course.allow_discussions) {
-      return res.status(403).json({ 
-        error: 'discussions_disabled',
-        message: 'The teacher has disabled discussions for this course.'
-      })
-    }
-  }
-
-  // Get discussions with proper ownership filtering and user profile information
-  let discussionsQuery = supabaseAdmin
-    .from('discussions')
-    .select(`
-      *,
-      courses:course_id (
-        title
-      )
-    `)
-    .eq('course_id', courseId)
-    .eq('is_active', true)
-
-  // For teachers, only show discussions they created
-  if (userRole === 'teacher') {
-    discussionsQuery = discussionsQuery.eq('created_by', userEmail)
-  }
-  // For students, show all discussions in courses they're enrolled in (already checked above)
-
-  const { data: discussions, error: discussionsError } = await discussionsQuery
-    .order('created_at', { ascending: false })
-
-  // Get user profile information for discussion creators
-  const discussionsWithProfiles = await Promise.all((discussions || []).map(async (discussion) => {
-    const { data: creatorProfile } = await supabaseAdmin
-      .from('user_profiles')
-      .select('first_name, last_name, email')
-      .eq('email', discussion.created_by)
-      .single()
-
-    return {
-      ...discussion,
-      createdAt: discussion.created_at,
-      isActive: discussion.is_active,
-      createdBy: discussion.created_by,
-      creator_name: creatorProfile ? `${creatorProfile.first_name} ${creatorProfile.last_name}` : discussion.created_by,
-      creator_email: discussion.created_by
-    }
-  }))
-
-  if (discussionsError) {
-    return res.status(500).json({ error: discussionsError.message })
-  }
-
-  res.json({ items: discussionsWithProfiles || [] })
-}))
-
-// Create a new discussion (teacher only)
-router.post('/', requireAuth, asyncHandler(async (req, res) => {
   const userEmail = (req as any).user?.email
   const userRole = (req as any).user?.role
-  
-  if (!userEmail || userRole !== 'teacher') {
-    return res.status(401).json({ error: 'Unauthorized' })
+
+  try {
+    // Check if user has access to this course
+    if (userRole === 'student') {
+      // Check if student is enrolled in this course
+      const { data: enrollment, error: enrollmentError } = await supabaseAdmin
+        .from('enrollments')
+        .select('id')
+        .eq('student_email', userEmail)
+        .eq('course_id', courseId)
+        .eq('status', 'active')
+        .single()
+
+      if (enrollmentError || !enrollment) {
+        return res.status(403).json({ error: 'Access denied - Not enrolled in this course' })
+      }
+    } else if (userRole === 'teacher') {
+      // Check if teacher owns this course
+      const { data: course, error: courseError } = await supabaseAdmin
+        .from('courses')
+        .select('id')
+        .eq('id', courseId)
+        .eq('teacher_email', userEmail)
+        .single()
+
+      if (courseError || !course) {
+        return res.status(403).json({ error: 'Access denied - Not your course' })
+      }
+    }
+
+    // Get discussions for the course
+    const { data: discussions, error } = await supabaseAdmin
+      .from('discussions')
+      .select(`
+        *,
+        courses!inner(
+          id,
+          title,
+          teacher_email,
+          teacher_name
+        )
+      `)
+      .eq('course_id', courseId)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching discussions:', error)
+      return res.status(500).json({ error: 'Failed to fetch discussions' })
+    }
+
+    res.json(discussions || [])
+  } catch (error) {
+    console.error('Error in get course discussions:', error)
+    res.status(500).json({ error: 'Internal server error' })
   }
-
-  const {
-    course_id,
-    lesson_id,
-    title,
-    description,
-    allow_student_posts,
-    require_approval
-  } = req.body
-
-  if (!course_id || !title) {
-    return res.status(400).json({ error: 'course_id and title are required' })
-  }
-
-  // Check if teacher owns the course
-  const { data: course, error: courseError } = await supabaseAdmin
-    .from('courses')
-    .select('id')
-    .eq('id', course_id)
-    .eq('teacher_email', userEmail)
-    .single()
-
-  if (courseError || !course) {
-    return res.status(403).json({ error: 'Access denied' })
-  }
-
-  // Create discussion
-  const { data: discussion, error: discussionError } = await supabaseAdmin
-    .from('discussions')
-    .insert({
-      course_id,
-      lesson_id,
-      title,
-      description,
-      allow_student_posts: allow_student_posts !== undefined ? allow_student_posts : true,
-      require_approval: require_approval || false,
-      created_by: userEmail
-    })
-    .select()
-    .single()
-
-  if (discussionError) {
-    return res.status(500).json({ error: discussionError.message })
-  }
-
-  res.status(201).json(discussion)
 }))
 
 // Get a specific discussion with posts
 router.get('/:discussionId', requireAuth, asyncHandler(async (req, res) => {
+  const { discussionId } = req.params
   const userEmail = (req as any).user?.email
   const userRole = (req as any).user?.role
-  const { discussionId } = req.params
-  
-  if (!userEmail) {
-    return res.status(401).json({ error: 'Unauthorized' })
-  }
 
-  // Get discussion
-  const { data: discussion, error: discussionError } = await supabaseAdmin
-    .from('discussions')
-    .select('*')
-    .eq('id', discussionId)
-    .single()
-
-  if (discussionError || !discussion) {
-    return res.status(404).json({ error: 'Discussion not found' })
-  }
-
-  // Check access permissions
-  if (userRole === 'teacher') {
-    // Teacher can only access their own discussions
-    if (discussion.created_by !== userEmail) {
-      return res.status(403).json({ error: 'Access denied' })
-    }
-  } else if (userRole === 'student') {
-    // Student must be enrolled in the course
-    const { data: enrollment, error: enrollmentError } = await supabaseAdmin
-      .from('enrollments')
-      .select('id')
-      .eq('course_id', discussion.course_id)
-      .eq('student_email', userEmail)
+  try {
+    // Get discussion details
+    const { data: discussion, error: discussionError } = await supabaseAdmin
+      .from('discussions')
+      .select(`
+        *,
+        courses!inner(
+          id,
+          title,
+          teacher_email,
+          teacher_name
+        )
+      `)
+      .eq('id', discussionId)
       .single()
 
-    if (enrollmentError || !enrollment) {
-      return res.status(403).json({ error: 'Access denied' })
+    if (discussionError || !discussion) {
+      return res.status(404).json({ error: 'Discussion not found' })
     }
-  }
 
-  // Get posts with user profile information
-  let postsQuery = supabaseAdmin
-    .from('discussion_posts')
-    .select('*')
-    .eq('discussion_id', discussionId)
-    .order('created_at', { ascending: true })
+    // Check access permissions
+    if (userRole === 'student') {
+      const { data: enrollment, error: enrollmentError } = await supabaseAdmin
+        .from('enrollments')
+        .select('id')
+        .eq('student_email', userEmail)
+        .eq('course_id', discussion.course_id)
+        .eq('status', 'active')
+        .single()
 
-  // Students can only see approved posts
-  if (userRole === 'student') {
-    postsQuery = postsQuery.eq('is_approved', true)
-  }
-
-  const { data: posts, error: postsError } = await postsQuery
-
-  if (postsError) {
-    return res.status(500).json({ error: postsError.message })
-  }
-
-  // Get user profile information for post authors
-  const postsWithProfiles = await Promise.all((posts || []).map(async (post) => {
-    const { data: authorProfile } = await supabaseAdmin
-      .from('user_profiles')
-      .select('first_name, last_name, email')
-      .eq('email', post.author_email)
-      .single()
-
-    return {
-      ...post,
-      createdAt: post.created_at,
-      isApproved: post.is_approved,
-      author_name: authorProfile ? `${authorProfile.first_name} ${authorProfile.last_name}` : post.author_email,
-      author_email: post.author_email
+      if (enrollmentError || !enrollment) {
+        return res.status(403).json({ error: 'Access denied - Not enrolled in this course' })
+      }
+    } else if (userRole === 'teacher') {
+      if (discussion.courses.teacher_email !== userEmail) {
+        return res.status(403).json({ error: 'Access denied - Not your course' })
+      }
     }
-  }))
 
-  // Get creator profile for discussion
-  const { data: creatorProfile } = await supabaseAdmin
-    .from('user_profiles')
-    .select('first_name, last_name, email')
-    .eq('email', discussion.created_by)
-    .single()
+    // Get posts for this discussion
+    const { data: posts, error: postsError } = await supabaseAdmin
+      .from('discussion_posts')
+      .select(`
+        *,
+        students!inner(
+          id,
+          first_name,
+          last_name,
+          email
+        )
+      `)
+      .eq('discussion_id', discussionId)
+      .eq('is_approved', true)
+      .order('created_at', { ascending: true })
 
-  const discussionWithProfile = {
-    ...discussion,
-    creator_name: creatorProfile ? `${creatorProfile.first_name} ${creatorProfile.last_name}` : discussion.created_by,
-    creator_email: discussion.created_by
+    if (postsError) {
+      console.error('Error fetching discussion posts:', postsError)
+      return res.status(500).json({ error: 'Failed to fetch discussion posts' })
+    }
+
+    res.json({
+      discussion,
+      posts: posts || []
+    })
+  } catch (error) {
+    console.error('Error in get discussion:', error)
+    res.status(500).json({ error: 'Internal server error' })
   }
-
-  const result = {
-    discussion: discussionWithProfile,
-    posts: postsWithProfiles || []
-  }
-
-  res.json(result)
 }))
 
-// Create a discussion post
+// Create a new discussion post
 router.post('/:discussionId/posts', requireAuth, asyncHandler(async (req, res) => {
+  const { discussionId } = req.params
+  const { content } = req.body
   const userEmail = (req as any).user?.email
   const userRole = (req as any).user?.role
-  const { discussionId } = req.params
-  const { content, parent_post_id } = req.body
-  
-  if (!userEmail || !content) {
-    return res.status(400).json({ error: 'content is required' })
+
+  if (!content || !content.trim()) {
+    return res.status(400).json({ error: 'Content is required' })
   }
 
-  // Get discussion
-  const { data: discussion, error: discussionError } = await supabaseAdmin
-    .from('discussions')
-    .select('*')
-    .eq('id', discussionId)
-    .single()
-
-  if (discussionError || !discussion) {
-    return res.status(404).json({ error: 'Discussion not found' })
-  }
-
-  // Check access permissions
-  if (userRole === 'teacher') {
-    // Teacher can only post in their own discussions
-    if (discussion.created_by !== userEmail) {
-      return res.status(403).json({ error: 'Access denied' })
-    }
-  } else if (userRole === 'student') {
-    // Student must be enrolled in the course
-    const { data: enrollment, error: enrollmentError } = await supabaseAdmin
-      .from('enrollments')
-      .select('id')
-      .eq('course_id', discussion.course_id)
-      .eq('student_email', userEmail)
+  try {
+    // Get discussion details to check access
+    const { data: discussion, error: discussionError } = await supabaseAdmin
+      .from('discussions')
+      .select(`
+        *,
+        courses!inner(
+          id,
+          teacher_email
+        )
+      `)
+      .eq('id', discussionId)
       .single()
 
-    if (enrollmentError || !enrollment) {
-      return res.status(403).json({ error: 'Not enrolled in this course' })
+    if (discussionError || !discussion) {
+      return res.status(404).json({ error: 'Discussion not found' })
     }
 
-    // Check if students are allowed to post
-    if (!discussion.allow_student_posts) {
-      return res.status(403).json({ error: 'Students are not allowed to post in this discussion' })
+    // Check access permissions
+    if (userRole === 'student') {
+      const { data: enrollment, error: enrollmentError } = await supabaseAdmin
+        .from('enrollments')
+        .select('id')
+        .eq('student_email', userEmail)
+        .eq('course_id', discussion.course_id)
+        .eq('status', 'active')
+        .single()
+
+      if (enrollmentError || !enrollment) {
+        return res.status(403).json({ error: 'Access denied - Not enrolled in this course' })
+      }
+    } else if (userRole === 'teacher') {
+      if (discussion.courses.teacher_email !== userEmail) {
+        return res.status(403).json({ error: 'Access denied - Not your course' })
+      }
     }
-  }
 
-  // Create post
-  const { data: post, error: postError } = await supabaseAdmin
-    .from('discussion_posts')
-    .insert({
-      discussion_id: discussionId,
-      author_email: userEmail,
-      author_role: userRole,
-      content,
-      parent_post_id,
-      is_approved: userRole === 'teacher' || !discussion.require_approval
-    })
-    .select()
-    .single()
+    // Get student details for the post
+    const { data: student, error: studentError } = await supabaseAdmin
+      .from('students')
+      .select('id, first_name, last_name')
+      .eq('email', userEmail)
+      .single()
 
-  if (postError) {
-    return res.status(500).json({ error: postError.message })
-  }
+    if (studentError || !student) {
+      return res.status(404).json({ error: 'Student profile not found' })
+    }
 
-  // Record progress for students
-  if (userRole === 'student') {
-    await supabaseAdmin
-      .from('student_progress')
-      .upsert({
-        student_email: userEmail,
-        course_id: discussion.course_id,
-        progress_type: 'discussion_participated',
-        status: 'completed',
-        metadata: { discussion_id: discussionId, post_id: post.id }
-      }, {
-        onConflict: 'student_email,course_id,lesson_id,progress_type'
-      })
-
-    // Log activity
-    await supabaseAdmin
-      .from('student_activities')
+    // Create the post
+    const { data: post, error: postError } = await supabaseAdmin
+      .from('discussion_posts')
       .insert({
-        student_email: userEmail,
-        course_id: discussion.course_id,
-        activity_type: 'discussion_posted',
-        description: 'Posted in discussion',
-        metadata: { discussion_id: discussionId, post_id: post.id }
+        discussion_id: discussionId,
+        student_id: student.id,
+        content: content.trim(),
+        is_approved: userRole === 'teacher' || !discussion.require_approval
       })
-  }
+      .select(`
+        *,
+        students!inner(
+          id,
+          first_name,
+          last_name,
+          email
+        )
+      `)
+      .single()
 
-  res.status(201).json(post)
-}))
-
-// Approve/reject a discussion post (teacher only)
-router.post('/posts/:postId/approve', requireAuth, asyncHandler(async (req, res) => {
-  const userEmail = (req as any).user?.email
-  const userRole = (req as any).user?.role
-  const { postId } = req.params
-  const { is_approved } = req.body
-  
-  if (!userEmail || userRole !== 'teacher') {
-    return res.status(401).json({ error: 'Unauthorized' })
-  }
-
-  // Get post
-  const { data: post, error: postError } = await supabaseAdmin
-    .from('discussion_posts')
-    .select(`
-      *,
-      discussions!inner(
-        id,
-        course_id,
-        created_by
-      )
-    `)
-    .eq('id', postId)
-    .single()
-
-  if (postError || !post) {
-    return res.status(404).json({ error: 'Post not found' })
-  }
-
-  // Check if teacher owns the discussion
-  if (post.discussions.created_by !== userEmail) {
-    return res.status(403).json({ error: 'Access denied' })
-  }
-
-  // Update post approval status
-  const { data: updatedPost, error: updateError } = await supabaseAdmin
-    .from('discussion_posts')
-    .update({
-      is_approved
-    })
-    .eq('id', postId)
-    .select()
-    .single()
-
-  if (updateError) {
-    return res.status(500).json({ error: updateError.message })
-  }
-
-  res.json(updatedPost)
-}))
-
-// Delete a discussion post
-router.delete('/posts/:postId', requireAuth, asyncHandler(async (req, res) => {
-  const userEmail = (req as any).user?.email
-  const userRole = (req as any).user?.role
-  const { postId } = req.params
-  
-  if (!userEmail) {
-    return res.status(401).json({ error: 'Unauthorized' })
-  }
-
-  // Get post
-  const { data: post, error: postError } = await supabaseAdmin
-    .from('discussion_posts')
-    .select(`
-      *,
-      discussions!inner(
-        id,
-        course_id,
-        created_by
-      )
-    `)
-    .eq('id', postId)
-    .single()
-
-  if (postError || !post) {
-    return res.status(404).json({ error: 'Post not found' })
-  }
-
-  // Check permissions
-  if (userRole === 'teacher') {
-    // Teacher can delete any post in their discussion
-    if (post.discussions.created_by !== userEmail) {
-      return res.status(403).json({ error: 'Access denied' })
+    if (postError) {
+      console.error('Error creating discussion post:', postError)
+      return res.status(500).json({ error: 'Failed to create post' })
     }
-  } else if (userRole === 'student') {
-    // Student can only delete their own posts
-    if (post.author_email !== userEmail) {
-      return res.status(403).json({ error: 'Access denied' })
-    }
+
+    res.json(post)
+  } catch (error) {
+    console.error('Error in create discussion post:', error)
+    res.status(500).json({ error: 'Internal server error' })
   }
-
-  // Delete post
-  const { error: deleteError } = await supabaseAdmin
-    .from('discussion_posts')
-    .delete()
-    .eq('id', postId)
-
-  if (deleteError) {
-    return res.status(500).json({ error: deleteError.message })
-  }
-
-  res.json({ success: true })
 }))
 
-// Get discussion statistics (teacher only)
-router.get('/:discussionId/stats', requireAuth, asyncHandler(async (req, res) => {
-  const userEmail = (req as any).user?.email
-  const userRole = (req as any).user?.role
+// Like a discussion
+router.post('/:discussionId/like', requireAuth, asyncHandler(async (req, res) => {
   const { discussionId } = req.params
-  
-  if (!userEmail || userRole !== 'teacher') {
-    return res.status(401).json({ error: 'Unauthorized' })
+  const userEmail = (req as any).user?.email
+  const userRole = (req as any).user?.role
+
+  try {
+    // Check if user has access to this discussion
+    const { data: discussion, error: discussionError } = await supabaseAdmin
+      .from('discussions')
+      .select(`
+        *,
+        courses!inner(
+          id,
+          teacher_email
+        )
+      `)
+      .eq('id', discussionId)
+      .single()
+
+    if (discussionError || !discussion) {
+      return res.status(404).json({ error: 'Discussion not found' })
+    }
+
+    // Check access permissions
+    if (userRole === 'student') {
+      const { data: enrollment, error: enrollmentError } = await supabaseAdmin
+        .from('enrollments')
+        .select('id')
+        .eq('student_email', userEmail)
+        .eq('course_id', discussion.course_id)
+        .eq('status', 'active')
+        .single()
+
+      if (enrollmentError || !enrollment) {
+        return res.status(403).json({ error: 'Access denied - Not enrolled in this course' })
+      }
+    }
+
+    // Get student details
+    const { data: student, error: studentError } = await supabaseAdmin
+      .from('students')
+      .select('id')
+      .eq('email', userEmail)
+      .single()
+
+    if (studentError || !student) {
+      return res.status(404).json({ error: 'Student profile not found' })
+    }
+
+    // Check if already liked
+    const { data: existingLike, error: likeError } = await supabaseAdmin
+      .from('discussion_likes')
+      .select('id')
+      .eq('discussion_id', discussionId)
+      .eq('student_id', student.id)
+      .single()
+
+    if (existingLike) {
+      // Unlike
+      const { error: deleteError } = await supabaseAdmin
+        .from('discussion_likes')
+        .delete()
+        .eq('id', existingLike.id)
+
+      if (deleteError) {
+        console.error('Error removing like:', deleteError)
+        return res.status(500).json({ error: 'Failed to remove like' })
+      }
+
+      res.json({ liked: false })
+    } else {
+      // Like
+      const { error: insertError } = await supabaseAdmin
+        .from('discussion_likes')
+        .insert({
+          discussion_id: discussionId,
+          student_id: student.id
+        })
+
+      if (insertError) {
+        console.error('Error adding like:', insertError)
+        return res.status(500).json({ error: 'Failed to add like' })
+      }
+
+      res.json({ liked: true })
+    }
+  } catch (error) {
+    console.error('Error in like discussion:', error)
+    res.status(500).json({ error: 'Internal server error' })
   }
-
-  // Get discussion
-  const { data: discussion, error: discussionError } = await supabaseAdmin
-    .from('discussions')
-    .select('*')
-    .eq('id', discussionId)
-    .single()
-
-  if (discussionError || !discussion) {
-    return res.status(404).json({ error: 'Discussion not found' })
-  }
-
-  // Check if teacher owns the discussion
-  if (discussion.created_by !== userEmail) {
-    return res.status(403).json({ error: 'Access denied' })
-  }
-
-  // Get all posts for this discussion
-  const { data: posts, error: postsError } = await supabaseAdmin
-    .from('discussion_posts')
-    .select('*')
-    .eq('discussion_id', discussionId)
-
-  if (postsError) {
-    return res.status(500).json({ error: postsError.message })
-  }
-
-  // Calculate statistics
-  const totalPosts = posts?.length || 0
-  const approvedPosts = posts?.filter(p => p.is_approved).length || 0
-  const pendingPosts = posts?.filter(p => !p.is_approved).length || 0
-  const teacherPosts = posts?.filter(p => p.author_role === 'teacher').length || 0
-  const studentPosts = posts?.filter(p => p.author_role === 'student').length || 0
-
-  // Get unique participants
-  const participants = [...new Set(posts?.map(p => p.author_email) || [])]
-  const uniqueParticipants = participants.length
-
-  const stats = {
-    discussion,
-    total_posts: totalPosts,
-    approved_posts: approvedPosts,
-    pending_posts: pendingPosts,
-    teacher_posts: teacherPosts,
-    student_posts: studentPosts,
-    unique_participants: uniqueParticipants,
-    participation_rate: uniqueParticipants > 0 ? Math.round((uniqueParticipants / 100) * 100) : 0
-  }
-
-  res.json(stats)
 }))
-
-export default router
