@@ -184,3 +184,109 @@ router.get('/', requireAuth, asyncHandler(async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch certificates' });
   }
 }));
+
+// POST generate certificate for a student
+router.post('/generate', requireAuth, asyncHandler(async (req, res) => {
+  const { courseId, studentEmail } = req.body;
+  const userEmail = (req as any).user?.email;
+  const userRole = (req as any).user?.role;
+
+  if (!courseId) {
+    return res.status(400).json({ error: 'courseId is required' });
+  }
+
+  // Use current user's email if studentEmail is 'auto' or not provided
+  const targetStudentEmail = studentEmail === 'auto' ? userEmail : studentEmail;
+
+  try {
+    // Check if student is enrolled in the course
+    const { data: enrollment, error: enrollmentError } = await supabaseAdmin
+      .from('enrollments')
+      .select('id, course_id, student_email')
+      .eq('course_id', courseId)
+      .eq('student_email', targetStudentEmail)
+      .single();
+
+    if (enrollmentError || !enrollment) {
+      return res.status(404).json({ error: 'Student not enrolled in this course' });
+    }
+
+    // Check if student has completed the course
+    const { data: progress, error: progressError } = await supabaseAdmin
+      .from('student_course_progress')
+      .select('completion_percentage')
+      .eq('course_id', courseId)
+      .eq('student_email', targetStudentEmail)
+      .single();
+
+    if (progressError || !progress || progress.completion_percentage < 100) {
+      return res.status(400).json({ error: 'Student has not completed the course' });
+    }
+
+    // Check if certificate already exists
+    const { data: existingCert, error: existingError } = await supabaseAdmin
+      .from('certificates')
+      .select('id')
+      .eq('course_id', courseId)
+      .eq('student_email', targetStudentEmail)
+      .single();
+
+    if (existingCert) {
+      return res.status(400).json({ error: 'Certificate already exists for this student' });
+    }
+
+    // Get course details
+    const { data: course, error: courseError } = await supabaseAdmin
+      .from('courses')
+      .select('id, title, teacher_email, certificate_config')
+      .eq('id', courseId)
+      .single();
+
+    if (courseError || !course) {
+      return res.status(404).json({ error: 'Course not found' });
+    }
+
+    // Check if certificates are enabled for this course
+    if (!course.certificate_config?.enabled) {
+      return res.status(400).json({ error: 'Certificates are not enabled for this course' });
+    }
+
+    // Get student details
+    const { data: student, error: studentError } = await supabaseAdmin
+      .from('students')
+      .select('id, first_name, last_name, email')
+      .eq('email', targetStudentEmail)
+      .single();
+
+    if (studentError || !student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    // Generate certificate
+    const certificateData = {
+      course_id: courseId,
+      student_email: targetStudentEmail,
+      student_name: `${student.first_name} ${student.last_name}`,
+      course_title: course.title,
+      completion_date: new Date().toISOString(),
+      certificate_config: course.certificate_config,
+      status: 'issued'
+    };
+
+    const { data: certificate, error: certError } = await supabaseAdmin
+      .from('certificates')
+      .insert(certificateData)
+      .select()
+      .single();
+
+    if (certError) {
+      console.error('Error creating certificate:', certError);
+      return res.status(500).json({ error: 'Failed to generate certificate' });
+    }
+
+    res.json(certificate);
+  } catch (error) {
+    console.error('Error generating certificate:', error);
+    res.status(500).json({ error: 'Failed to generate certificate' });
+  }
+}));
