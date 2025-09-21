@@ -30,8 +30,8 @@ import { router as certificateRoutes } from './certificates.routes.js'
 import { router as bulkCoursesRoutes } from './bulk-courses.routes.js'
 import { router as messagesRoutes } from './messages.routes.js'
 import recordingsRoutes from './recordings.routes.js'
-import { router as classworkRoutes } from './classwork.routes.js'
-import { router as studentActivityRoutes } from './student-activity.routes.js'
+import { router as classworkRoutes } from './classwork.routes'
+import { router as studentActivityRoutes } from './student-activity.routes'
 
 export const router = Router()
 
