@@ -89,6 +89,8 @@ const allowedOrigins = [
   process.env.FRONTEND_URL || 'https://yourdomain.com',
   'https://auraiumlms-ten.vercel.app', // Vercel deployment
   'https://auraiumlms.vercel.app', // Alternative Vercel URL
+  'https://auraiumlms-fe.vercel.app', // Additional Vercel URL
+  'https://auraiumlms-frontend.vercel.app', // Additional Vercel URL
   'http://localhost:3000', 
   'http://localhost:3001', 
   'http://127.0.0.1:3000',
@@ -97,23 +99,36 @@ const allowedOrigins = [
 
 const corsOptions = {
   origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
+    // Log all origins for debugging
+    console.log('CORS request from origin:', origin)
+    
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) {
+      console.log('CORS: Allowing request with no origin')
       return callback(null, true)
     }
     
     // Check if origin is in allowed origins
     if (allowedOrigins.indexOf(origin) !== -1) {
+      console.log('CORS: Allowing request from allowed origin:', origin)
       return callback(null, true)
     } 
     
     // Allow Vercel domains (always)
     if (origin && origin.endsWith('.vercel.app')) {
+      console.log('CORS: Allowing Vercel domain:', origin)
       return callback(null, true)
     }
     
     // Allow localhost in development
     if (origin && (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:'))) {
+      console.log('CORS: Allowing localhost:', origin)
+      return callback(null, true)
+    }
+    
+    // In development, be more permissive
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('CORS: Development mode - allowing origin:', origin)
       return callback(null, true)
     }
     
