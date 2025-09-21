@@ -1212,4 +1212,120 @@ async function checkCourseCompletion(studentEmail: string, courseId: string) {
   }
 }
 
+// Record course completion
+router.post('/course-completed', requireAuth, async (req, res) => {
+  try {
+    const { user } = req;
+    const { courseId, courseTitle, completionPercentage, timeSpentSeconds = 0 } = req.body;
+
+    if (!user || user.role !== 'student') {
+      return res.status(403).json({ error: 'Access denied. Students only.' });
+    }
+
+    if (!courseId || !courseTitle) {
+      return res.status(400).json({ error: 'Course ID and Course Title are required' });
+    }
+
+    // Check if course is already completed
+    const { data: existing } = await supabaseAdmin
+      .from('student_progress')
+      .select('id')
+      .eq('student_email', user.email)
+      .eq('course_id', courseId)
+      .eq('type', 'course_completed')
+      .single();
+
+    if (existing) {
+      return res.status(200).json({ 
+        message: 'Course already completed', 
+        courseCompletion: { id: existing.id }
+      });
+    }
+
+    // Record course completion
+    const { data: progress, error } = await supabaseAdmin
+      .from('student_progress')
+      .insert({
+        student_email: user.email,
+        course_id: courseId,
+        type: 'course_completed',
+        status: 'completed',
+        score: completionPercentage,
+        time_spent_seconds: timeSpentSeconds,
+        metadata: {
+          course_title: courseTitle,
+          completion_percentage: completionPercentage,
+          completed_at: new Date().toISOString()
+        }
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    // Update course progress table
+    await supabaseAdmin
+      .from('student_course_progress')
+      .upsert({
+        student_email: user.email,
+        course_id: courseId,
+        completion_percentage: completionPercentage,
+        completed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+
+    // Record activity
+    await supabaseAdmin
+      .from('student_activities')
+      .insert({
+        student_email: user.email,
+        course_id: courseId,
+        activity_type: 'course_completed',
+        description: `Completed course: ${courseTitle}`,
+        metadata: {
+          course_title: courseTitle,
+          completion_percentage: completionPercentage,
+          completed_at: new Date().toISOString()
+        }
+      });
+
+    // Send notification to teacher
+    try {
+      const { data: courseData } = await supabaseAdmin
+        .from('courses')
+        .select('teacher_email, title')
+        .eq('id', courseId)
+        .single();
+
+      if (courseData?.teacher_email) {
+        await NotificationService.sendNotification({
+          user_email: courseData.teacher_email,
+          user_type: 'teacher',
+          type: 'course_completion',
+          title: 'Student Completed Course',
+          message: `${user.email} has successfully completed your course "${courseData.title}".`,
+          data: {
+            student_email: user.email,
+            course_title: courseData.title,
+            course_id: courseId,
+            completion_date: new Date().toISOString()
+          }
+        });
+      }
+    } catch (notifError) {
+      console.error('Error sending completion notification:', notifError);
+      // Don't fail the request if notification fails
+    }
+
+    res.json({ 
+      message: 'Course completed successfully', 
+      courseCompletion: progress 
+    });
+
+  } catch (error) {
+    console.error('Error recording course completion:', error);
+    res.status(500).json({ error: 'Failed to record course completion' });
+  }
+});
+
 export default router;
