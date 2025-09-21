@@ -388,6 +388,94 @@ router.post('/poll-participation', requireAuth, async (req, res) => {
   }
 });
 
+// Record course completion
+router.post('/course-completed', requireAuth, async (req, res) => {
+  try {
+    const { user } = req;
+    const { courseId, courseTitle, completionPercentage = 100, timeSpentSeconds = 0 } = req.body;
+
+    if (!user || user.role !== 'student') {
+      return res.status(403).json({ error: 'Access denied. Students only.' });
+    }
+
+    if (!courseId) {
+      return res.status(400).json({ error: 'Course ID is required' });
+    }
+
+    // Check if course is already completed
+    const { data: existingCompletion, error: checkError } = await supabaseAdmin
+      .from('student_course_progress')
+      .select('*')
+      .eq('student_email', user.email)
+      .eq('course_id', courseId)
+      .single();
+
+    if (checkError && checkError.code !== 'PGRST116') throw checkError;
+
+    if (existingCompletion?.completion_percentage === 100) {
+      return res.status(200).json({ 
+        message: 'Course already completed', 
+        completion: existingCompletion 
+      });
+    }
+
+    // Update course completion to 100%
+    const { data: completion, error: updateError } = await supabaseAdmin
+      .from('student_course_progress')
+      .update({
+        completion_percentage: 100,
+        completed_at: new Date().toISOString(),
+        last_activity_at: new Date().toISOString()
+      })
+      .eq('student_email', user.email)
+      .eq('course_id', courseId)
+      .select()
+      .single();
+
+    if (updateError) throw updateError;
+
+    // Create course completion notification
+    await supabaseAdmin
+      .from('notifications')
+      .insert({
+        user_email: user.email,
+        type: 'course_completion',
+        title: 'Course Completed! 🎉',
+        message: `Congratulations! You have successfully completed "${courseTitle}". Your certificate is now available.`,
+        course_id: courseId,
+        read: false,
+        metadata: {
+          course_title: courseTitle,
+          completion_percentage: 100,
+          completed_at: new Date().toISOString()
+        }
+      });
+
+    // Record activity
+    await supabaseAdmin
+      .from('student_activities')
+      .insert({
+        student_email: user.email,
+        course_id: courseId,
+        activity_type: 'course_completion',
+        description: `Successfully completed course: "${courseTitle}"`,
+        metadata: {
+          course_title: courseTitle,
+          completion_percentage: 100,
+          time_spent_seconds: timeSpentSeconds
+        }
+      });
+
+    res.json({ 
+      message: 'Course completed successfully! Your certificate is now available.', 
+      completion 
+    });
+  } catch (error) {
+    console.error('Error recording course completion:', error);
+    res.status(500).json({ error: 'Failed to record course completion' });
+  }
+});
+
 // Get teacher's student progress dashboard
 router.get('/teacher/dashboard', requireAuth, async (req, res) => {
   try {
@@ -862,6 +950,94 @@ router.get('/:studentCode/course/:courseId/progress', requireAuth, async (req, r
       .eq('course_id', courseId)
       .single();
 
+      // Record course completion
+router.post('/course-completed', requireAuth, async (req, res) => {
+  try {
+    const { user } = req;
+    const { courseId, courseTitle, completionPercentage = 100, timeSpentSeconds = 0 } = req.body;
+
+    if (!user || user.role !== 'student') {
+      return res.status(403).json({ error: 'Access denied. Students only.' });
+    }
+
+    if (!courseId) {
+      return res.status(400).json({ error: 'Course ID is required' });
+    }
+
+    // Check if course is already completed
+    const { data: existingCompletion, error: checkError } = await supabaseAdmin
+      .from('student_course_progress')
+      .select('*')
+      .eq('student_email', user.email)
+      .eq('course_id', courseId)
+      .single();
+
+    if (checkError && checkError.code !== 'PGRST116') throw checkError;
+
+    if (existingCompletion?.completion_percentage === 100) {
+      return res.status(200).json({ 
+        message: 'Course already completed', 
+        completion: existingCompletion 
+      });
+    }
+
+    // Update course completion to 100%
+    const { data: completion, error: updateError } = await supabaseAdmin
+      .from('student_course_progress')
+      .update({
+        completion_percentage: 100,
+        completed_at: new Date().toISOString(),
+        last_activity_at: new Date().toISOString()
+      })
+      .eq('student_email', user.email)
+      .eq('course_id', courseId)
+      .select()
+      .single();
+
+    if (updateError) throw updateError;
+
+    // Create course completion notification
+    await supabaseAdmin
+      .from('notifications')
+      .insert({
+        user_email: user.email,
+        type: 'course_completion',
+        title: 'Course Completed! 🎉',
+        message: `Congratulations! You have successfully completed "${courseTitle}". Your certificate is now available.`,
+        course_id: courseId,
+        read: false,
+        metadata: {
+          course_title: courseTitle,
+          completion_percentage: 100,
+          completed_at: new Date().toISOString()
+        }
+      });
+
+    // Record activity
+    await supabaseAdmin
+      .from('student_activities')
+      .insert({
+        student_email: user.email,
+        course_id: courseId,
+        activity_type: 'course_completion',
+        description: `Successfully completed course: "${courseTitle}"`,
+        metadata: {
+          course_title: courseTitle,
+          completion_percentage: 100,
+          time_spent_seconds: timeSpentSeconds
+        }
+      });
+
+    res.json({ 
+      message: 'Course completed successfully! Your certificate is now available.', 
+      completion 
+    });
+  } catch (error) {
+    console.error('Error recording course completion:', error);
+    res.status(500).json({ error: 'Failed to record course completion' });
+  }
+});
+
     if (completionError && completionError.code !== 'PGRST116') throw completionError;
 
     // Get module completions
@@ -1211,121 +1387,5 @@ async function checkCourseCompletion(studentEmail: string, courseId: string) {
     console.error('Error checking course completion:', error);
   }
 }
-
-// Record course completion
-router.post('/course-completed', requireAuth, async (req, res) => {
-  try {
-    const { user } = req;
-    const { courseId, courseTitle, completionPercentage, timeSpentSeconds = 0 } = req.body;
-
-    if (!user || user.role !== 'student') {
-      return res.status(403).json({ error: 'Access denied. Students only.' });
-    }
-
-    if (!courseId || !courseTitle) {
-      return res.status(400).json({ error: 'Course ID and Course Title are required' });
-    }
-
-    // Check if course is already completed
-    const { data: existing } = await supabaseAdmin
-      .from('student_progress')
-      .select('id')
-      .eq('student_email', user.email)
-      .eq('course_id', courseId)
-      .eq('type', 'course_completed')
-      .single();
-
-    if (existing) {
-      return res.status(200).json({ 
-        message: 'Course already completed', 
-        courseCompletion: { id: existing.id }
-      });
-    }
-
-    // Record course completion
-    const { data: progress, error } = await supabaseAdmin
-      .from('student_progress')
-      .insert({
-        student_email: user.email,
-        course_id: courseId,
-        type: 'course_completed',
-        status: 'completed',
-        score: completionPercentage,
-        time_spent_seconds: timeSpentSeconds,
-        metadata: {
-          course_title: courseTitle,
-          completion_percentage: completionPercentage,
-          completed_at: new Date().toISOString()
-        }
-      })
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    // Update course progress table
-    await supabaseAdmin
-      .from('student_course_progress')
-      .upsert({
-        student_email: user.email,
-        course_id: courseId,
-        completion_percentage: completionPercentage,
-        completed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      });
-
-    // Record activity
-    await supabaseAdmin
-      .from('student_activities')
-      .insert({
-        student_email: user.email,
-        course_id: courseId,
-        activity_type: 'course_completed',
-        description: `Completed course: ${courseTitle}`,
-        metadata: {
-          course_title: courseTitle,
-          completion_percentage: completionPercentage,
-          completed_at: new Date().toISOString()
-        }
-      });
-
-    // Send notification to teacher
-    try {
-      const { data: courseData } = await supabaseAdmin
-        .from('courses')
-        .select('teacher_email, title')
-        .eq('id', courseId)
-        .single();
-
-      if (courseData?.teacher_email) {
-        await NotificationService.sendNotification({
-          user_email: courseData.teacher_email,
-          user_type: 'teacher',
-          type: 'course_completion',
-          title: 'Student Completed Course',
-          message: `${user.email} has successfully completed your course "${courseData.title}".`,
-          data: {
-            student_email: user.email,
-            course_title: courseData.title,
-            course_id: courseId,
-            completion_date: new Date().toISOString()
-          }
-        });
-      }
-    } catch (notifError) {
-      console.error('Error sending completion notification:', notifError);
-      // Don't fail the request if notification fails
-    }
-
-    res.json({ 
-      message: 'Course completed successfully', 
-      courseCompletion: progress 
-    });
-
-  } catch (error) {
-    console.error('Error recording course completion:', error);
-    res.status(500).json({ error: 'Failed to record course completion' });
-  }
-});
 
 export default router;
