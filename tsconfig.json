@@ -4,17 +4,15 @@
     "module": "CommonJS",
     "moduleResolution": "Node",
     "outDir": "dist",
-    "rootDir": ".",
-    "allowJs": true,
-    "checkJs": true,
-    "strict": false,
+    "rootDir": "src",
+    "allowJs": false,
+    "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
-    "noImplicitAny": false,
+    "noImplicitAny": true,
     "allowImportingTsExtensions": false,
-    "noEmit": false,
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]
@@ -23,4 +21,3 @@
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules"]
 }
-

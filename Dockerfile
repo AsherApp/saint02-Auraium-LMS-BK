@@ -11,7 +11,7 @@ RUN npm install
 # Copy the rest of the application code
 COPY . .
 
-# Build the TypeScript code (transpile to JavaScript)
+# Build the TypeScript code transpile to JavaScript
 RUN npm run build 
 
 # Expose 
