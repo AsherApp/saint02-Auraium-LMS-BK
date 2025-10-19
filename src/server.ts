@@ -17,38 +17,53 @@ const app = express()
 
 // Health check endpoint - MUST be first to avoid middleware interference
 app.get('/health', (req, res) => {
-  console.log('Health check requested from:', req.ip, req.headers['user-agent'])
-  
-  // Simple health check response
-  const healthData = {
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    environment: process.env.NODE_ENV || 'development',
-    port: process.env.PORT || 4000,
-    version: '1.0.0'
+  try {
+    const healthData = {
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: process.env.NODE_ENV || 'development',
+      port: process.env.PORT || 4000,
+      version: '1.0.0',
+      memory: process.memoryUsage(),
+      pid: process.pid
+    }
+    
+    res.status(200).json(healthData)
+  } catch (error) {
+    console.error('Health check error:', error)
+    res.status(500).json({
+      status: 'unhealthy',
+      timestamp: new Date().toISOString(),
+      error: error instanceof Error ? error.message : 'Unknown error'
+    })
   }
-  
-  console.log('Health check response:', healthData)
-  res.status(200).json(healthData)
 })
 
 // Simple readiness check
 app.get('/ready', (req, res) => {
-  console.log('Readiness check requested')
-  res.status(200).json({ 
-    ready: true,
-    timestamp: new Date().toISOString()
-  })
+  try {
+    res.status(200).json({ 
+      ready: true,
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime()
+    })
+  } catch (error) {
+    res.status(503).json({
+      ready: false,
+      timestamp: new Date().toISOString(),
+      error: error instanceof Error ? error.message : 'Unknown error'
+    })
+  }
 })
 
 // Simple root endpoint for debugging
 app.get('/', (req, res) => {
-  console.log('Root endpoint requested from:', req.ip)
   res.json({ 
     message: 'Auraium LMS Backend API',
     status: 'running',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    version: '1.0.0'
   })
 })
 
@@ -176,12 +191,6 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   next(err)
 })
 
-// Health check endpoint
-app.get('/health', (_req, res) => res.json({ 
-  ok: true, 
-  timestamp: new Date().toISOString(),
-  environment: process.env.NODE_ENV || 'development'
-}))
 
 // Serve uploaded files with security headers
 app.get('/uploads/:filename', (req, res) => {
