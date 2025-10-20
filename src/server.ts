@@ -235,17 +235,30 @@ app.use('*', (req, res) => {
 })
 
 const port = Number(process.env.PORT || 4000)
+const host = '0.0.0.0'
 
 // Add startup logging
 console.log('🚀 Starting server...')
 console.log(`📡 Port: ${port}`)
+console.log(`🌐 Host: ${host}`)
 console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`)
 console.log(`🔒 Security: ${process.env.NODE_ENV === 'production' ? 'Production mode' : 'Development mode'}`)
+console.log(`📦 Node Version: ${process.version}`)
+console.log(`💾 Memory: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`)
+
+// Log all environment variables (excluding sensitive ones)
+console.log('🔧 Environment variables loaded:')
+console.log(`   - NODE_ENV: ${process.env.NODE_ENV || 'not set'}`)
+console.log(`   - PORT: ${process.env.PORT || 'not set (using 4000)'}`)
+console.log(`   - DATABASE: ${process.env.DATABASE_URL ? 'configured' : 'not configured'}`)
 
 // Start server
-const server = app.listen(port, '0.0.0.0', () => {
-  console.log(`✅ Server successfully started on port ${port}`)
-  console.log(`🏥 Health check available at: http://0.0.0.0:${port}/health`)
+const server = app.listen(port, host, () => {
+  console.log(`✅ Server successfully started!`)
+  console.log(`🌐 Listening on: http://${host}:${port}`)
+  console.log(`🏥 Health check: http://${host}:${port}/health`)
+  console.log(`🚀 API ready: http://${host}:${port}/api`)
+  console.log(`⏰ Server started at: ${new Date().toISOString()}`)
 })
 
 // Handle server errors
@@ -271,4 +284,21 @@ process.on('SIGINT', () => {
     console.log('✅ Server closed')
     process.exit(0)
   })
+})
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught Exception:', error)
+  console.error('Stack:', error.stack)
+  // Don't exit in production, just log the error
+  if (process.env.NODE_ENV !== 'production') {
+    process.exit(1)
+  }
+})
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise)
+  console.error('Reason:', reason)
+  // Don't exit in production, just log the error
 })

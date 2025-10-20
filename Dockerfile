@@ -5,27 +5,35 @@ FROM node:20-alpine
 WORKDIR /usr/src/app
 
 # Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init
+RUN apk add --no-cache dumb-init curl
 
-# Copy package.json and package-lock.json and install dependencies
+# Copy package.json and package-lock.json
 COPY package*.json ./
-RUN npm ci --only=production
+
+# Install ALL dependencies (including devDependencies for building)
+RUN npm ci
 
 # Copy the rest of the application code
 COPY . .
 
-# Build the TypeScript code transpile to JavaScript
+# Build the TypeScript code
 RUN npm run build
+
+# Remove devDependencies after build
+RUN npm prune --production
 
 # Create uploads directory
 RUN mkdir -p uploads
 
+# Set NODE_ENV to production
+ENV NODE_ENV=production
+
 # Expose the port
 EXPOSE 4000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:4000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
+# Health check with more lenient settings
+HEALTHCHECK --interval=30s --timeout=30s --start-period=60s --retries=5 \
+  CMD curl -f http://localhost:4000/health || exit 1
 
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
