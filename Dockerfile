@@ -39,4 +39,4 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=60s --retries=5 \
 ENTRYPOINT ["dumb-init", "--"]
 
 # Define the command to run your compiled JavaScript application
-CMD ["node", "dist/src/server.js"]
+CMD ["node", "dist/server.js"]
