@@ -5,13 +5,19 @@ import helmet from 'helmet'
 import path from 'path'
 import fs from 'fs'
 import rateLimit from 'express-rate-limit'
+import http from 'http'
+import { Server } from 'socket.io'
 import { router } from './routes/index.js'
-import { 
-  securityMiddleware, 
-  preventParameterPollution, 
+import {
+  securityMiddleware,
+  preventParameterPollution,
   logSecurityEvent,
-  preventBruteForce 
+  preventBruteForce
 } from './middlewares/security.js'
+import { ChatService } from './services/chat.service.js'
+import { AttendanceService } from './services/attendance.service.js'
+import { ParticipantService } from './services/participant.service.js'
+import { setSocketServer } from './lib/socket.io.js'
 
 const app = express()
 
@@ -76,7 +82,7 @@ app.use(helmet({
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:", "https:"],
       scriptSrc: ["'self'"],
-      connectSrc: ["'self'", process.env.NEXT_PUBLIC_LIVEKIT_URL || ""],
+      connectSrc: ["'self'", "https://zoom.us", "ws://localhost:4000", "ws://127.0.0.1:4000"],
     },
   },
   crossOriginEmbedderPolicy: false,
@@ -231,11 +237,204 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 
 // 404 handler
 app.use('*', (req, res) => {
-  res.status(404).json({ error: 'Endpoint not found' })
+  console.log(`404 - Endpoint not found: ${req.method} ${req.originalUrl}`)
+  res.status(404).json({ 
+    error: 'Endpoint not found',
+    method: req.method,
+    path: req.originalUrl,
+    availableRoutes: '/api/students/enroll (POST)'
+  })
 })
 
 const port = Number(process.env.PORT || 4000)
 const host = '0.0.0.0'
+
+// Create HTTP server
+const httpServer = http.createServer(app)
+
+// Initialize Socket.IO server
+const io = new Server(httpServer, {
+  cors: {
+    origin: allowedOrigins, // Use the same allowedOrigins as Express CORS
+    methods: ['GET', 'POST'],
+    credentials: true,
+  },
+})
+
+setSocketServer(io)
+
+// Store active connections and their associated liveClassId and userId
+interface SocketData {
+  liveClassId?: string
+  userId?: string
+  userEmail?: string
+  userRole?: 'teacher' | 'student'
+}
+
+interface JoinRoomPayload {
+  liveClassId: string
+  userId: string
+  userEmail: string
+}
+
+interface SendMessagePayload extends JoinRoomPayload {
+  content: string
+}
+
+interface WhiteboardPayload {
+  liveClassId: string
+  action: unknown
+}
+
+interface LiveClassOnlyPayload {
+  liveClassId: string
+}
+
+io.on('connection', (socket) => {
+  console.log(`⚡ User connected: ${socket.id}`)
+
+  socket.on('join_room', async ({ liveClassId, userId, userEmail }: JoinRoomPayload) => {
+    socket.join(liveClassId)
+    console.log(`User ${userId} (${userEmail}) joined room: ${liveClassId}`)
+
+    // Store user and room info on the socket for disconnect handling
+    const socketData = socket.data as SocketData
+    socketData.liveClassId = liveClassId
+    socketData.userId = userId
+    socketData.userEmail = userEmail
+
+    // Record student join time - only for students, not teachers
+    if (userId && liveClassId) {
+      try {
+        // Check if user is the teacher of this live class
+        const { supabaseAdmin } = await import('./lib/supabase.js')
+        const { data: liveClass } = await supabaseAdmin
+          .from('live_classes')
+          .select('teacher_id')
+          .eq('id', liveClassId)
+          .single()
+
+        const isTeacher = liveClass?.teacher_id === userId
+        socketData.userRole = isTeacher ? 'teacher' : 'student'
+
+        // Only record attendance for students
+        if (!isTeacher) {
+          await AttendanceService.recordJoin({ liveClassId, studentId: userId })
+        }
+
+        await ParticipantService.recordJoin({
+          liveClassId,
+          userId,
+          email: userEmail,
+          role: isTeacher ? 'teacher' : 'student'
+        })
+      } catch (error) {
+        console.error('Error recording student join time:', error)
+      }
+    }
+
+    // Emit historical messages to the newly joined user
+    try {
+      const messages = await ChatService.getMessages(liveClassId)
+      socket.emit('message_history', messages)
+    } catch (error) {
+      console.error(`Error fetching message history for room ${liveClassId}:`, error)
+    }
+
+    // Broadcast updated participant list
+    try {
+      const participants = await ParticipantService.getParticipants(liveClassId)
+      io.to(liveClassId).emit('participant_update', participants)
+    } catch (error) {
+      console.error('Error broadcasting participant update on join:', error)
+    }
+  })
+
+  socket.on('send_message', async ({ liveClassId, userId, userEmail, content }: SendMessagePayload) => {
+    if (!liveClassId || !userId || !userEmail || !content) {
+      console.warn('Invalid message payload received:', { liveClassId, userId, userEmail, content })
+      return
+    }
+
+    try {
+      const newMessage = await ChatService.saveMessage({
+        liveClassId,
+        senderId: userId,
+        senderEmail: userEmail,
+        content,
+      })
+      // Broadcast the message to everyone in the room
+      io.to(liveClassId).emit('receive_message', newMessage)
+    } catch (error) {
+      console.error(`Error saving or broadcasting message in room ${liveClassId}:`, error)
+      // Optionally, emit an error back to the sender
+      socket.emit('message_error', 'Failed to send message.')
+    }
+  })
+
+  socket.on('disconnect', async () => {
+    console.log(`🔌 User disconnected: ${socket.id}`)
+    // Record student leave time - only for students, not teachers
+    const socketData = socket.data as SocketData
+    if (socketData.userId && socketData.liveClassId) {
+      try {
+        // Check if user is the teacher of this live class
+        const { supabaseAdmin } = await import('./lib/supabase.js')
+        const { data: liveClass } = await supabaseAdmin
+          .from('live_classes')
+          .select('teacher_id')
+          .eq('id', socketData.liveClassId)
+          .single()
+
+        const isTeacher = liveClass?.teacher_id === socketData.userId
+
+        // Only record leave time for students
+        if (!isTeacher) {
+          await AttendanceService.recordLeave({ liveClassId: socketData.liveClassId, studentId: socketData.userId })
+        }
+
+        if (socketData.userRole) {
+          try {
+            await ParticipantService.recordLeave({
+              liveClassId: socketData.liveClassId,
+              userId: socketData.userId,
+              role: socketData.userRole
+            })
+          } catch (participantError) {
+            console.error('Error recording participant leave:', participantError)
+          }
+        }
+      } catch (error) {
+        console.error('Error recording student leave time:', error)
+      }
+
+      // Broadcast updated participant list after disconnect
+      try {
+        const participants = await ParticipantService.getParticipants(socketData.liveClassId)
+        io.to(socketData.liveClassId).emit('participant_update', participants)
+      } catch (error) {
+        console.error('Error broadcasting participant update on disconnect:', error)
+      }
+    }
+  })
+
+  // --- Whiteboard Event Handlers ---
+  socket.on('draw_action', ({ liveClassId, action }: WhiteboardPayload) => {
+    // Broadcast drawing action to all clients in the room except the sender
+    socket.to(liveClassId).emit('receive_draw_action', action)
+  })
+
+  socket.on('clear_whiteboard', ({ liveClassId }: LiveClassOnlyPayload) => {
+    // Broadcast clear whiteboard command to all clients in the room except the sender
+    socket.to(liveClassId).emit('receive_clear_whiteboard')
+  })
+
+  socket.on('undo_draw', ({ liveClassId }: LiveClassOnlyPayload) => {
+    // Broadcast undo command to all clients in the room except the sender
+    socket.to(liveClassId).emit('receive_undo_draw')
+  })
+})
+
 
 // Add startup logging
 console.log('🚀 Starting server...')
@@ -253,11 +452,12 @@ console.log(`   - PORT: ${process.env.PORT || 'not set (using 4000)'}`)
 console.log(`   - DATABASE: ${process.env.DATABASE_URL ? 'configured' : 'not configured'}`)
 
 // Start server
-const server = app.listen(port, host, () => {
+const server = httpServer.listen(port, host, () => { // Use httpServer here
   console.log(`✅ Server successfully started!`)
   console.log(`🌐 Listening on: http://${host}:${port}`)
   console.log(`🏥 Health check: http://${host}:${port}/health`)
   console.log(`🚀 API ready: http://${host}:${port}/api`)
+  console.log(`🚀 WebSocket ready: ws://${host}:${port}`) // New log
   console.log(`⏰ Server started at: ${new Date().toISOString()}`)
 })
 
