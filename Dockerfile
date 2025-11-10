@@ -13,8 +13,14 @@ COPY package*.json ./
 # Install ALL dependencies (including devDependencies for building)
 RUN npm ci
 
-# Copy the rest of the application code
-COPY . .
+# Copy tsconfig.json
+COPY tsconfig.json ./
+
+# Copy the application code
+COPY src/ ./src/
+
+# Add a debug step to list the files in the src directory
+RUN ls -R src
 
 # Build the TypeScript code
 RUN npm run build

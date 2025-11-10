@@ -283,7 +283,7 @@ interface SendMessagePayload extends JoinRoomPayload {
 
 interface WhiteboardPayload {
   liveClassId: string
-  action: unknown
+  action: WhiteboardAction
 }
 
 interface LiveClassOnlyPayload {
@@ -442,6 +442,18 @@ io.on('connection', (socket: Socket) => {
       } catch (error) {
         console.error('Error broadcasting participant update on disconnect:', error)
       }
+
+      if (socketData.liveClassId && socketData.userId) {
+        const sharingState = screenShareState.get(socketData.liveClassId)
+        if (sharingState && sharingState.userId === socketData.userId) {
+          screenShareState.delete(socketData.liveClassId)
+          socket.to(socketData.liveClassId).emit('screen_share_state', {
+            liveClassId: socketData.liveClassId,
+            userId: socketData.userId,
+            isSharing: false,
+          } as ScreenSharePayload)
+        }
+      }
     }
   })
 
@@ -449,6 +461,10 @@ io.on('connection', (socket: Socket) => {
   socket.on('request_whiteboard_state', ({ liveClassId }: LiveClassOnlyPayload) => {
     const history = whiteboardState.get(liveClassId) ?? []
     socket.emit('sync_whiteboard_state', history)
+    socket.emit('whiteboard_visibility', {
+      liveClassId,
+      isVisible: whiteboardVisibility.get(liveClassId) ?? (history.length > 0),
+    } as WhiteboardVisibilityPayload)
   })
 
   socket.on('draw_action', ({ liveClassId, action }: WhiteboardPayload) => {
@@ -458,7 +474,13 @@ io.on('connection', (socket: Socket) => {
       updatedHistory.splice(0, updatedHistory.length - WHITEBOARD_MAX_ACTIONS)
     }
     whiteboardState.set(liveClassId, updatedHistory)
+    whiteboardVisibility.set(liveClassId, true)
     socket.to(liveClassId).emit('receive_draw_action', action)
+    socket.to(liveClassId).emit('whiteboard_visibility', {
+      liveClassId,
+      isVisible: true,
+      userId: (socket.data as SocketData).userId,
+    } as WhiteboardVisibilityPayload)
   })
 
   socket.on('clear_whiteboard', ({ liveClassId }: LiveClassOnlyPayload) => {
@@ -474,8 +496,31 @@ io.on('connection', (socket: Socket) => {
     socket.to(liveClassId).emit('receive_undo_draw')
   })
 
+  socket.on('whiteboard_visibility', ({ liveClassId, isVisible, userId }: WhiteboardVisibilityPayload) => {
+    whiteboardVisibility.set(liveClassId, isVisible)
+    socket.to(liveClassId).emit('whiteboard_visibility', { liveClassId, isVisible, userId })
+  })
+
+  socket.on('screen_share_state', (payload: ScreenSharePayload) => {
+    if (payload.isSharing) {
+      screenShareState.set(payload.liveClassId, payload)
+    } else {
+      screenShareState.delete(payload.liveClassId)
+    }
+    socket.to(payload.liveClassId).emit('screen_share_state', payload)
+  })
+
+  socket.on('request_screen_share_state', ({ liveClassId }: LiveClassOnlyPayload) => {
+    const state = screenShareState.get(liveClassId)
+    if (state) {
+      socket.emit('screen_share_state', state)
+    }
+  })
+
   socket.on('live_class_ended', ({ liveClassId }: LiveClassOnlyPayload) => {
     whiteboardState.delete(liveClassId)
+    whiteboardVisibility.delete(liveClassId)
+    screenShareState.delete(liveClassId)
   })
 })
 
