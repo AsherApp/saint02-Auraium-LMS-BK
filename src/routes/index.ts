@@ -1,24 +1,24 @@
 import { Router } from 'express'
-import { router as courseRoutes } from './courses.routes.js'
-import assignmentRoutes from './assignments'
-import submissionRoutes from './submissions'
-import storageRoutes from './storage.routes.js'
-import { router as billingRoutes } from './billing.routes.js'
-import inviteRoutes from './invites.routes.js'
-import { router as studentRoutes } from './students.routes.js'
-import { router as authRoutes } from './auth.routes.js'
-import { router as seedRoutes } from './seed.routes.js'
-import { router as settingsRoutes } from './settings.routes.js'
-import { router as lessonsRoutes } from './lessons.routes.js'
-import { router as modulesRoutes } from './modules.routes.js'
-import { router as uploadRoutes } from './upload.routes.js'
-import { notesRoutes } from './notes.routes.js' // Corrected import
-import { resourceRoutes } from './resource.routes.js' // New import
-import { pollRoutes } from './poll.routes.js' // New import
-import { quizRoutes } from './quiz.routes.js' // New import
-import { attendanceRoutes } from './attendance.routes.js' // New import
-import { participantRoutes } from './participant.routes.js' // New import
-import { recordingRoutes } from './recording.routes.js' // New import
+import { router as courseRoutes } from './courses.routes'
+import assignmentRoutes from './assignments/index.js'
+import submissionRoutes from './submissions/index.js'
+import storageRoutes from './storage.routes'
+import { router as billingRoutes } from './billing.routes'
+import inviteRoutes from './invites.routes'
+import { router as studentRoutes } from './students.routes'
+import { router as authRoutes } from './auth.routes'
+import { router as seedRoutes } from './seed.routes'
+import { router as settingsRoutes } from './settings.routes'
+import { router as lessonsRoutes } from './lessons.routes'
+import { router as modulesRoutes } from './modules.routes'
+import { router as uploadRoutes } from './upload.routes'
+import { notesRoutes } from './notes.routes' // Corrected import
+import { resourceRoutes } from './resource.routes' // New import
+import { pollRoutes } from './poll.routes' // New import
+import { quizRoutes } from './quiz.routes' // New import
+import { attendanceRoutes } from './attendance.routes' // New import
+import { participantRoutes } from './participant.routes' // New import
+import { recordingRoutes } from './recording.routes' // New import
 import studentProgressRoutes from './student-progress.routes.js'
 import { router as teacherRoutes } from './teacher.routes.js'
 import eventsRoutes from './events.routes.js'
@@ -31,8 +31,8 @@ import { router as certificateRoutes } from './certificates.routes.js'
 import { router as bulkCoursesRoutes } from './bulk-courses.routes.js'
 import { router as messagesRoutes } from './messages.routes.js'
 import recordingsRoutes from './recordings.routes.js'
-import { router as classworkRoutes } from './classwork.routes'
-import { router as studentActivityRoutes } from './student-activity.routes'
+import { router as classworkRoutes } from './classwork.routes.js'
+import { router as studentActivityRoutes } from './student-activity.routes.js'
 import { liveClassesRoutes } from './liveClasses.routes.js'
 import zoomRoutes from './zoom.routes.js'
 import { router as discussionsRoutes } from './discussions.routes.js'

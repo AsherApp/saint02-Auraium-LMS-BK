@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { requireAuth } from '../middlewares/auth.js'
 import { validateBody, validateParams } from '../middlewares/validation.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
-import { NotesService, CreateLiveClassNoteInput, UpdateLiveClassNoteInput } from '../services/notes.service.js'
+import { NotesService, CreateLiveClassNoteInput, UpdateLiveClassNoteInput } from '../services/notes.service'
 
 const router = Router()
 
