@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { router as courseRoutes } from './courses.routes'
-import assignmentRoutes from './assignments/index.js'
-import submissionRoutes from './submissions/index.js'
+import assignmentRoutes from './assignments'
+import submissionRoutes from './submissions'
 import storageRoutes from './storage.routes'
 import { router as billingRoutes } from './billing.routes'
 import inviteRoutes from './invites.routes'
@@ -12,34 +12,33 @@ import { router as settingsRoutes } from './settings.routes'
 import { router as lessonsRoutes } from './lessons.routes'
 import { router as modulesRoutes } from './modules.routes'
 import { router as uploadRoutes } from './upload.routes'
-import { notesRoutes } from './notes.routes' // Corrected import
-import { resourceRoutes } from './resource.routes' // New import
-import { pollRoutes } from './poll.routes' // New import
-import { quizRoutes } from './quiz.routes' // New import
-import { attendanceRoutes } from './attendance.routes' // New import
-import { participantRoutes } from './participant.routes' // New import
-import { recordingRoutes } from './recording.routes' // New import
-import studentProgressRoutes from './student-progress.routes.js'
-import { router as teacherRoutes } from './teacher.routes.js'
-import eventsRoutes from './events.routes.js'
-import quizzesRoutes from './quizzes.routes.js'
-import pollsRoutes from './polls.routes.js'
-import studentAnalyticsRoutes from './student.routes.js'
-import { router as notificationsRoutes } from './notifications.routes.js'
-import transactionRoutes from './transactions.routes.js'
-import { router as certificateRoutes } from './certificates.routes.js'
-import { router as bulkCoursesRoutes } from './bulk-courses.routes.js'
-import { router as messagesRoutes } from './messages.routes.js'
-import recordingsRoutes from './recordings.routes.js'
-import { router as classworkRoutes } from './classwork.routes.js'
-import { router as studentActivityRoutes } from './student-activity.routes.js'
-import { liveClassesRoutes } from './liveClasses.routes.js'
-import zoomRoutes from './zoom.routes.js'
-import { router as discussionsRoutes } from './discussions.routes.js'
-import { router as announcementsRoutes } from './announcements.routes.js'
-import { router as forumRoutes } from './forum.routes.js'
-import { agoraRoutes } from './agora.routes.js' // New import
-import { router as enrollmentsRoutes } from './enrollments.routes.js'
+import { notesRoutes } from './notes.routes'
+import { resourceRoutes } from './resource.routes'
+import { pollRoutes } from './poll.routes'
+import { quizRoutes } from './quiz.routes'
+import { attendanceRoutes } from './attendance.routes'
+import { participantRoutes } from './participant.routes'
+import { recordingRoutes } from './recording.routes'
+import studentProgressRoutes from './student-progress.routes'
+import { router as teacherRoutes } from './teacher.routes'
+import eventsRoutes from './events.routes'
+import quizzesRoutes from './quizzes.routes'
+import pollsRoutes from './polls.routes'
+import studentAnalyticsRoutes from './student.routes'
+import { router as notificationsRoutes } from './notifications.routes'
+import transactionRoutes from './transactions.routes'
+import { router as certificateRoutes } from './certificates.routes'
+import { router as bulkCoursesRoutes } from './bulk-courses.routes'
+import { router as messagesRoutes } from './messages.routes'
+import recordingsRoutes from './recordings.routes'
+import { router as classworkRoutes } from './classwork.routes'
+import { router as studentActivityRoutes } from './student-activity.routes'
+import { liveClassesRoutes } from './liveClasses.routes'
+import { router as discussionsRoutes } from './discussions.routes'
+import { router as announcementsRoutes } from './announcements.routes'
+import { router as forumRoutes } from './forum.routes'
+import { agoraRoutes } from './agora.routes'
+import { router as enrollmentsRoutes } from './enrollments.routes'
 
 export const router = Router()
 
@@ -57,13 +56,13 @@ router.use('/settings', settingsRoutes)
 router.use('/lessons', lessonsRoutes)
 router.use('/modules', modulesRoutes)
 router.use('/upload', uploadRoutes)
-router.use('/notes', notesRoutes) // Correctly registered
-router.use('/resources', resourceRoutes) // New route registration
-router.use('/polls', pollRoutes) // New route registration
-router.use('/quizzes', quizRoutes) // New route registration
-router.use('/attendance', attendanceRoutes) // New route registration
-router.use('/participants', participantRoutes) // New route registration
-router.use('/recordings', recordingRoutes) // New route registration
+router.use('/notes', notesRoutes)
+router.use('/resources', resourceRoutes)
+router.use('/polls', pollRoutes)
+router.use('/quizzes', quizRoutes)
+router.use('/attendance', attendanceRoutes)
+router.use('/participants', participantRoutes)
+router.use('/recordings', recordingRoutes)
 router.use('/student-progress', studentProgressRoutes)
 router.use('/teacher', teacherRoutes)
 router.use('/events', eventsRoutes)
@@ -79,8 +78,7 @@ router.use('/recordings', recordingsRoutes)
 router.use('/classwork', classworkRoutes)
 router.use('/student-activity', studentActivityRoutes)
 router.use('/live-classes', liveClassesRoutes)
-router.use('/zoom', zoomRoutes)
 router.use('/discussions', discussionsRoutes)
 router.use('/announcements', announcementsRoutes)
 router.use('/forum', forumRoutes)
-router.use('/agora', agoraRoutes) // New route registration
+router.use('/agora', agoraRoutes)
