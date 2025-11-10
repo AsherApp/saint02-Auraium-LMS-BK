@@ -7,17 +7,17 @@ import fs from 'fs'
 import rateLimit from 'express-rate-limit'
 import http from 'http'
 import { Server, Socket } from 'socket.io'
-import { router } from './routes/index.js'
+import { router } from './routes/index'
 import {
   securityMiddleware,
   preventParameterPollution,
   logSecurityEvent,
   preventBruteForce
 } from './middlewares/security.js'
-import { ChatService } from './services/chat.service.js'
-import { AttendanceService } from './services/attendance.service.js'
-import { ParticipantService } from './services/participant.service.js'
-import { setSocketServer } from './lib/socket.io.js'
+import { ChatService } from './services/chat.service'
+import { AttendanceService } from './services/attendance.service'
+import { ParticipantService } from './services/participant.service'
+import { setSocketServer } from './lib/socket.io'
 
 const app = express()
 
