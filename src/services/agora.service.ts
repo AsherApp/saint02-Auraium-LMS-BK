@@ -1,7 +1,16 @@
-import * as AgoraToken from 'agora-token'
+import AgoraTokenPkg from 'agora-token'
 import dotenv from 'dotenv'
 
 dotenv.config() // Load environment variables
+
+const AgoraToken = (AgoraTokenPkg as any)?.default ?? AgoraTokenPkg
+const RtcTokenBuilder = (AgoraToken as any)?.RtcTokenBuilder
+const RtmTokenBuilder = (AgoraToken as any)?.RtmTokenBuilder
+const AgoraRtcRole = (AgoraToken as any)?.RtcRole
+
+if (!RtcTokenBuilder || !RtmTokenBuilder || !AgoraRtcRole) {
+  throw new Error('agora-token package is missing expected exports (RtcTokenBuilder, RtmTokenBuilder, RtcRole). Please ensure the dependency is installed correctly.')
+}
 
 // Utility function for consistent error handling
 function createHttpError(statusCode: number, message: string) {
@@ -11,8 +20,6 @@ function createHttpError(statusCode: number, message: string) {
 }
 
 // --- Type Definitions ---
-const { RtcTokenBuilder, RtmTokenBuilder, RtcRole: AgoraRtcRole } = AgoraToken as typeof import('agora-token')
-
 export enum AgoraRole {
   PUBLISHER = AgoraRtcRole.PUBLISHER,
   AUDIENCE = AgoraRtcRole.SUBSCRIBER // Agora uses SUBSCRIBER for audience
