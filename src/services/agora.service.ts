@@ -1,4 +1,4 @@
-import { RtcTokenBuilder, RtcRole, RtmTokenBuilder } from 'agora-token'
+import * as AgoraToken from 'agora-token'
 import dotenv from 'dotenv'
 
 dotenv.config() // Load environment variables
@@ -11,9 +11,11 @@ function createHttpError(statusCode: number, message: string) {
 }
 
 // --- Type Definitions ---
+const { RtcTokenBuilder, RtmTokenBuilder, RtcRole: AgoraRtcRole } = AgoraToken as typeof import('agora-token')
+
 export enum AgoraRole {
-  PUBLISHER = RtcRole.PUBLISHER,
-  AUDIENCE = RtcRole.SUBSCRIBER, // Agora uses SUBSCRIBER for audience
+  PUBLISHER = AgoraRtcRole.PUBLISHER,
+  AUDIENCE = AgoraRtcRole.SUBSCRIBER // Agora uses SUBSCRIBER for audience
 }
 
 // --- AgoraService ---
