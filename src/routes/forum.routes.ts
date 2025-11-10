@@ -1,448 +1,395 @@
 import { Router } from 'express'
-import { supabaseAdmin } from '../lib/supabase.js'
+import { z } from 'zod'
+import { requireAuth, requireTeacher } from '../middlewares/auth.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
-import { requireAuth } from '../middlewares/auth.js'
+import {
+  validateBody,
+  validateParams,
+  validateQuery
+} from '../middlewares/validation.js'
+import {
+  ForumService,
+  CreateCategoryInput,
+  UpdateCategoryInput,
+  CreateThreadInput,
+  UpdateThreadInput,
+  CreatePostInput,
+  UpdatePostInput
+} from '../services/forum.service.js'
 
-export const router = Router()
+const router = Router()
 
-// ===== FORUM CATEGORIES ENDPOINTS =====
+const visibilityEnum = z.enum(['course', 'institution', 'public'])
 
-// Get all forum categories
-router.get('/categories', requireAuth, asyncHandler(async (req, res) => {
-  const userEmail = (req as any).user?.email
-  const userRole = (req as any).user?.role
-  
-  if (!userEmail) {
-    return res.status(401).json({ error: 'Unauthorized' })
-  }
+const categoryQuerySchema = z.object({
+  contextType: z.string().optional(),
+  contextId: z.string().uuid().optional(),
+  includeLocked: z.enum(['true', 'false']).optional().transform((value) => value === 'true')
+})
 
-  // Get categories from forum_categories table
-  const { data: categories, error } = await supabaseAdmin
-    .from('forum_categories')
-    .select('*')
-    .eq('is_active', true)
-    .order('name', { ascending: true })
-
-  if (error) {
-    return res.status(500).json({ error: error.message })
-  }
-
-  // Transform data to match frontend expectations
-  const transformedCategories = (categories || []).map(category => ({
-    id: category.id,
-    name: category.name,
-    description: category.description || '',
-    color: '#3b82f6', // Default blue color
-    icon: 'message-circle' // Default icon
-  }))
-
-  res.json(transformedCategories)
-}))
-
-// Create a new forum category (admin/teacher only)
-router.post('/categories', requireAuth, asyncHandler(async (req, res) => {
-  const userEmail = (req as any).user?.email
-  const userRole = (req as any).user?.role
-  const { name, description } = req.body
-  
-  if (!userEmail || userRole !== 'teacher') {
-    return res.status(401).json({ error: 'Unauthorized' })
-  }
-  
-  if (!name) {
-    return res.status(400).json({ error: 'name is required' })
-  }
-
-  const { data, error } = await supabaseAdmin
-    .from('forum_categories')
-    .insert({
-      name,
-      description,
-      is_active: true,
-      created_by: userEmail
+const categoryBodySchema = z.object({
+  title: z.string().min(1).max(200),
+  description: z.string().max(1000).optional(),
+  context: z
+    .object({
+      type: z.string().min(1),
+      id: z.string().uuid()
     })
-    .select()
-    .single()
+    .optional(),
+  visibility: visibilityEnum.optional(),
+  metadata: z.record(z.any()).optional()
+})
 
-  if (error) {
-    return res.status(500).json({ error: error.message })
-  }
-
-  res.json(data)
-}))
-
-// ===== FORUM DISCUSSIONS ENDPOINTS =====
-
-// Get forum discussions with pagination - SECURITY FIXED
-router.get('/posts', requireAuth, asyncHandler(async (req, res) => {
-  const userEmail = (req as any).user?.email
-  const userRole = (req as any).user?.role
-  const { categoryId, page = 1, limit = 20 } = req.query
-  
-  if (!userEmail) {
-    return res.status(401).json({ error: 'Unauthorized' })
-  }
-
-  const offset = (Number(page) - 1) * Number(limit)
-  
-  let query = supabaseAdmin
-    .from('discussions')
-    .select('*', { count: 'exact' })
-
-  // SECURITY FIX: Filter discussions based on user role and enrollment
-  if (userRole === 'student') {
-    // Students can only see discussions from courses they're enrolled in
-    const { data: enrollments, error: enrollmentsError } = await supabaseAdmin
-      .from('enrollments')
-      .select('course_id')
-      .eq('student_email', userEmail)
-
-    if (enrollmentsError) {
-      return res.status(500).json({ error: 'Failed to fetch enrollments' })
-    }
-
-    const enrolledCourseIds = enrollments?.map(e => e.course_id) || []
-    
-    if (enrolledCourseIds.length === 0) {
-      // Student is not enrolled in any courses
-      return res.json({ posts: [], totalCount: 0, totalPages: 0 })
-    }
-
-    query = query.in('course_id', enrolledCourseIds)
-  } else if (userRole === 'teacher') {
-    // Teachers can only see discussions from their own courses
-    const { data: teacherCourses, error: coursesError } = await supabaseAdmin
-      .from('courses')
-      .select('id')
-      .eq('teacher_email', userEmail)
-
-    if (coursesError) {
-      return res.status(500).json({ error: 'Failed to fetch teacher courses' })
-    }
-
-    const teacherCourseIds = teacherCourses?.map(c => c.id) || []
-    
-    if (teacherCourseIds.length === 0) {
-      // Teacher has no courses
-      return res.json({ posts: [], totalCount: 0, totalPages: 0 })
-    }
-
-    query = query.in('course_id', teacherCourseIds)
-  }
-
-  if (categoryId) {
-    query = query.eq('course_id', categoryId)
-  }
-
-  const { data: discussions, error, count } = await query
-    .order('created_at', { ascending: false })
-    .range(offset, offset + Number(limit) - 1)
-
-  if (error) {
-    return res.status(500).json({ error: error.message })
-  }
-
-  // Get user profile information for each discussion creator
-  const transformedPosts = await Promise.all((discussions || []).map(async (discussion) => {
-    // Get user profile from user_profiles view
-    const { data: userProfile } = await supabaseAdmin
-      .from('user_profiles')
-      .select('first_name, last_name, email')
-      .eq('email', discussion.created_by)
-      .single()
-
-    return {
-      id: discussion.id,
-      categoryId: discussion.course_id,
-      title: discussion.title,
-      content: discussion.description || '',
-      authorEmail: discussion.created_by,
-      authorName: userProfile ? `${userProfile.first_name} ${userProfile.last_name}` : discussion.created_by?.split('@')[0] || 'Unknown',
-      isPinned: false, // Not available in current schema
-      isLocked: false, // Not available in current schema
-      replyCount: 0, // We'll calculate this later
-      viewCount: 0, // Not available in current schema
-      lastReplyAt: discussion.updated_at,
-      createdAt: discussion.created_at,
-      updatedAt: discussion.updated_at
-    }
-  }))
-
-  res.json({
-    posts: transformedPosts,
-    totalCount: count || 0,
-    totalPages: Math.ceil((count || 0) / Number(limit))
+const categoryUpdateSchema = categoryBodySchema
+  .extend({
+    isLocked: z.boolean().optional()
   })
-}))
+  .partial()
 
-// Create a new forum discussion
-router.post('/posts', requireAuth, asyncHandler(async (req, res) => {
-  const userEmail = (req as any).user?.email
-  const { categoryId, title, content } = req.body
-  
-  if (!userEmail) {
-    return res.status(401).json({ error: 'Unauthorized' })
-  }
-  
-  if (!categoryId || !title || !content) {
-    return res.status(400).json({ error: 'categoryId, title, and content are required' })
-  }
+const threadQuerySchema = z.object({
+  includeLocked: z.enum(['true', 'false']).optional().transform((value) => value === 'true')
+})
 
-  const { data, error } = await supabaseAdmin
-    .from('discussions')
-    .insert({
-      category_id: categoryId,
-      title,
-      content,
-      created_by: userEmail,
-      is_pinned: false,
-      is_locked: false,
-      view_count: 0
+const createThreadSchema = z.object({
+  title: z.string().min(1).max(200),
+  content: z.string().min(1),
+  richContent: z.record(z.any()).optional(),
+  context: z
+    .object({
+      type: z.string().min(1),
+      id: z.string().uuid()
     })
-    .select()
-    .single()
+    .optional(),
+  metadata: z.record(z.any()).optional(),
+  subscribe: z.boolean().optional()
+})
 
-  if (error) {
-    return res.status(500).json({ error: error.message })
-  }
+const updateThreadSchema = z.object({
+  title: z.string().min(1).max(200).optional(),
+  content: z.string().min(1).optional(),
+  richContent: z.record(z.any()).optional(),
+  metadata: z.record(z.any()).optional()
+})
 
-  res.json(data)
-}))
+const createPostSchema = z.object({
+  content: z.string().min(1),
+  richContent: z.record(z.any()).optional(),
+  parentPostId: z.string().uuid().optional()
+})
 
-// Get a specific forum discussion
-router.get('/posts/:discussionId', requireAuth, asyncHandler(async (req, res) => {
-  const userEmail = (req as any).user?.email
-  const { discussionId } = req.params
-  
-  if (!userEmail) {
-    return res.status(401).json({ error: 'Unauthorized' })
-  }
+const updatePostSchema = z.object({
+  content: z.string().min(1).optional(),
+  richContent: z.record(z.any()).optional()
+})
 
-  const { data: discussion, error } = await supabaseAdmin
-    .from('discussions')
-    .select(`
-      *,
-      category:forum_categories(name),
-      posts:discussion_posts(count)
-    `)
-    .eq('id', discussionId)
-    .single()
+const categoryParamsSchema = z.object({
+  categoryId: z.string().uuid()
+})
 
-  if (error) {
-    return res.status(500).json({ error: error.message })
-  }
+const threadParamsSchema = z.object({
+  threadId: z.string().uuid()
+})
 
-  if (!discussion) {
-    return res.status(404).json({ error: 'Discussion not found' })
-  }
+const postParamsSchema = z.object({
+  threadId: z.string().uuid(),
+  postId: z.string().uuid()
+})
 
-  // Increment view count
-  await supabaseAdmin
-    .from('discussions')
-    .update({ view_count: (discussion.view_count || 0) + 1 })
-    .eq('id', discussionId)
-
-  // Get user profile information for the discussion creator
-  const { data: userProfile } = await supabaseAdmin
-    .from('user_profiles')
-    .select('first_name, last_name, email')
-    .eq('email', discussion.created_by)
-    .single()
-
-  // Transform data to match frontend expectations
-  const transformedPost = {
-    id: discussion.id,
-    categoryId: discussion.category_id,
-    title: discussion.title,
-    content: discussion.content,
-    authorEmail: discussion.created_by,
-    authorName: userProfile ? `${userProfile.first_name} ${userProfile.last_name}` : discussion.created_by?.split('@')[0] || 'Unknown',
-    isPinned: discussion.is_pinned,
-    isLocked: discussion.is_locked,
-    replyCount: discussion.posts?.[0]?.count || 0,
-    viewCount: discussion.view_count || 0,
-    lastReplyAt: discussion.last_reply_at,
-    createdAt: discussion.created_at,
-    updatedAt: discussion.updated_at
-  }
-
-  res.json(transformedPost)
-}))
-
-// ===== FORUM REPLIES ENDPOINTS =====
-
-// Get replies for a discussion
-router.get('/posts/:discussionId/replies', requireAuth, asyncHandler(async (req, res) => {
-  const userEmail = (req as any).user?.email
-  const { discussionId } = req.params
-  const { page = 1, limit = 20 } = req.query
-  
-  if (!userEmail) {
-    return res.status(401).json({ error: 'Unauthorized' })
-  }
-
-  const offset = (Number(page) - 1) * Number(limit)
-
-  const { data: posts, error, count } = await supabaseAdmin
-    .from('discussion_posts')
-    .select('*', { count: 'exact' })
-    .eq('discussion_id', discussionId)
-    .order('created_at', { ascending: true })
-    .range(offset, offset + Number(limit) - 1)
-
-  if (error) {
-    return res.status(500).json({ error: error.message })
-  }
-
-  // Get user profile information for each reply author
-  const transformedReplies = await Promise.all((posts || []).map(async (post) => {
-    // Get user profile from user_profiles view
-    const { data: userProfile } = await supabaseAdmin
-      .from('user_profiles')
-      .select('first_name, last_name, email')
-      .eq('email', post.author_email)
-      .single()
-
-    return {
-      id: post.id,
-      postId: post.discussion_id,
-      content: post.content,
-      authorEmail: post.author_email,
-      authorName: userProfile ? `${userProfile.first_name} ${userProfile.last_name}` : post.author_email?.split('@')[0] || 'Unknown',
-      createdAt: post.created_at,
-      updatedAt: post.updated_at
-    }
-  }))
-
-  res.json({
-    replies: transformedReplies,
-    totalCount: count || 0,
-    totalPages: Math.ceil((count || 0) / Number(limit))
+router.get(
+  '/categories',
+  requireAuth,
+  validateQuery(categoryQuerySchema.partial()),
+  asyncHandler(async (req, res) => {
+    const filters = req.query as unknown as z.infer<typeof categoryQuerySchema>
+    const items = await ForumService.listCategories(filters)
+    res.json({ items })
   })
-}))
+)
 
-// Create a reply to a discussion
-router.post('/posts/:discussionId/replies', requireAuth, asyncHandler(async (req, res) => {
-  const userEmail = (req as any).user?.email
-  const { discussionId } = req.params
-  const { content } = req.body
-  
-  if (!userEmail) {
-    return res.status(401).json({ error: 'Unauthorized' })
-  }
-  
-  if (!content) {
-    return res.status(400).json({ error: 'content is required' })
-  }
+router.post(
+  '/categories',
+  requireAuth,
+  requireTeacher,
+  validateBody(categoryBodySchema),
+  asyncHandler(async (req, res) => {
+    const userEmail = (req as any).user?.email
+    const body = req.body as z.infer<typeof categoryBodySchema>
 
-  // Check if discussion exists and is not locked
-  const { data: discussion, error: discussionError } = await supabaseAdmin
-    .from('discussions')
-    .select('is_locked')
-    .eq('id', discussionId)
-    .single()
+    const payload: CreateCategoryInput = {
+      title: body.title,
+      description: body.description,
+      contextType: body.context?.type,
+      contextId: body.context?.id,
+      visibility: body.visibility,
+      metadata: body.metadata
+    }
 
-  if (discussionError || !discussion) {
-    return res.status(404).json({ error: 'Discussion not found' })
-  }
+    const result = await ForumService.createCategory(userEmail, payload)
+    res.status(201).json(result)
+  })
+)
 
-  if (discussion.is_locked) {
-    return res.status(403).json({ error: 'Discussion is locked' })
-  }
+router.patch(
+  '/categories/:categoryId',
+  requireAuth,
+  requireTeacher,
+  validateParams(categoryParamsSchema),
+  validateBody(categoryUpdateSchema),
+  asyncHandler(async (req, res) => {
+    const userEmail = (req as any).user?.email
+    const { categoryId } = req.params as z.infer<typeof categoryParamsSchema>
+    const body = req.body as z.infer<typeof categoryUpdateSchema>
 
-  const { data, error } = await supabaseAdmin
-    .from('discussion_posts')
-    .insert({
-      discussion_id: discussionId,
-      content,
-      created_by: userEmail
+    const payload: UpdateCategoryInput = {
+      title: body.title,
+      description: body.description,
+      contextType: body.context?.type,
+      contextId: body.context?.id,
+      visibility: body.visibility,
+      metadata: body.metadata,
+      isLocked: body.isLocked
+    }
+
+    const result = await ForumService.updateCategory(categoryId, userEmail, payload)
+    res.json(result)
+  })
+)
+
+router.delete(
+  '/categories/:categoryId',
+  requireAuth,
+  requireTeacher,
+  validateParams(categoryParamsSchema),
+  asyncHandler(async (req, res) => {
+    const userEmail = (req as any).user?.email
+    const { categoryId } = req.params as z.infer<typeof categoryParamsSchema>
+
+    const result = await ForumService.deleteCategory(categoryId, userEmail)
+    res.json(result)
+  })
+)
+
+router.get(
+  '/categories/:categoryId/threads',
+  requireAuth,
+  validateParams(categoryParamsSchema),
+  validateQuery(threadQuerySchema.partial()),
+  asyncHandler(async (req, res) => {
+    const { categoryId } = req.params as z.infer<typeof categoryParamsSchema>
+    const filters = req.query as unknown as z.infer<typeof threadQuerySchema>
+
+    const items = await ForumService.listThreads({
+      categoryId,
+      includeLocked: filters.includeLocked
     })
-    .select()
-    .single()
 
-  if (error) {
-    return res.status(500).json({ error: error.message })
-  }
+    res.json({ items })
+  })
+)
 
-  // Update discussion's last_reply_at
-  await supabaseAdmin
-    .from('discussions')
-    .update({ last_reply_at: new Date().toISOString() })
-    .eq('id', discussionId)
+router.post(
+  '/categories/:categoryId/threads',
+  requireAuth,
+  validateParams(categoryParamsSchema),
+  validateBody(createThreadSchema),
+  asyncHandler(async (req, res) => {
+    const userEmail = (req as any).user?.email
+    const { categoryId } = req.params as z.infer<typeof categoryParamsSchema>
+    const body = req.body as z.infer<typeof createThreadSchema>
 
-  res.json(data)
-}))
+    const payload: CreateThreadInput = {
+      categoryId,
+      title: body.title,
+      content: body.content,
+      richContent: body.richContent,
+      contextType: body.context?.type,
+      contextId: body.context?.id,
+      metadata: body.metadata,
+      subscribe: body.subscribe
+    }
 
-// ===== FORUM DISCUSSION MODERATION ENDPOINTS =====
+    const result = await ForumService.createThread(userEmail, payload)
+    res.status(201).json(result)
+  })
+)
 
-// Toggle pin status of a discussion (teacher only)
-router.patch('/posts/:discussionId/pin', requireAuth, asyncHandler(async (req, res) => {
-  const userEmail = (req as any).user?.email
-  const userRole = (req as any).user?.role
-  const { discussionId } = req.params
-  
-  if (!userEmail || userRole !== 'teacher') {
-    return res.status(401).json({ error: 'Unauthorized' })
-  }
+router.get(
+  '/threads/:threadId',
+  requireAuth,
+  validateParams(threadParamsSchema),
+  asyncHandler(async (req, res) => {
+    const userEmail = (req as any).user?.email
+    const { threadId } = req.params as z.infer<typeof threadParamsSchema>
 
-  // Get current discussion status
-  const { data: discussion, error: discussionError } = await supabaseAdmin
-    .from('discussions')
-    .select('is_pinned')
-    .eq('id', discussionId)
-    .single()
+    const result = await ForumService.getThreadDetail(threadId, userEmail)
+    res.json(result)
+  })
+)
 
-  if (discussionError || !discussion) {
-    return res.status(404).json({ error: 'Discussion not found' })
-  }
+router.patch(
+  '/threads/:threadId',
+  requireAuth,
+  validateParams(threadParamsSchema),
+  validateBody(updateThreadSchema),
+  asyncHandler(async (req, res) => {
+    const userEmail = (req as any).user?.email
+    const { threadId } = req.params as z.infer<typeof threadParamsSchema>
+    const body = req.body as z.infer<typeof updateThreadSchema>
 
-  // Toggle pin status
-  const { data, error } = await supabaseAdmin
-    .from('discussions')
-    .update({ is_pinned: !discussion.is_pinned })
-    .eq('id', discussionId)
-    .select()
-    .single()
+    const payload: UpdateThreadInput = {
+      title: body.title,
+      content: body.content,
+      richContent: body.richContent,
+      metadata: body.metadata
+    }
 
-  if (error) {
-    return res.status(500).json({ error: error.message })
-  }
+    const result = await ForumService.updateThread(threadId, userEmail, payload)
+    res.json(result)
+  })
+)
 
-  res.json(data)
-}))
+router.delete(
+  '/threads/:threadId',
+  requireAuth,
+  validateParams(threadParamsSchema),
+  asyncHandler(async (req, res) => {
+    const userEmail = (req as any).user?.email
+    const { threadId } = req.params as z.infer<typeof threadParamsSchema>
 
-// Toggle lock status of a discussion (teacher only)
-router.patch('/posts/:discussionId/lock', requireAuth, asyncHandler(async (req, res) => {
-  const userEmail = (req as any).user?.email
-  const userRole = (req as any).user?.role
-  const { discussionId } = req.params
-  
-  if (!userEmail || userRole !== 'teacher') {
-    return res.status(401).json({ error: 'Unauthorized' })
-  }
+    const result = await ForumService.deleteThread(threadId, userEmail)
+    res.json(result)
+  })
+)
 
-  // Get current discussion status
-  const { data: discussion, error: discussionError } = await supabaseAdmin
-    .from('discussions')
-    .select('is_locked')
-    .eq('id', discussionId)
-    .single()
+router.post(
+  '/threads/:threadId/posts',
+  requireAuth,
+  validateParams(threadParamsSchema),
+  validateBody(createPostSchema),
+  asyncHandler(async (req, res) => {
+    const userEmail = (req as any).user?.email
+    const { threadId } = req.params as z.infer<typeof threadParamsSchema>
+    const body = req.body as z.infer<typeof createPostSchema>
 
-  if (discussionError || !discussion) {
-    return res.status(404).json({ error: 'Discussion not found' })
-  }
+    const payload: CreatePostInput = {
+      content: body.content,
+      richContent: body.richContent,
+      parentPostId: body.parentPostId
+    }
 
-  // Toggle lock status
-  const { data, error } = await supabaseAdmin
-    .from('discussions')
-    .update({ is_locked: !discussion.is_locked })
-    .eq('id', discussionId)
-    .select()
-    .single()
+    const result = await ForumService.addPost(threadId, userEmail, payload)
+    res.status(201).json(result)
+  })
+)
 
-  if (error) {
-    return res.status(500).json({ error: error.message })
-  }
+router.patch(
+  '/threads/:threadId/posts/:postId',
+  requireAuth,
+  validateParams(postParamsSchema),
+  validateBody(updatePostSchema),
+  asyncHandler(async (req, res) => {
+    const userEmail = (req as any).user?.email
+    const { threadId, postId } = req.params as z.infer<typeof postParamsSchema>
+    const body = req.body as z.infer<typeof updatePostSchema>
 
-  res.json(data)
-}))
+    const payload: UpdatePostInput = {
+      content: body.content,
+      richContent: body.richContent
+    }
+
+    const result = await ForumService.updatePost(threadId, postId, userEmail, payload)
+    res.json(result)
+  })
+)
+
+router.delete(
+  '/threads/:threadId/posts/:postId',
+  requireAuth,
+  validateParams(postParamsSchema),
+  asyncHandler(async (req, res) => {
+    const userEmail = (req as any).user?.email
+    const { threadId, postId } = req.params as z.infer<typeof postParamsSchema>
+
+    const result = await ForumService.deletePost(threadId, postId, userEmail)
+    res.json(result)
+  })
+)
+
+router.post(
+  '/threads/:threadId/pin',
+  requireAuth,
+  requireTeacher,
+  validateParams(threadParamsSchema),
+  asyncHandler(async (req, res) => {
+    const userEmail = (req as any).user?.email
+    const { threadId } = req.params as z.infer<typeof threadParamsSchema>
+    const result = await ForumService.pinThread(threadId, userEmail)
+    res.json(result)
+  })
+)
+
+router.post(
+  '/threads/:threadId/unpin',
+  requireAuth,
+  requireTeacher,
+  validateParams(threadParamsSchema),
+  asyncHandler(async (req, res) => {
+    const userEmail = (req as any).user?.email
+    const { threadId } = req.params as z.infer<typeof threadParamsSchema>
+    const result = await ForumService.unpinThread(threadId, userEmail)
+    res.json(result)
+  })
+)
+
+router.post(
+  '/threads/:threadId/lock',
+  requireAuth,
+  requireTeacher,
+  validateParams(threadParamsSchema),
+  asyncHandler(async (req, res) => {
+    const userEmail = (req as any).user?.email
+    const { threadId } = req.params as z.infer<typeof threadParamsSchema>
+    const result = await ForumService.lockThread(threadId, userEmail)
+    res.json(result)
+  })
+)
+
+router.post(
+  '/threads/:threadId/unlock',
+  requireAuth,
+  requireTeacher,
+  validateParams(threadParamsSchema),
+  asyncHandler(async (req, res) => {
+    const userEmail = (req as any).user?.email
+    const { threadId } = req.params as z.infer<typeof threadParamsSchema>
+    const result = await ForumService.unlockThread(threadId, userEmail)
+    res.json(result)
+  })
+)
+
+router.post(
+  '/threads/:threadId/subscribe',
+  requireAuth,
+  validateParams(threadParamsSchema),
+  asyncHandler(async (req, res) => {
+    const userEmail = (req as any).user?.email
+    const { threadId } = req.params as z.infer<typeof threadParamsSchema>
+    const result = await ForumService.subscribe(threadId, userEmail)
+    res.json(result)
+  })
+)
+
+router.post(
+  '/threads/:threadId/unsubscribe',
+  requireAuth,
+  validateParams(threadParamsSchema),
+  asyncHandler(async (req, res) => {
+    const userEmail = (req as any).user?.email
+    const { threadId } = req.params as z.infer<typeof threadParamsSchema>
+    const result = await ForumService.unsubscribe(threadId, userEmail)
+    res.json(result)
+  })
+)
+
+export { router }
+

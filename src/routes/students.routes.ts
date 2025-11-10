@@ -334,26 +334,135 @@ router.get('/messaging', requireAuth, asyncHandler(async (req, res) => {
 router.get('/me/profile', requireAuth, asyncHandler(async (req, res) => {
   const userEmail = (req as any).user?.email
   const userRole = (req as any).user?.role
-  
+
   // Only students can access their own profile
   if (userRole !== 'student') {
     return res.status(403).json({ error: 'Access denied - Students only' })
   }
-  
+
   const { data, error } = await supabaseAdmin
     .from('students')
-    .select('id, email, first_name, last_name, student_code, status, created_at, profile_picture_url')
+    .select('*')
     .eq('email', userEmail.toLowerCase())
     .single()
-  
+
   if (error) return res.status(404).json({ error: 'Student not found' })
-  
+
   // Combine first_name and last_name into name for backward compatibility
   const response = {
     ...data,
     name: `${data.first_name || ''} ${data.last_name || ''}`.trim() || data.email
   }
-  
+
+  res.json(response)
+}))
+
+// Update current student's own profile (secure - no email in URL)
+router.put('/me/profile', requireAuth, asyncHandler(async (req, res) => {
+  const userEmail = (req as any).user?.email
+  const userRole = (req as any).user?.role
+
+  // Only students can update their own profile
+  if (userRole !== 'student') {
+    return res.status(403).json({ error: 'Access denied - Students only' })
+  }
+
+  const {
+    first_name,
+    last_name,
+    bio,
+    avatar_url,
+    // Personal Information
+    date_of_birth,
+    phone_number,
+    address,
+    city,
+    state,
+    country,
+    postal_code,
+    // Emergency Contact
+    emergency_contact_name,
+    emergency_contact_phone,
+    emergency_contact_relationship,
+    // Academic Information
+    academic_level,
+    major,
+    minor,
+    graduation_year,
+    gpa,
+    academic_interests,
+    career_goals,
+    // Additional Information
+    timezone,
+    preferred_language,
+    accessibility_needs,
+    dietary_restrictions
+  } = req.body
+
+  // Validate required fields
+  if (!first_name || !last_name) {
+    return res.status(400).json({ error: 'First name and last name are required' })
+  }
+
+  // Validate first_name and last_name are not just email prefix
+  const emailPrefix = userEmail.split('@')[0]
+  if (first_name.toLowerCase() === emailPrefix.toLowerCase() && last_name.toLowerCase() === 'user') {
+    return res.status(400).json({
+      error: 'Please provide a valid name instead of your email address'
+    })
+  }
+
+  // Build update object with all provided fields
+  const updateData: any = {
+    first_name: first_name.trim(),
+    last_name: last_name.trim(),
+    name: `${first_name.trim()} ${last_name.trim()}`.trim(), // Update the name field for backward compatibility
+    updated_at: new Date().toISOString()
+  }
+
+  // Add optional fields if provided
+  if (bio !== undefined) updateData.bio = bio
+  if (avatar_url !== undefined) updateData.avatar_url = avatar_url
+  if (date_of_birth !== undefined) updateData.date_of_birth = date_of_birth
+  if (phone_number !== undefined) updateData.phone_number = phone_number
+  if (address !== undefined) updateData.address = address
+  if (city !== undefined) updateData.city = city
+  if (state !== undefined) updateData.state = state
+  if (country !== undefined) updateData.country = country
+  if (postal_code !== undefined) updateData.postal_code = postal_code
+  if (emergency_contact_name !== undefined) updateData.emergency_contact_name = emergency_contact_name
+  if (emergency_contact_phone !== undefined) updateData.emergency_contact_phone = emergency_contact_phone
+  if (emergency_contact_relationship !== undefined) updateData.emergency_contact_relationship = emergency_contact_relationship
+  if (academic_level !== undefined) updateData.academic_level = academic_level
+  if (major !== undefined) updateData.major = major
+  if (minor !== undefined) updateData.minor = minor
+  if (graduation_year !== undefined) updateData.graduation_year = graduation_year
+  if (gpa !== undefined) updateData.gpa = gpa
+  if (academic_interests !== undefined) updateData.academic_interests = academic_interests
+  if (career_goals !== undefined) updateData.career_goals = career_goals
+  if (timezone !== undefined) updateData.timezone = timezone
+  if (preferred_language !== undefined) updateData.preferred_language = preferred_language
+  if (accessibility_needs !== undefined) updateData.accessibility_needs = accessibility_needs
+  if (dietary_restrictions !== undefined) updateData.dietary_restrictions = dietary_restrictions
+
+  const { data, error } = await supabaseAdmin
+    .from('students')
+    .update(updateData)
+    .eq('email', userEmail.toLowerCase())
+    .select('*')
+    .single()
+
+  if (error) {
+    console.error('Error updating student profile:', error)
+    return res.status(500).json({ error: 'Failed to update profile' })
+  }
+
+  // Return updated profile with name field
+  const response = {
+    ...data,
+    name: `${data.first_name || ''} ${data.last_name || ''}`.trim() || data.email
+  }
+
   res.json(response)
 }))
 
@@ -432,12 +541,12 @@ router.get('/me/enrollments', requireAuth, asyncHandler(async (req, res) => {
     return res.status(403).json({ error: 'Access denied - Students only' })
   }
   
-  // Get student enrollments
+  // Get student enrollments (exclude draft courses)
   const { data, error } = await supabaseAdmin
     .from('enrollments')
     .select(`
       *,
-      courses(
+      courses!inner(
         id,
         title,
         description,
@@ -451,6 +560,7 @@ router.get('/me/enrollments', requireAuth, asyncHandler(async (req, res) => {
       )
     `)
     .eq('student_email', userEmail)
+    .neq('courses.status', 'draft')
     .order('enrolled_at', { ascending: false })
   
   if (error) return res.status(500).json({ error: error.message })
@@ -469,6 +579,7 @@ router.get('/me/enrollments', requireAuth, asyncHandler(async (req, res) => {
       title: enrollment.courses?.title || 'Untitled Course',
       description: enrollment.courses?.description,
       status: enrollment.courses?.status,
+      teacher_name: enrollment.courses?.teacher_name || null,
       teacher_email: enrollment.courses?.teacher_email,
       thumbnail_url: enrollment.courses?.thumbnail_url,
       visibility: enrollment.courses?.visibility,
@@ -490,12 +601,12 @@ router.get('/me/courses', requireAuth, asyncHandler(async (req, res) => {
     return res.status(403).json({ error: 'Access denied - Students only' })
   }
   
-  // Get student enrollments
+  // Get student enrollments (exclude draft courses)
   const { data, error } = await supabaseAdmin
     .from('enrollments')
     .select(`
       *,
-      courses(
+      courses!inner(
         id,
         title,
         description,
@@ -509,6 +620,7 @@ router.get('/me/courses', requireAuth, asyncHandler(async (req, res) => {
       )
     `)
     .eq('student_email', userEmail)
+    .neq('courses.status', 'draft')
     .order('enrolled_at', { ascending: false })
   
   if (error) return res.status(500).json({ error: error.message })
@@ -527,6 +639,7 @@ router.get('/me/courses', requireAuth, asyncHandler(async (req, res) => {
       title: enrollment.courses?.title || 'Untitled Course',
       description: enrollment.courses?.description,
       status: enrollment.courses?.status,
+      teacher_name: enrollment.courses?.teacher_name || null,
       teacher_email: enrollment.courses?.teacher_email,
       thumbnail_url: enrollment.courses?.thumbnail_url,
       visibility: enrollment.courses?.visibility,
@@ -961,19 +1074,32 @@ router.get('/:id', requireAuth, asyncHandler(async (req, res) => {
 // Create or update a student
 router.post('/', requireAuth, asyncHandler(async (req, res) => {
   const { email, first_name, last_name, name, status = 'active' } = req.body || {}
-  
+
   if (!email || (!first_name && !last_name && !name)) {
     return res.status(400).json({ error: 'missing_fields' })
   }
-  
+
   // Handle both name formats for backward compatibility
   let firstName = first_name
   let lastName = last_name
-  
+
   if (name && !first_name && !last_name) {
     const nameParts = name.trim().split(' ')
     firstName = nameParts[0] || ''
-    lastName = nameParts[nameParts.length - 1] || ''
+    lastName = nameParts.slice(1).join(' ') || ''
+  }
+
+  // Validate that names are not empty or just whitespace
+  if (!firstName || !firstName.trim() || !lastName || !lastName.trim()) {
+    return res.status(400).json({ error: 'First name and last name cannot be empty' })
+  }
+
+  // Validate that names are not just the email prefix
+  const emailPrefix = email.toLowerCase().split('@')[0]
+  if (firstName.toLowerCase().trim() === emailPrefix && lastName.toLowerCase().trim() === 'user') {
+    return res.status(400).json({
+      error: 'Please provide a real name instead of using the email address'
+    })
   }
   
   const studentCode = generateStudentCode(firstName, lastName)
@@ -1089,12 +1215,17 @@ router.delete('/:id', requireAuth, asyncHandler(async (req, res) => {
 
 // Enroll a student in a course by email (for teachers)
 router.post('/enroll', requireAuth, asyncHandler(async (req, res) => {
-  const { student_email, course_id } = req.body || {}
+  const { student_email, course_id, student_name, access_type = 'full' } = req.body || {}
   const teacherEmail = (req as any).user?.email
   const userRole = (req as any).user?.role
   
   if (!student_email || !course_id) {
     return res.status(400).json({ error: 'Missing student_email or course_id' })
+  }
+  
+  // Validate access_type
+  if (access_type && !['full', 'simplified'].includes(access_type)) {
+    return res.status(400).json({ error: 'Invalid access_type. Must be "full" or "simplified"' })
   }
   
   // Only teachers can enroll students
@@ -1114,15 +1245,52 @@ router.post('/enroll', requireAuth, asyncHandler(async (req, res) => {
     return res.status(404).json({ error: 'Course not found or access denied' })
   }
   
-  // Check if student exists
-  const { data: student } = await supabaseAdmin
+  // Check if student exists, create if they don't (if student_name is provided)
+  const { data: existingStudent, error: studentError } = await supabaseAdmin
     .from('students')
-    .select('id, email')
+    .select('id, email, first_name, last_name')
     .eq('email', student_email)
     .single()
   
+  let student = existingStudent
+  
+  // If student doesn't exist, create them if student_name is provided
+  if (studentError || !existingStudent) {
+    if (!student_name) {
+      return res.status(404).json({ error: 'Student not found. Please provide student_name to create a new student.' })
+    }
+    
+    // Parse student_name into first_name and last_name
+    const nameParts = student_name.trim().split(' ')
+    const firstName = nameParts[0] || ''
+    const lastName = nameParts.slice(1).join(' ') || ''
+    const studentCode = generateStudentCode(firstName, lastName)
+    
+    // Create new student
+    const { data: newStudent, error: createError } = await supabaseAdmin
+      .from('students')
+      .insert({ 
+        email: student_email, 
+        first_name: firstName, 
+        last_name: lastName, 
+        status: 'active', 
+        student_code: studentCode,
+        created_at: new Date().toISOString()
+      })
+      .select('id, email, first_name, last_name')
+      .single()
+    
+    if (createError || !newStudent) {
+      console.error('Error creating student:', createError)
+      return res.status(500).json({ error: `Failed to create student: ${createError?.message || 'Unknown error'}` })
+    }
+    
+    student = newStudent
+  }
+  
+  // Ensure student exists at this point
   if (!student) {
-    return res.status(404).json({ error: 'Student not found' })
+    return res.status(500).json({ error: 'Failed to get or create student' })
   }
   
   // Check if already enrolled
@@ -1137,7 +1305,7 @@ router.post('/enroll', requireAuth, asyncHandler(async (req, res) => {
     return res.status(400).json({ error: 'Student is already enrolled in this course' })
   }
   
-  // Create enrollment
+  // Create enrollment with access_type
   const { data, error } = await supabaseAdmin
     .from('enrollments')
     .insert({ 
@@ -1146,7 +1314,8 @@ router.post('/enroll', requireAuth, asyncHandler(async (req, res) => {
       student_email: student.email,
       enrolled_at: new Date().toISOString(),
       status: 'active',
-      progress_percentage: 0
+      progress_percentage: 0,
+      access_type: access_type || 'full' // Default to 'full' if not provided
     })
     .select()
     .single()
@@ -1157,6 +1326,55 @@ router.post('/enroll', requireAuth, asyncHandler(async (req, res) => {
   }
   
   res.json({ success: true, enrollment: data })
+}))
+
+// Unenroll a student from a course by email (for teachers)
+router.delete('/enroll/:courseId/:studentEmail', requireAuth, asyncHandler(async (req, res) => {
+  const { courseId, studentEmail } = req.params
+  const teacherEmail = (req as any).user?.email
+  const userRole = (req as any).user?.role
+  
+  // Only teachers can unenroll students
+  if (userRole !== 'teacher') {
+    return res.status(403).json({ error: 'Access denied. Only teachers can unenroll students.' })
+  }
+  
+  // Check if course exists and belongs to the teacher
+  const { data: course } = await supabaseAdmin
+    .from('courses')
+    .select('id, teacher_email')
+    .eq('id', courseId)
+    .eq('teacher_email', teacherEmail)
+    .single()
+  
+  if (!course) {
+    return res.status(404).json({ error: 'Course not found or access denied' })
+  }
+  
+  // Find the enrollment
+  const { data: enrollment } = await supabaseAdmin
+    .from('enrollments')
+    .select('id')
+    .eq('course_id', courseId)
+    .eq('student_email', studentEmail)
+    .single()
+  
+  if (!enrollment) {
+    return res.status(404).json({ error: 'Enrollment not found' })
+  }
+  
+  // Delete the enrollment
+  const { error } = await supabaseAdmin
+    .from('enrollments')
+    .delete()
+    .eq('id', enrollment.id)
+  
+  if (error) {
+    console.error('Error unenrolling student:', error)
+    return res.status(500).json({ error: error.message })
+  }
+  
+  res.json({ success: true, message: 'Student unenrolled successfully' })
 }))
 
 // Enroll a student in a course by ID

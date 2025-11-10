@@ -418,24 +418,6 @@ CREATE TRIGGER trigger_update_updated_at_recordings
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
-DROP TRIGGER IF EXISTS trigger_update_updated_at_announcements ON announcements;
-CREATE TRIGGER trigger_update_updated_at_announcements
-    BEFORE UPDATE ON announcements
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
-DROP TRIGGER IF EXISTS trigger_update_updated_at_discussions ON discussions;
-CREATE TRIGGER trigger_update_updated_at_discussions
-    BEFORE UPDATE ON discussions
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
-DROP TRIGGER IF EXISTS trigger_update_updated_at_discussion_posts ON discussion_posts;
-CREATE TRIGGER trigger_update_updated_at_discussion_posts
-    BEFORE UPDATE ON discussion_posts
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
 DROP TRIGGER IF EXISTS trigger_update_updated_at_polls ON polls;
 CREATE TRIGGER trigger_update_updated_at_polls
     BEFORE UPDATE ON polls
@@ -481,6 +463,148 @@ CREATE TRIGGER trigger_update_updated_at_notifications
 DROP TRIGGER IF EXISTS trigger_update_updated_at_invites ON invites;
 CREATE TRIGGER trigger_update_updated_at_invites
     BEFORE UPDATE ON invites
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- =====================================================
+-- DISCUSSION & FORUM HELPER FUNCTIONS
+-- =====================================================
+
+DROP FUNCTION IF EXISTS touch_discussion_activity() CASCADE;
+CREATE OR REPLACE FUNCTION touch_discussion_activity()
+RETURNS TRIGGER AS $$
+DECLARE
+    target_discussion UUID;
+BEGIN
+    target_discussion := COALESCE(NEW.discussion_id, OLD.discussion_id);
+
+    IF target_discussion IS NOT NULL THEN
+        UPDATE discussions
+        SET last_activity_at = NOW(),
+            updated_at = NOW()
+        WHERE id = target_discussion;
+    END IF;
+
+    IF TG_OP = 'DELETE' THEN
+        RETURN OLD;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP FUNCTION IF EXISTS touch_forum_thread_activity() CASCADE;
+CREATE OR REPLACE FUNCTION touch_forum_thread_activity()
+RETURNS TRIGGER AS $$
+DECLARE
+    target_thread UUID;
+BEGIN
+    target_thread := COALESCE(NEW.thread_id, OLD.thread_id);
+
+    IF target_thread IS NOT NULL THEN
+        UPDATE forum_threads
+        SET last_activity_at = NOW(),
+            updated_at = NOW()
+        WHERE id = target_thread;
+    END IF;
+
+    IF TG_OP = 'DELETE' THEN
+        RETURN OLD;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- =====================================================
+-- TRIGGERS FOR DISCUSSION & FORUM ACTIVITY
+-- =====================================================
+
+DROP TRIGGER IF EXISTS trigger_touch_discussion_activity ON discussion_posts;
+CREATE TRIGGER trigger_touch_discussion_activity
+    AFTER INSERT OR UPDATE ON discussion_posts
+    FOR EACH ROW
+    EXECUTE FUNCTION touch_discussion_activity();
+
+DROP TRIGGER IF EXISTS trigger_touch_discussion_activity_on_delete ON discussion_posts;
+CREATE TRIGGER trigger_touch_discussion_activity_on_delete
+    AFTER DELETE ON discussion_posts
+    FOR EACH ROW
+    EXECUTE FUNCTION touch_discussion_activity();
+
+DROP TRIGGER IF EXISTS trigger_touch_forum_thread_activity ON forum_posts;
+CREATE TRIGGER trigger_touch_forum_thread_activity
+    AFTER INSERT OR UPDATE ON forum_posts
+    FOR EACH ROW
+    EXECUTE FUNCTION touch_forum_thread_activity();
+
+DROP TRIGGER IF EXISTS trigger_touch_forum_thread_activity_on_delete ON forum_posts;
+CREATE TRIGGER trigger_touch_forum_thread_activity_on_delete
+    AFTER DELETE ON forum_posts
+    FOR EACH ROW
+    EXECUTE FUNCTION touch_forum_thread_activity();
+
+-- =====================================================
+-- UPDATED_AT TRIGGERS FOR NEW TABLES
+-- =====================================================
+
+DROP TRIGGER IF EXISTS trigger_update_updated_at_discussions ON discussions;
+CREATE TRIGGER trigger_update_updated_at_discussions
+    BEFORE UPDATE ON discussions
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS trigger_update_updated_at_discussion_participants ON discussion_participants;
+CREATE TRIGGER trigger_update_updated_at_discussion_participants
+    BEFORE UPDATE ON discussion_participants
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS trigger_update_updated_at_discussion_posts ON discussion_posts;
+CREATE TRIGGER trigger_update_updated_at_discussion_posts
+    BEFORE UPDATE ON discussion_posts
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS trigger_update_updated_at_discussion_action_items ON discussion_action_items;
+CREATE TRIGGER trigger_update_updated_at_discussion_action_items
+    BEFORE UPDATE ON discussion_action_items
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS trigger_update_updated_at_forum_categories ON forum_categories;
+CREATE TRIGGER trigger_update_updated_at_forum_categories
+    BEFORE UPDATE ON forum_categories
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS trigger_update_updated_at_forum_threads ON forum_threads;
+CREATE TRIGGER trigger_update_updated_at_forum_threads
+    BEFORE UPDATE ON forum_threads
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS trigger_update_updated_at_forum_posts ON forum_posts;
+CREATE TRIGGER trigger_update_updated_at_forum_posts
+    BEFORE UPDATE ON forum_posts
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS trigger_update_updated_at_announcements ON announcements;
+CREATE TRIGGER trigger_update_updated_at_announcements
+    BEFORE UPDATE ON announcements
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS trigger_update_updated_at_announcement_recurrences ON announcement_recurrences;
+CREATE TRIGGER trigger_update_updated_at_announcement_recurrences
+    BEFORE UPDATE ON announcement_recurrences
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS trigger_update_updated_at_announcements_audit ON announcement_audit_logs;
+CREATE TRIGGER trigger_update_updated_at_announcements_audit
+    BEFORE UPDATE ON announcement_audit_logs
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 

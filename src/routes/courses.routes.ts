@@ -151,11 +151,12 @@ router.get('/:id', requireAuth, asyncHandler(async (req, res) => {
     data = result.data
     error = result.error
   } else if (userRole === 'student') {
-    // Students can access courses they're enrolled in
+    // Students can access courses they're enrolled in (exclude draft courses)
     const result = await supabaseAdmin
       .from('courses')
       .select('*')
       .eq('id', req.params.id)
+      .neq('status', 'draft')
       .eq('enrollments.student_email', userEmail)
       .single()
     data = result.data
@@ -171,11 +172,12 @@ router.get('/:id', requireAuth, asyncHandler(async (req, res) => {
         .single()
       
       if (enrollmentCheck.data) {
-        // Student is enrolled, get the course
+        // Student is enrolled, get the course (exclude draft courses)
         const courseResult = await supabaseAdmin
           .from('courses')
           .select('*')
           .eq('id', req.params.id)
+          .neq('status', 'draft')
           .single()
         data = courseResult.data
         error = courseResult.error
@@ -365,7 +367,7 @@ router.post('/:id/enroll', requireAuth, asyncHandler(async (req, res) => {
     return res.status(401).json({ error: 'Teacher email not found in request' })
   }
   
-  const { student_email, student_id } = req.body || {}
+  const { student_email, student_id, access_type } = req.body || {}
   if (!student_email) return res.status(400).json({ error: 'missing_student' })
   
   // First verify the course belongs to this teacher
@@ -417,6 +419,7 @@ router.post('/:id/enroll', requireAuth, asyncHandler(async (req, res) => {
     course_id: req.params.id, 
     student_email,
     student_id: finalStudentId,
+    access_type: access_type || 'full', // Default to full access
     status: 'active',
     enrolled_at: new Date().toISOString(),
     progress: { completed_lessons: [], completed_assignments: [] },

@@ -40,15 +40,30 @@ ALTER TABLE live_classwork ENABLE ROW LEVEL SECURITY;
 ALTER TABLE live_classwork_submissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE recordings ENABLE ROW LEVEL SECURITY;
 
--- Discussion & Communication tables
-ALTER TABLE announcements ENABLE ROW LEVEL SECURITY;
-ALTER TABLE discussions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE discussion_posts ENABLE ROW LEVEL SECURITY;
-
 -- Poll & Engagement tables
 ALTER TABLE polls ENABLE ROW LEVEL SECURITY;
 ALTER TABLE poll_options ENABLE ROW LEVEL SECURITY;
 ALTER TABLE poll_responses ENABLE ROW LEVEL SECURITY;
+
+-- Discussion & Forum tables
+ALTER TABLE discussions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE discussion_participants ENABLE ROW LEVEL SECURITY;
+ALTER TABLE discussion_posts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE discussion_attachments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE discussion_post_reactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE discussion_action_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE forum_categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE forum_threads ENABLE ROW LEVEL SECURITY;
+ALTER TABLE forum_posts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE forum_post_reactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE forum_thread_subscriptions ENABLE ROW LEVEL SECURITY;
+
+-- Announcement tables
+ALTER TABLE announcements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE announcement_audience ENABLE ROW LEVEL SECURITY;
+ALTER TABLE announcement_reads ENABLE ROW LEVEL SECURITY;
+ALTER TABLE announcement_recurrences ENABLE ROW LEVEL SECURITY;
+ALTER TABLE announcement_audit_logs ENABLE ROW LEVEL SECURITY;
 
 -- Student Activity & Grades tables
 ALTER TABLE student_activities ENABLE ROW LEVEL SECURITY;
@@ -500,70 +515,6 @@ CREATE POLICY "Students can view recordings for accessible live sessions" ON rec
     );
 
 -- =====================================================
--- RLS POLICIES FOR ANNOUNCEMENTS
--- =====================================================
-
--- Teachers can manage announcements for their courses
-CREATE POLICY "Teachers can manage announcements for their courses" ON announcements
-    FOR ALL USING (
-        course_id IN (
-            SELECT id FROM courses 
-            WHERE teacher_email = current_setting('request.jwt.claims', true)::json->>'email'
-        )
-    );
-
--- Students can view announcements for courses they're enrolled in
-CREATE POLICY "Students can view announcements for enrolled courses" ON announcements
-    FOR SELECT USING (
-        course_id IN (
-            SELECT course_id FROM enrollments 
-            WHERE student_email = current_setting('request.jwt.claims', true)::json->>'email'
-        )
-    );
-
--- =====================================================
--- RLS POLICIES FOR DISCUSSIONS
--- =====================================================
-
--- Teachers can manage discussions for their courses
-CREATE POLICY "Teachers can manage discussions for their courses" ON discussions
-    FOR ALL USING (
-        course_id IN (
-            SELECT id FROM courses 
-            WHERE teacher_email = current_setting('request.jwt.claims', true)::json->>'email'
-        )
-    );
-
--- Students can view discussions for courses they're enrolled in
-CREATE POLICY "Students can view discussions for enrolled courses" ON discussions
-    FOR SELECT USING (
-        course_id IN (
-            SELECT course_id FROM enrollments 
-            WHERE student_email = current_setting('request.jwt.claims', true)::json->>'email'
-        )
-    );
-
--- =====================================================
--- RLS POLICIES FOR DISCUSSION POSTS
--- =====================================================
-
--- Users can manage their own discussion posts
-CREATE POLICY "Users can manage their own discussion posts" ON discussion_posts
-    FOR ALL USING (created_by = current_setting('request.jwt.claims', true)::json->>'email');
-
--- Users can view discussion posts for discussions they have access to
-CREATE POLICY "Users can view discussion posts for accessible discussions" ON discussion_posts
-    FOR SELECT USING (
-        discussion_id IN (
-            SELECT d.id FROM discussions d
-            LEFT JOIN courses c ON c.id = d.course_id
-            LEFT JOIN enrollments e ON e.course_id = c.id
-            WHERE c.teacher_email = current_setting('request.jwt.claims', true)::json->>'email'
-            OR e.student_email = current_setting('request.jwt.claims', true)::json->>'email'
-        )
-    );
-
--- =====================================================
 -- RLS POLICIES FOR POLLS
 -- =====================================================
 
@@ -701,6 +652,708 @@ CREATE POLICY "Teachers can manage invites for their courses" ON invites
 -- Users can view invites sent to their email
 CREATE POLICY "Users can view invites sent to their email" ON invites
     FOR SELECT USING (email = current_setting('request.jwt.claims', true)::json->>'email');
+
+-- =====================================================
+-- RLS POLICIES FOR DISCUSSIONS
+-- =====================================================
+
+CREATE POLICY "Users can view discussions they belong to" ON discussions
+    FOR SELECT USING (
+        owner_email = current_setting('request.jwt.claims', true)::json->>'email'
+        OR EXISTS (
+            SELECT 1 FROM discussion_participants dp
+            WHERE dp.discussion_id = discussions.id
+              AND dp.user_email = current_setting('request.jwt.claims', true)::json->>'email'
+              AND dp.status = 'active'
+        )
+    );
+
+CREATE POLICY "Users can create discussions they own" ON discussions
+    FOR INSERT WITH CHECK (
+        owner_email = current_setting('request.jwt.claims', true)::json->>'email'
+    );
+
+CREATE POLICY "Owners and moderators can update discussions" ON discussions
+    FOR UPDATE USING (
+        owner_email = current_setting('request.jwt.claims', true)::json->>'email'
+        OR EXISTS (
+            SELECT 1 FROM discussion_participants dp
+            WHERE dp.discussion_id = discussions.id
+              AND dp.user_email = current_setting('request.jwt.claims', true)::json->>'email'
+              AND dp.status = 'active'
+              AND dp.participant_role IN ('owner', 'moderator', 'leader', 'co_leader')
+        )
+    )
+    WITH CHECK (
+        owner_email = current_setting('request.jwt.claims', true)::json->>'email'
+        OR EXISTS (
+            SELECT 1 FROM discussion_participants dp
+            WHERE dp.discussion_id = discussions.id
+              AND dp.user_email = current_setting('request.jwt.claims', true)::json->>'email'
+              AND dp.status = 'active'
+              AND dp.participant_role IN ('owner', 'moderator', 'leader', 'co_leader')
+        )
+    );
+
+CREATE POLICY "Owners can delete discussions" ON discussions
+    FOR DELETE USING (
+        owner_email = current_setting('request.jwt.claims', true)::json->>'email'
+    );
+
+-- =====================================================
+-- RLS POLICIES FOR DISCUSSION PARTICIPANTS
+-- =====================================================
+
+CREATE POLICY "Participants can view discussion participants they have access to" ON discussion_participants
+    FOR SELECT USING (
+        user_email = current_setting('request.jwt.claims', true)::json->>'email'
+        OR EXISTS (
+            SELECT 1 FROM discussions d
+            WHERE d.id = discussion_participants.discussion_id
+              AND (
+                d.owner_email = current_setting('request.jwt.claims', true)::json->>'email'
+                OR EXISTS (
+                    SELECT 1 FROM discussion_participants dp
+                    WHERE dp.discussion_id = discussion_participants.discussion_id
+                      AND dp.user_email = current_setting('request.jwt.claims', true)::json->>'email'
+                      AND dp.status = 'active'
+                )
+              )
+        )
+    );
+
+CREATE POLICY "Owners and moderators can add discussion participants" ON discussion_participants
+    FOR INSERT WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM discussions d
+            WHERE d.id = discussion_participants.discussion_id
+              AND (
+                d.owner_email = current_setting('request.jwt.claims', true)::json->>'email'
+                OR EXISTS (
+                    SELECT 1 FROM discussion_participants dp
+                    WHERE dp.discussion_id = discussion_participants.discussion_id
+                      AND dp.user_email = current_setting('request.jwt.claims', true)::json->>'email'
+                      AND dp.status = 'active'
+                      AND dp.participant_role IN ('owner', 'moderator', 'leader', 'co_leader')
+                )
+              )
+        )
+    );
+
+CREATE POLICY "Participants can update their membership status" ON discussion_participants
+    FOR UPDATE USING (
+        user_email = current_setting('request.jwt.claims', true)::json->>'email'
+    )
+    WITH CHECK (
+        user_email = current_setting('request.jwt.claims', true)::json->>'email'
+        OR EXISTS (
+            SELECT 1 FROM discussions d
+            WHERE d.id = discussion_participants.discussion_id
+              AND (
+                d.owner_email = current_setting('request.jwt.claims', true)::json->>'email'
+                OR EXISTS (
+                    SELECT 1 FROM discussion_participants dp
+                    WHERE dp.discussion_id = discussion_participants.discussion_id
+                      AND dp.user_email = current_setting('request.jwt.claims', true)::json->>'email'
+                      AND dp.status = 'active'
+                      AND dp.participant_role IN ('owner', 'moderator', 'leader', 'co_leader')
+                )
+              )
+        )
+    );
+
+CREATE POLICY "Owners and moderators can manage discussion participants" ON discussion_participants
+    FOR DELETE USING (
+        user_email = current_setting('request.jwt.claims', true)::json->>'email'
+        OR EXISTS (
+            SELECT 1 FROM discussions d
+            WHERE d.id = discussion_participants.discussion_id
+              AND (
+                d.owner_email = current_setting('request.jwt.claims', true)::json->>'email'
+                OR EXISTS (
+                    SELECT 1 FROM discussion_participants dp
+                    WHERE dp.discussion_id = discussion_participants.discussion_id
+                      AND dp.user_email = current_setting('request.jwt.claims', true)::json->>'email'
+                      AND dp.status = 'active'
+                      AND dp.participant_role IN ('owner', 'moderator', 'leader', 'co_leader')
+                )
+              )
+        )
+    );
+
+-- =====================================================
+-- RLS POLICIES FOR DISCUSSION POSTS
+-- =====================================================
+
+CREATE POLICY "Participants can view discussion posts" ON discussion_posts
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM discussion_participants dp
+            WHERE dp.discussion_id = discussion_posts.discussion_id
+              AND dp.user_email = current_setting('request.jwt.claims', true)::json->>'email'
+              AND dp.status = 'active'
+        )
+    );
+
+CREATE POLICY "Participants can add discussion posts" ON discussion_posts
+    FOR INSERT WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM discussion_participants dp
+            WHERE dp.discussion_id = discussion_posts.discussion_id
+              AND dp.user_email = current_setting('request.jwt.claims', true)::json->>'email'
+              AND dp.status = 'active'
+        )
+    );
+
+CREATE POLICY "Authors and moderators can update discussion posts" ON discussion_posts
+    FOR UPDATE USING (
+        author_email = current_setting('request.jwt.claims', true)::json->>'email'
+        OR EXISTS (
+            SELECT 1 FROM discussion_participants dp
+            WHERE dp.discussion_id = discussion_posts.discussion_id
+              AND dp.user_email = current_setting('request.jwt.claims', true)::json->>'email'
+              AND dp.status = 'active'
+              AND dp.participant_role IN ('owner', 'moderator', 'leader', 'co_leader')
+        )
+    )
+    WITH CHECK (
+        author_email = current_setting('request.jwt.claims', true)::json->>'email'
+        OR EXISTS (
+            SELECT 1 FROM discussion_participants dp
+            WHERE dp.discussion_id = discussion_posts.discussion_id
+              AND dp.user_email = current_setting('request.jwt.claims', true)::json->>'email'
+              AND dp.status = 'active'
+              AND dp.participant_role IN ('owner', 'moderator', 'leader', 'co_leader')
+        )
+    );
+
+CREATE POLICY "Authors and moderators can delete discussion posts" ON discussion_posts
+    FOR DELETE USING (
+        author_email = current_setting('request.jwt.claims', true)::json->>'email'
+        OR EXISTS (
+            SELECT 1 FROM discussion_participants dp
+            WHERE dp.discussion_id = discussion_posts.discussion_id
+              AND dp.user_email = current_setting('request.jwt.claims', true)::json->>'email'
+              AND dp.status = 'active'
+              AND dp.participant_role IN ('owner', 'moderator', 'leader', 'co_leader')
+        )
+    );
+
+-- =====================================================
+-- RLS POLICIES FOR DISCUSSION ATTACHMENTS & REACTIONS
+-- =====================================================
+
+CREATE POLICY "Participants can view discussion attachments" ON discussion_attachments
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM discussion_posts dp
+            JOIN discussion_participants part
+              ON part.discussion_id = dp.discussion_id
+             AND part.user_email = current_setting('request.jwt.claims', true)::json->>'email'
+             AND part.status = 'active'
+            WHERE dp.id = discussion_attachments.post_id
+        )
+    );
+
+CREATE POLICY "Participants can manage discussion post reactions" ON discussion_post_reactions
+    FOR ALL USING (
+        EXISTS (
+            SELECT 1 FROM discussion_posts dp
+            JOIN discussion_participants part
+              ON part.discussion_id = dp.discussion_id
+             AND part.user_email = current_setting('request.jwt.claims', true)::json->>'email'
+             AND part.status = 'active'
+            WHERE dp.id = discussion_post_reactions.post_id
+        )
+    )
+    WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM discussion_posts dp
+            JOIN discussion_participants part
+              ON part.discussion_id = dp.discussion_id
+             AND part.user_email = current_setting('request.jwt.claims', true)::json->>'email'
+             AND part.status = 'active'
+            WHERE dp.id = discussion_post_reactions.post_id
+        )
+    );
+
+-- =====================================================
+-- RLS POLICIES FOR DISCUSSION ACTION ITEMS
+-- =====================================================
+
+CREATE POLICY "Participants can view discussion action items" ON discussion_action_items
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM discussion_participants dp
+            WHERE dp.discussion_id = discussion_action_items.discussion_id
+              AND dp.user_email = current_setting('request.jwt.claims', true)::json->>'email'
+              AND dp.status = 'active'
+        )
+    );
+
+CREATE POLICY "Leaders and moderators can manage discussion action items" ON discussion_action_items
+    FOR ALL USING (
+        EXISTS (
+            SELECT 1 FROM discussion_participants dp
+            WHERE dp.discussion_id = discussion_action_items.discussion_id
+              AND dp.user_email = current_setting('request.jwt.claims', true)::json->>'email'
+              AND dp.status = 'active'
+              AND dp.participant_role IN ('owner', 'moderator', 'leader', 'co_leader')
+        )
+    )
+    WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM discussion_participants dp
+            WHERE dp.discussion_id = discussion_action_items.discussion_id
+              AND dp.user_email = current_setting('request.jwt.claims', true)::json->>'email'
+              AND dp.status = 'active'
+              AND dp.participant_role IN ('owner', 'moderator', 'leader', 'co_leader')
+        )
+    );
+
+-- =====================================================
+-- RLS POLICIES FOR FORUM CATEGORIES
+-- =====================================================
+
+CREATE POLICY "Users can view accessible forum categories" ON forum_categories
+    FOR SELECT USING (
+        visibility = 'public'
+        OR created_by = current_setting('request.jwt.claims', true)::json->>'email'
+        OR context_type IS NULL
+        OR (
+            context_type = 'course'
+            AND (
+                EXISTS (
+                    SELECT 1 FROM courses c
+                    WHERE c.id = forum_categories.context_id
+                      AND c.teacher_email = current_setting('request.jwt.claims', true)::json->>'email'
+                )
+                OR EXISTS (
+                    SELECT 1 FROM enrollments e
+                    WHERE e.course_id = forum_categories.context_id
+                      AND e.student_email = current_setting('request.jwt.claims', true)::json->>'email'
+                )
+            )
+        )
+    );
+
+CREATE POLICY "Teachers can manage their forum categories" ON forum_categories
+    FOR ALL USING (
+        created_by = current_setting('request.jwt.claims', true)::json->>'email'
+        OR (
+            context_type = 'course'
+            AND EXISTS (
+                SELECT 1 FROM courses c
+                WHERE c.id = forum_categories.context_id
+                  AND c.teacher_email = current_setting('request.jwt.claims', true)::json->>'email'
+            )
+        )
+    )
+    WITH CHECK (
+        created_by = current_setting('request.jwt.claims', true)::json->>'email'
+        OR (
+            context_type = 'course'
+            AND EXISTS (
+                SELECT 1 FROM courses c
+                WHERE c.id = forum_categories.context_id
+                  AND c.teacher_email = current_setting('request.jwt.claims', true)::json->>'email'
+            )
+        )
+    );
+
+-- =====================================================
+-- RLS POLICIES FOR FORUM THREADS & POSTS
+-- =====================================================
+
+CREATE POLICY "Users can view forum threads they have access to" ON forum_threads
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM forum_categories fc
+            WHERE fc.id = forum_threads.category_id
+              AND (
+                fc.visibility = 'public'
+                OR fc.created_by = current_setting('request.jwt.claims', true)::json->>'email'
+                OR fc.context_type IS NULL
+                OR (
+                    fc.context_type = 'course'
+                    AND (
+                        EXISTS (
+                            SELECT 1 FROM courses c
+                            WHERE c.id = fc.context_id
+                              AND c.teacher_email = current_setting('request.jwt.claims', true)::json->>'email'
+                        )
+                        OR EXISTS (
+                            SELECT 1 FROM enrollments e
+                            WHERE e.course_id = fc.context_id
+                              AND e.student_email = current_setting('request.jwt.claims', true)::json->>'email'
+                        )
+                    )
+                )
+              )
+        )
+    );
+
+CREATE POLICY "Users can create forum threads in accessible categories" ON forum_threads
+    FOR INSERT WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM forum_categories fc
+            WHERE fc.id = forum_threads.category_id
+              AND (
+                fc.visibility = 'public'
+                OR fc.created_by = current_setting('request.jwt.claims', true)::json->>'email'
+                OR fc.context_type IS NULL
+                OR (
+                    fc.context_type = 'course'
+                    AND (
+                        EXISTS (
+                            SELECT 1 FROM courses c
+                            WHERE c.id = fc.context_id
+                              AND c.teacher_email = current_setting('request.jwt.claims', true)::json->>'email'
+                        )
+                        OR EXISTS (
+                            SELECT 1 FROM enrollments e
+                            WHERE e.course_id = fc.context_id
+                              AND e.student_email = current_setting('request.jwt.claims', true)::json->>'email'
+                        )
+                    )
+                )
+              )
+        )
+        AND author_email = current_setting('request.jwt.claims', true)::json->>'email'
+    );
+
+CREATE POLICY "Authors and teachers can update forum threads" ON forum_threads
+    FOR UPDATE USING (
+        author_email = current_setting('request.jwt.claims', true)::json->>'email'
+        OR EXISTS (
+            SELECT 1 FROM forum_categories fc
+            JOIN courses c ON c.id = fc.context_id
+            WHERE fc.id = forum_threads.category_id
+              AND fc.context_type = 'course'
+              AND c.teacher_email = current_setting('request.jwt.claims', true)::json->>'email'
+        )
+    )
+    WITH CHECK (
+        author_email = current_setting('request.jwt.claims', true)::json->>'email'
+        OR EXISTS (
+            SELECT 1 FROM forum_categories fc
+            JOIN courses c ON c.id = fc.context_id
+            WHERE fc.id = forum_threads.category_id
+              AND fc.context_type = 'course'
+              AND c.teacher_email = current_setting('request.jwt.claims', true)::json->>'email'
+        )
+    );
+
+CREATE POLICY "Authors and teachers can delete forum threads" ON forum_threads
+    FOR DELETE USING (
+        author_email = current_setting('request.jwt.claims', true)::json->>'email'
+        OR EXISTS (
+            SELECT 1 FROM forum_categories fc
+            JOIN courses c ON c.id = fc.context_id
+            WHERE fc.id = forum_threads.category_id
+              AND fc.context_type = 'course'
+              AND c.teacher_email = current_setting('request.jwt.claims', true)::json->>'email'
+        )
+    );
+
+CREATE POLICY "Users can view forum posts they have access to" ON forum_posts
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM forum_threads ft
+            WHERE ft.id = forum_posts.thread_id
+              AND (
+                ft.author_email = current_setting('request.jwt.claims', true)::json->>'email'
+                OR EXISTS (
+                    SELECT 1 FROM forum_categories fc
+                    WHERE fc.id = ft.category_id
+                      AND (
+                        fc.visibility = 'public'
+                        OR fc.created_by = current_setting('request.jwt.claims', true)::json->>'email'
+                        OR fc.context_type IS NULL
+                        OR (
+                            fc.context_type = 'course'
+                            AND (
+                                EXISTS (
+                                    SELECT 1 FROM courses c
+                                    WHERE c.id = fc.context_id
+                                      AND c.teacher_email = current_setting('request.jwt.claims', true)::json->>'email'
+                                )
+                                OR EXISTS (
+                                    SELECT 1 FROM enrollments e
+                                    WHERE e.course_id = fc.context_id
+                                      AND e.student_email = current_setting('request.jwt.claims', true)::json->>'email'
+                                )
+                            )
+                        )
+                      )
+                )
+              )
+        )
+    );
+
+CREATE POLICY "Users can add forum posts in accessible threads" ON forum_posts
+    FOR INSERT WITH CHECK (
+        author_email = current_setting('request.jwt.claims', true)::json->>'email'
+        AND EXISTS (
+            SELECT 1 FROM forum_threads ft
+            WHERE ft.id = forum_posts.thread_id
+              AND (
+                ft.author_email = current_setting('request.jwt.claims', true)::json->>'email'
+                OR EXISTS (
+                    SELECT 1 FROM forum_categories fc
+                    WHERE fc.id = ft.category_id
+                      AND (
+                        fc.visibility = 'public'
+                        OR fc.created_by = current_setting('request.jwt.claims', true)::json->>'email'
+                        OR fc.context_type IS NULL
+                        OR (
+                            fc.context_type = 'course'
+                            AND (
+                                EXISTS (
+                                    SELECT 1 FROM courses c
+                                    WHERE c.id = fc.context_id
+                                      AND c.teacher_email = current_setting('request.jwt.claims', true)::json->>'email'
+                                )
+                                OR EXISTS (
+                                    SELECT 1 FROM enrollments e
+                                    WHERE e.course_id = fc.context_id
+                                      AND e.student_email = current_setting('request.jwt.claims', true)::json->>'email'
+                                )
+                            )
+                        )
+                      )
+                )
+              )
+        )
+    );
+
+CREATE POLICY "Authors and teachers can manage forum posts" ON forum_posts
+    FOR UPDATE USING (
+        author_email = current_setting('request.jwt.claims', true)::json->>'email'
+        OR EXISTS (
+            SELECT 1 FROM forum_threads ft
+            JOIN forum_categories fc ON fc.id = ft.category_id
+            JOIN courses c ON c.id = fc.context_id
+            WHERE ft.id = forum_posts.thread_id
+              AND fc.context_type = 'course'
+              AND c.teacher_email = current_setting('request.jwt.claims', true)::json->>'email'
+        )
+    )
+    WITH CHECK (
+        author_email = current_setting('request.jwt.claims', true)::json->>'email'
+        OR EXISTS (
+            SELECT 1 FROM forum_threads ft
+            JOIN forum_categories fc ON fc.id = ft.category_id
+            JOIN courses c ON c.id = fc.context_id
+            WHERE ft.id = forum_posts.thread_id
+              AND fc.context_type = 'course'
+              AND c.teacher_email = current_setting('request.jwt.claims', true)::json->>'email'
+        )
+    );
+
+CREATE POLICY "Authors and teachers can delete forum posts" ON forum_posts
+    FOR DELETE USING (
+        author_email = current_setting('request.jwt.claims', true)::json->>'email'
+        OR EXISTS (
+            SELECT 1 FROM forum_threads ft
+            JOIN forum_categories fc ON fc.id = ft.category_id
+            JOIN courses c ON c.id = fc.context_id
+            WHERE ft.id = forum_posts.thread_id
+              AND fc.context_type = 'course'
+              AND c.teacher_email = current_setting('request.jwt.claims', true)::json->>'email'
+        )
+    );
+
+CREATE POLICY "Users can manage forum post reactions" ON forum_post_reactions
+    FOR ALL USING (
+        user_email = current_setting('request.jwt.claims', true)::json->>'email'
+        AND EXISTS (
+            SELECT 1 FROM forum_posts fp
+            WHERE fp.id = forum_post_reactions.post_id
+              AND EXISTS (
+                  SELECT 1 FROM forum_threads ft
+                  WHERE ft.id = fp.thread_id
+                    AND (
+                      ft.author_email = current_setting('request.jwt.claims', true)::json->>'email'
+                      OR EXISTS (
+                          SELECT 1 FROM forum_categories fc
+                          WHERE fc.id = ft.category_id
+                            AND (
+                              fc.visibility = 'public'
+                              OR fc.created_by = current_setting('request.jwt.claims', true)::json->>'email'
+                              OR fc.context_type IS NULL
+                              OR (
+                                  fc.context_type = 'course'
+                                  AND (
+                                      EXISTS (
+                                          SELECT 1 FROM courses c
+                                          WHERE c.id = fc.context_id
+                                            AND c.teacher_email = current_setting('request.jwt.claims', true)::json->>'email'
+                                      )
+                                      OR EXISTS (
+                                          SELECT 1 FROM enrollments e
+                                          WHERE e.course_id = fc.context_id
+                                            AND e.student_email = current_setting('request.jwt.claims', true)::json->>'email'
+                                      )
+                                  )
+                              )
+                            )
+                      )
+                    )
+              )
+        )
+    )
+    WITH CHECK (
+        user_email = current_setting('request.jwt.claims', true)::json->>'email'
+    );
+
+CREATE POLICY "Users can manage forum thread subscriptions" ON forum_thread_subscriptions
+    FOR ALL USING (
+        user_email = current_setting('request.jwt.claims', true)::json->>'email'
+    )
+    WITH CHECK (
+        user_email = current_setting('request.jwt.claims', true)::json->>'email'
+    );
+
+-- =====================================================
+-- RLS POLICIES FOR ANNOUNCEMENTS
+-- =====================================================
+
+CREATE POLICY "Users can view announcements targeted to them" ON announcements
+    FOR SELECT USING (
+        author_email = current_setting('request.jwt.claims', true)::json->>'email'
+        OR (
+            status = 'published'
+            AND (starts_at IS NULL OR starts_at <= NOW())
+            AND (ends_at IS NULL OR ends_at >= NOW())
+            AND (
+                NOT EXISTS (
+                    SELECT 1 FROM announcement_audience aa
+                    WHERE aa.announcement_id = announcements.id
+                )
+                OR EXISTS (
+                    SELECT 1 FROM announcement_audience aa
+                    WHERE aa.announcement_id = announcements.id
+                      AND (
+                        (aa.audience_type = 'role' AND aa.audience_value = current_setting('request.jwt.claims', true)::json->>'role')
+                        OR (aa.audience_type = 'user' AND aa.audience_value = current_setting('request.jwt.claims', true)::json->>'email')
+                        OR (
+                            aa.audience_type = 'course'
+                            AND (
+                                EXISTS (
+                                    SELECT 1 FROM courses c
+                                    WHERE c.id = aa.audience_id
+                                      AND c.teacher_email = current_setting('request.jwt.claims', true)::json->>'email'
+                                )
+                                OR EXISTS (
+                                    SELECT 1 FROM enrollments e
+                                    WHERE e.course_id = aa.audience_id
+                                      AND e.student_email = current_setting('request.jwt.claims', true)::json->>'email'
+                                )
+                            )
+                        )
+                        OR (
+                            aa.audience_type = 'module'
+                            AND EXISTS (
+                                SELECT 1 FROM modules m
+                                JOIN courses c ON c.id = m.course_id
+                                LEFT JOIN enrollments e ON e.course_id = c.id
+                                WHERE m.id = aa.audience_id
+                                  AND (
+                                    c.teacher_email = current_setting('request.jwt.claims', true)::json->>'email'
+                                    OR e.student_email = current_setting('request.jwt.claims', true)::json->>'email'
+                                  )
+                            )
+                        )
+                        OR (
+                            aa.audience_type = 'lesson'
+                            AND EXISTS (
+                                SELECT 1 FROM lessons l
+                                JOIN modules m ON m.id = l.module_id
+                                JOIN courses c ON c.id = m.course_id
+                                LEFT JOIN enrollments e ON e.course_id = c.id
+                                WHERE l.id = aa.audience_id
+                                  AND (
+                                    c.teacher_email = current_setting('request.jwt.claims', true)::json->>'email'
+                                    OR e.student_email = current_setting('request.jwt.claims', true)::json->>'email'
+                                  )
+                            )
+                        )
+                      )
+                )
+            )
+        )
+    );
+
+CREATE POLICY "Authors can manage their announcements" ON announcements
+    FOR ALL USING (
+        author_email = current_setting('request.jwt.claims', true)::json->>'email'
+    )
+    WITH CHECK (
+        author_email = current_setting('request.jwt.claims', true)::json->>'email'
+    );
+
+-- =====================================================
+-- RLS POLICIES FOR ANNOUNCEMENT AUDIENCE, READS & RECURRENCES
+-- =====================================================
+
+CREATE POLICY "Authors can manage announcement audience" ON announcement_audience
+    FOR ALL USING (
+        EXISTS (
+            SELECT 1 FROM announcements a
+            WHERE a.id = announcement_audience.announcement_id
+              AND a.author_email = current_setting('request.jwt.claims', true)::json->>'email'
+        )
+    )
+    WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM announcements a
+            WHERE a.id = announcement_audience.announcement_id
+              AND a.author_email = current_setting('request.jwt.claims', true)::json->>'email'
+        )
+    );
+
+CREATE POLICY "Users can manage their announcement reads" ON announcement_reads
+    FOR ALL USING (
+        user_email = current_setting('request.jwt.claims', true)::json->>'email'
+    )
+    WITH CHECK (
+        user_email = current_setting('request.jwt.claims', true)::json->>'email'
+    );
+
+CREATE POLICY "Authors can manage announcement recurrences" ON announcement_recurrences
+    FOR ALL USING (
+        EXISTS (
+            SELECT 1 FROM announcements a
+            WHERE a.id = announcement_recurrences.announcement_id
+              AND a.author_email = current_setting('request.jwt.claims', true)::json->>'email'
+        )
+    )
+    WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM announcements a
+            WHERE a.id = announcement_recurrences.announcement_id
+              AND a.author_email = current_setting('request.jwt.claims', true)::json->>'email'
+        )
+    );
+
+CREATE POLICY "Authors can view announcement audit logs" ON announcement_audit_logs
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM announcements a
+            WHERE a.id = announcement_audit_logs.announcement_id
+              AND a.author_email = current_setting('request.jwt.claims', true)::json->>'email'
+        )
+    );
+
+CREATE POLICY "Authors can insert announcement audit logs" ON announcement_audit_logs
+    FOR INSERT WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM announcements a
+            WHERE a.id = announcement_audit_logs.announcement_id
+              AND a.author_email = current_setting('request.jwt.claims', true)::json->>'email'
+        )
+    );
 
 -- =====================================================
 -- MIGRATION COMPLETE

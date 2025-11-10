@@ -193,6 +193,32 @@ router.delete('/:id', requireAuth, asyncHandler(async (req, res) => {
   }
 }))
 
+// Delete all notifications for a user
+router.delete('/clear-all', requireAuth, asyncHandler(async (req, res) => {
+  const userEmail = (req as any).user?.email
+
+  if (!userEmail) {
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
+
+  try {
+    const { error } = await supabaseAdmin
+      .from('notifications')
+      .delete()
+      .eq('user_email', userEmail)
+
+    if (error) {
+      console.error('Error clearing all notifications:', error)
+      return res.status(500).json({ error: 'Failed to clear all notifications' })
+    }
+
+    res.json({ success: true })
+  } catch (error: any) {
+    console.error('Error clearing all notifications:', error)
+    res.status(500).json({ error: 'Failed to clear all notifications' })
+  }
+}))
+
 // Get notification templates (admin only)
 router.get('/templates', requireAuth, asyncHandler(async (req, res) => {
   const userRole = (req as any).user?.role

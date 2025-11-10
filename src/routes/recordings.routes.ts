@@ -2,6 +2,9 @@ import { Router } from 'express'
 import { supabaseAdmin } from '../lib/supabase.js'
 import { requireAuth } from '../middlewares/auth.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
+import { validateBody } from '../middlewares/validation.js' // Import the shared validation middleware
+import { createRecordingSchema, updateRecordingSchema } from '../validation/recording.validation.js'
+import { z } from 'zod'
 
 const router = Router()
 
@@ -277,7 +280,7 @@ router.get('/:id', requireAuth, asyncHandler(async (req, res) => {
 }))
 
 // Create a new recording
-router.post('/', requireAuth, asyncHandler(async (req, res) => {
+router.post('/', requireAuth, validateBody(createRecordingSchema), asyncHandler(async (req, res) => {
   const userEmail = (req as any).user?.email
   const userRole = (req as any).user?.role || 'teacher'
 
@@ -297,19 +300,21 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
     quality,
     format,
     tags
-  } = req.body
+  } = req.body as z.infer<typeof createRecordingSchema>
 
   try {
     // Verify the teacher owns the course
-    const { data: course, error: courseError } = await supabaseAdmin
-      .from('courses')
-      .select('id')
-      .eq('id', course_id)
-      .eq('teacher_email', userEmail)
-      .single()
+    if (course_id) { // Only verify if course_id is provided
+      const { data: course, error: courseError } = await supabaseAdmin
+        .from('courses')
+        .select('id')
+        .eq('id', course_id)
+        .eq('teacher_email', userEmail)
+        .single()
 
-    if (courseError || !course) {
-      return res.status(403).json({ error: 'Course not found or access denied' })
+      if (courseError || !course) {
+        return res.status(403).json({ error: 'Course not found or access denied' })
+      }
     }
 
     const { data: recording, error } = await supabaseAdmin
@@ -320,13 +325,13 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
         session_id,
         course_id,
         teacher_email: userEmail,
-        duration: duration || 0,
-        file_size: file_size || 0,
+        duration,
+        file_size,
         file_url,
         thumbnail_url,
-        quality: quality || 'medium',
-        format: format || 'mp4',
-        tags: tags || [],
+        quality,
+        format,
+        tags,
         recorded_at: new Date().toISOString(),
         view_count: 0,
         is_bookmarked: false
@@ -347,7 +352,7 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
 }))
 
 // Update a recording
-router.put('/:id', requireAuth, asyncHandler(async (req, res) => {
+router.put('/:id', requireAuth, validateBody(updateRecordingSchema), asyncHandler(async (req, res) => {
   const userEmail = (req as any).user?.email
   const userRole = (req as any).user?.role || 'teacher'
   const recordingId = req.params.id
@@ -369,9 +374,11 @@ router.put('/:id', requireAuth, asyncHandler(async (req, res) => {
       return res.status(404).json({ error: 'Recording not found or access denied' })
     }
 
+    const updates = req.body as z.infer<typeof updateRecordingSchema>
+
     const { data: recording, error } = await supabaseAdmin
       .from('recordings')
-      .update(req.body)
+      .update(updates)
       .eq('id', recordingId)
       .select()
       .single()

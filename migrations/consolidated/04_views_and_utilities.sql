@@ -129,6 +129,113 @@ LEFT JOIN course_completions cc ON cc.student_email = sp.student_email AND cc.co
 GROUP BY sp.student_email, sp.course_id, c.title, c.teacher_email, t.name, cc.completion_percentage, cc.completed_at, e.enrolled_at;
 
 -- =====================================================
+-- COMMUNICATION VIEWS
+-- =====================================================
+
+CREATE OR REPLACE VIEW discussion_inbox_summary AS
+SELECT 
+    dp.user_email,
+    d.id AS discussion_id,
+    d.title,
+    d.description,
+    d.owner_email,
+    d.discussion_type,
+    d.visibility,
+    d.context_type,
+    d.context_id,
+    d.last_activity_at,
+    dp.participant_role,
+    dp.status,
+    dp.unread_count,
+    d.metadata,
+    (
+        SELECT jsonb_build_object(
+            'post_id', p.id,
+            'author_email', p.author_email,
+            'created_at', p.created_at,
+            'content', p.content
+        )
+        FROM discussion_posts p
+        WHERE p.discussion_id = d.id
+          AND p.is_deleted = FALSE
+        ORDER BY p.created_at DESC
+        LIMIT 1
+    ) AS last_post
+FROM discussion_participants dp
+JOIN discussions d ON d.id = dp.discussion_id;
+
+CREATE OR REPLACE VIEW forum_recent_threads AS
+SELECT 
+    ft.id AS thread_id,
+    ft.title,
+    ft.category_id,
+    fc.title AS category_title,
+    ft.author_email,
+    ft.context_type,
+    ft.context_id,
+    ft.is_pinned,
+    ft.is_locked,
+    ft.last_activity_at,
+    COUNT(DISTINCT fp.id) AS total_posts,
+    COUNT(DISTINCT fps.user_email) AS total_subscribers
+FROM forum_threads ft
+JOIN forum_categories fc ON fc.id = ft.category_id
+LEFT JOIN forum_posts fp ON fp.thread_id = ft.id AND fp.is_deleted = FALSE
+LEFT JOIN forum_thread_subscriptions fps ON fps.thread_id = ft.id
+GROUP BY ft.id, ft.title, ft.category_id, fc.title, ft.author_email, ft.context_type, ft.context_id, ft.is_pinned, ft.is_locked, ft.last_activity_at;
+
+CREATE OR REPLACE VIEW active_announcements AS
+SELECT 
+    a.id,
+    a.title,
+    a.content,
+    a.rich_content,
+    a.author_email,
+    a.author_role,
+    a.context_type,
+    a.context_id,
+    a.priority,
+    a.display_type,
+    a.starts_at,
+    a.ends_at,
+    a.published_at,
+    a.metadata
+FROM announcements a
+WHERE a.status = 'published'
+  AND (a.starts_at IS NULL OR a.starts_at <= NOW())
+  AND (a.ends_at IS NULL OR a.ends_at >= NOW());
+
+CREATE OR REPLACE VIEW announcement_audience_summary AS
+SELECT 
+    a.id AS announcement_id,
+    a.title,
+    a.author_email,
+    a.priority,
+    jsonb_agg(
+        jsonb_build_object(
+            'audience_type', aa.audience_type,
+            'audience_id', aa.audience_id,
+            'audience_value', aa.audience_value
+        )
+    ) FILTER (WHERE aa.id IS NOT NULL) AS audiences
+FROM announcements a
+LEFT JOIN announcement_audience aa ON aa.announcement_id = a.id
+GROUP BY a.id, a.title, a.author_email, a.priority;
+
+CREATE OR REPLACE VIEW announcement_delivery_matrix AS
+SELECT 
+    a.id AS announcement_id,
+    a.title,
+    a.priority,
+    a.starts_at,
+    a.ends_at,
+    ar.user_email,
+    ar.read_at,
+    ar.dismissed_at
+FROM announcements a
+JOIN announcement_reads ar ON ar.announcement_id = a.id;
+
+-- =====================================================
 -- LIVE SESSION VIEWS
 -- =====================================================
 
@@ -201,9 +308,7 @@ SELECT
     COUNT(DISTINCT q.id) as total_quizzes,
     COUNT(DISTINCT ls.id) as total_live_sessions,
     COUNT(DISTINCT CASE WHEN cc.completion_percentage >= 100 THEN cc.student_email END) as completed_students,
-    AVG(cc.completion_percentage) as average_completion_percentage,
-    COUNT(DISTINCT an.id) as total_announcements,
-    COUNT(DISTINCT d.id) as total_discussions
+    AVG(cc.completion_percentage) as average_completion_percentage
 FROM courses c
 JOIN teachers t ON t.email = c.teacher_email
 LEFT JOIN enrollments e ON e.course_id = c.id
@@ -213,8 +318,6 @@ LEFT JOIN assignments a ON a.course_id = c.id
 LEFT JOIN quizzes q ON q.course_id = c.id
 LEFT JOIN live_sessions ls ON ls.course_id = c.id
 LEFT JOIN course_completions cc ON cc.course_id = c.id
-LEFT JOIN announcements an ON an.course_id = c.id
-LEFT JOIN discussions d ON d.course_id = c.id
 GROUP BY c.id, c.title, c.teacher_email, t.name;
 
 -- Student engagement view
@@ -229,7 +332,6 @@ SELECT
     COUNT(DISTINCT CASE WHEN sa.activity_type = 'lesson_view' THEN sa.id END) as lesson_views,
     COUNT(DISTINCT CASE WHEN sa.activity_type = 'assignment_submit' THEN sa.id END) as assignment_submissions,
     COUNT(DISTINCT CASE WHEN sa.activity_type = 'quiz_take' THEN sa.id END) as quiz_attempts,
-    COUNT(DISTINCT CASE WHEN sa.activity_type = 'discussion_participate' THEN sa.id END) as discussion_participations,
     MAX(sa.created_at) as last_activity,
     MIN(sa.created_at) as first_activity
 FROM student_activities sa

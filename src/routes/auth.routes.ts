@@ -5,13 +5,34 @@ import { generateStudentCode } from '../utils/student-code.js'
 import { requireAuth } from '../middlewares/auth.js'
 import { generateToken } from '../lib/jwt.js'
 import { NotificationService } from '../services/notification.service.js'
+import rateLimit from 'express-rate-limit' // Import rateLimit
 
 export const router = Router()
+
+// --- Rate Limiting Middleware ---
+
+// General authentication limiter: 5 requests per 15 minutes
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP to 5 requests per windowMs
+  message: 'Too many authentication attempts from this IP, please try again after 15 minutes',
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+})
+
+// Strict authentication limiter: 3 requests per hour for sensitive actions
+const strictAuthLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 3, // Limit each IP to 3 requests per windowMs
+  message: 'Too many requests for this action from this IP, please try again after an hour',
+  standardHeaders: true,
+  legacyHeaders: false,
+})
 
 // Get current user info (requires JWT token)
 router.get('/me', requireAuth, asyncHandler(async (req, res) => {
   const jwtUser = (req as any).user
-  
+
   if (!jwtUser) {
     return res.status(401).json({ error: 'user_not_found' })
   }
@@ -25,9 +46,9 @@ router.get('/me', requireAuth, asyncHandler(async (req, res) => {
 
   if (profileError || !profile) {
     // Fallback to JWT payload if DB lookup fails, but this should be rare
-    const fallbackName = jwtUser.name || 
+    const fallbackName = jwtUser.name ||
       (jwtUser.first_name && jwtUser.last_name ? `${jwtUser.first_name} ${jwtUser.last_name}`.trim() : null) ||
-      jwtUser.first_name || 
+      jwtUser.first_name ||
       jwtUser.email
 
     return res.json({
@@ -87,7 +108,7 @@ router.get('/me', requireAuth, asyncHandler(async (req, res) => {
 }))
 
 // Teacher sign in
-router.post('/teacher/signin', asyncHandler(async (req, res) => {
+router.post('/teacher/signin', authLimiter, asyncHandler(async (req, res) => {
   const { email, password } = req.body
   if (!email || !password) {
     return res.status(400).json({ error: 'missing_credentials' })
@@ -100,7 +121,7 @@ router.post('/teacher/signin', asyncHandler(async (req, res) => {
     .eq('email', email.toLowerCase())
     .eq('user_type', 'teacher')
     .single()
-  
+
   // Get password hash from teachers table
   const { data: teacherAuth, error: authError } = await supabaseAdmin
     .from('teachers')
@@ -115,7 +136,7 @@ router.post('/teacher/signin', asyncHandler(async (req, res) => {
   // Verify password
   const bcrypt = await import('bcrypt')
   const isValidPassword = await bcrypt.compare(password, teacherAuth.password_hash)
-  
+
   if (!isValidPassword) {
     return res.status(401).json({ error: 'invalid_credentials' })
   }
@@ -148,7 +169,7 @@ router.post('/teacher/signin', asyncHandler(async (req, res) => {
 }))
 
 // Student sign in with code
-router.post('/student/signin-code', asyncHandler(async (req, res) => {
+router.post('/student/signin-code', authLimiter, asyncHandler(async (req, res) => {
   const { email, code } = req.body
   if (!email || !code) {
     return res.status(400).json({ error: 'missing_credentials' })
@@ -175,7 +196,7 @@ router.post('/student/signin-code', asyncHandler(async (req, res) => {
     .eq('email', email.toLowerCase())
     .eq('user_type', 'student')
     .single()
-  
+
   // Get student status from students table
   const { data: studentStatus, error: statusError } = await supabaseAdmin
     .from('students')
@@ -223,7 +244,7 @@ router.post('/student/signin-code', asyncHandler(async (req, res) => {
 // Get all students for a teacher (for invite modal)
 router.get('/teacher/students', requireAuth, asyncHandler(async (req, res) => {
   const user = (req as any).user
-  
+
   if (user.role !== 'teacher') {
     return res.status(403).json({ error: 'teacher_access_required' })
   }
@@ -248,12 +269,12 @@ router.get('/teacher/students', requireAuth, asyncHandler(async (req, res) => {
     status: 'active', // All students from user_profiles are active
     created_at: student.created_at
   }))
-  
+
   res.json({ items: transformedStudents })
 }))
 
 // Student sign in with student code and password
-router.post('/student/signin', asyncHandler(async (req, res) => {
+router.post('/student/signin', authLimiter, asyncHandler(async (req, res) => {
   const { student_code, password } = req.body
   if (!student_code || !password) {
     return res.status(400).json({ error: 'missing_credentials' })
@@ -271,7 +292,7 @@ router.post('/student/signin', asyncHandler(async (req, res) => {
     ).data?.email)
     .eq('user_type', 'student')
     .single()
-  
+
   // Get student auth data from students table
   const { data: studentAuth, error: authError } = await supabaseAdmin
     .from('students')
@@ -295,7 +316,7 @@ router.post('/student/signin', asyncHandler(async (req, res) => {
   // Verify password
   const bcrypt = await import('bcrypt')
   const isValidPassword = await bcrypt.compare(password, studentAuth.password_hash)
-  
+
   if (!isValidPassword) {
     return res.status(401).json({ error: 'invalid_credentials' })
   }
@@ -326,7 +347,7 @@ router.post('/student/signin', asyncHandler(async (req, res) => {
 }))
 
 // Create student login code
-router.post('/student/login-code', asyncHandler(async (req, res) => {
+router.post('/student/login-code', strictAuthLimiter, asyncHandler(async (req, res) => {
   const { email } = req.body
   if (!email) {
     return res.status(400).json({ error: 'missing_email' })
@@ -366,12 +387,12 @@ router.post('/student/login-code', asyncHandler(async (req, res) => {
 }))
 
 // Student registration with invite
-router.post('/student/register', asyncHandler(async (req, res) => {
-  const { 
-    invite_code, 
-    first_name, 
-    last_name, 
-    email, 
+router.post('/student/register', strictAuthLimiter, asyncHandler(async (req, res) => {
+  const {
+    invite_code,
+    first_name,
+    last_name,
+    email,
     password,
     // Comprehensive profile data
     date_of_birth,
@@ -397,9 +418,22 @@ router.post('/student/register', asyncHandler(async (req, res) => {
     accessibility_needs,
     dietary_restrictions
   } = req.body
-  
+
   if (!invite_code || !first_name || !last_name || !email || !password) {
     return res.status(400).json({ error: 'All required fields are required' })
+  }
+
+  // Validate that names are not empty or just whitespace
+  if (!first_name.trim() || !last_name.trim()) {
+    return res.status(400).json({ error: 'First name and last name cannot be empty' })
+  }
+
+  // Validate that names are not just the email prefix
+  const emailPrefix = email.toLowerCase().split('@')[0]
+  if (first_name.toLowerCase().trim() === emailPrefix && last_name.toLowerCase().trim() === 'user') {
+    return res.status(400).json({
+      error: 'Please provide your real name instead of using your email address'
+    })
   }
 
   // Validate invite
@@ -434,7 +468,7 @@ router.post('/student/register', asyncHandler(async (req, res) => {
 
   // Generate student code
   const studentCode = generateStudentCode(first_name, last_name)
-  
+
   // Hash password
   const bcrypt = await import('bcrypt')
   const passwordHash = await bcrypt.hash(password, 10)
@@ -496,6 +530,7 @@ router.post('/student/register', asyncHandler(async (req, res) => {
         course_id: invite.course_id,
         student_id: student.id,
         student_email: email.toLowerCase(),
+        access_type: invite.access_type || 'full', // Use access type from invite
         enrolled_at: new Date().toISOString()
       })
   }
@@ -531,7 +566,7 @@ router.post('/student/register', asyncHandler(async (req, res) => {
     student_code: student.student_code
   })
 
-  res.json({ 
+  res.json({
     message: 'Student registered successfully',
     student_code: studentCode,
     token,
@@ -551,11 +586,24 @@ router.post('/student/register', asyncHandler(async (req, res) => {
 }))
 
 // Teacher registration
-router.post('/teacher/register', asyncHandler(async (req, res) => {
+router.post('/teacher/register', strictAuthLimiter, asyncHandler(async (req, res) => {
   const { first_name, last_name, email, password } = req.body
-  
+
   if (!first_name || !last_name || !email || !password) {
     return res.status(400).json({ error: 'All fields are required' })
+  }
+
+  // Validate that names are not empty or just whitespace
+  if (!first_name.trim() || !last_name.trim()) {
+    return res.status(400).json({ error: 'First name and last name cannot be empty' })
+  }
+
+  // Validate that names are not just the email prefix
+  const emailPrefix = email.toLowerCase().split('@')[0]
+  if (first_name.toLowerCase().trim() === emailPrefix && last_name.toLowerCase().trim() === 'user') {
+    return res.status(400).json({
+      error: 'Please provide your real name instead of using your email address'
+    })
   }
 
   // Check if teacher already exists
@@ -612,7 +660,7 @@ router.post('/teacher/register', asyncHandler(async (req, res) => {
     // Don't fail the registration if notification fails
   }
 
-  res.json({ 
+  res.json({
     message: 'Teacher registered successfully',
     teacher: {
       email: teacher.email,
@@ -623,9 +671,9 @@ router.post('/teacher/register', asyncHandler(async (req, res) => {
 }))
 
 // Change student password
-router.post('/student/change-password', requireAuth, asyncHandler(async (req, res) => {
+router.post('/student/change-password', strictAuthLimiter, asyncHandler(async (req, res) => {
   const { email, currentPassword, newPassword } = req.body
-  
+
   if (!email || !currentPassword || !newPassword) {
     return res.status(400).json({ error: 'Missing required fields' })
   }
@@ -644,7 +692,7 @@ router.post('/student/change-password', requireAuth, asyncHandler(async (req, re
   // Verify current password
   const bcrypt = await import('bcrypt')
   const isValidPassword = await bcrypt.default.compare(currentPassword, student.password_hash)
-  
+
   if (!isValidPassword) {
     return res.status(401).json({ error: 'Current password is incorrect' })
   }
@@ -684,9 +732,9 @@ router.post('/student/change-password', requireAuth, asyncHandler(async (req, re
 }))
 
 // Password reset request
-router.post('/password-reset-request', asyncHandler(async (req, res) => {
+router.post('/password-reset-request', strictAuthLimiter, asyncHandler(async (req, res) => {
   const { email } = req.body
-  
+
   if (!email) {
     return res.status(400).json({ error: 'Email is required' })
   }
@@ -732,9 +780,9 @@ router.post('/password-reset-request', asyncHandler(async (req, res) => {
 }))
 
 // Password reset confirmation
-router.post('/password-reset-confirm', asyncHandler(async (req, res) => {
+router.post('/password-reset-confirm', strictAuthLimiter, asyncHandler(async (req, res) => {
   const { token, newPassword, email } = req.body
-  
+
   if (!token || !newPassword || !email) {
     return res.status(400).json({ error: 'Token, email, and new password are required' })
   }
@@ -742,7 +790,7 @@ router.post('/password-reset-confirm', asyncHandler(async (req, res) => {
   try {
     // In a real app, you'd validate the token from the database
     // For now, we'll assume the token is valid and update the password
-    
+
     // Hash the new password
     const bcrypt = await import('bcrypt')
     const passwordHash = await bcrypt.hash(newPassword, 10)

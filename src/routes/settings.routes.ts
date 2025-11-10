@@ -236,6 +236,11 @@ router.get('/:userId', requireAuth, asyncHandler(async (req, res) => {
           data_export_enabled: true,
           analytics_tracking: true,
           beta_features: false
+        },
+        zoom_config: {
+          client_id: '',
+          client_secret: '',
+          account_id: ''
         }
       })
     }
@@ -248,7 +253,8 @@ router.get('/:userId', requireAuth, asyncHandler(async (req, res) => {
       course_settings: data.course_settings,
       grading_settings: data.grading_settings,
       live_class_settings: data.live_class_settings,
-      advanced_settings: data.advanced_settings
+      advanced_settings: data.advanced_settings,
+      zoom_config: data.zoom_config
     })
   } else {
     // Check if user is a student
@@ -432,7 +438,8 @@ router.put('/:userId', requireAuth, asyncHandler(async (req, res) => {
     course_settings, 
     grading_settings, 
     live_class_settings, 
-    advanced_settings 
+    advanced_settings,
+    zoom_config
   } = req.body
   
   // Check if user is updating their own settings
@@ -450,6 +457,12 @@ router.put('/:userId', requireAuth, asyncHandler(async (req, res) => {
 
   if (teacher) {
     // Upsert teacher settings
+    console.log('Saving teacher settings:', { 
+      teacher_id: userId, 
+      hasZoomConfig: !!zoom_config,
+      zoomConfig: zoom_config 
+    })
+    
     const { data, error } = await supabaseAdmin
       .from('teacher_settings')
       .upsert({
@@ -461,14 +474,20 @@ router.put('/:userId', requireAuth, asyncHandler(async (req, res) => {
         course_settings,
         grading_settings,
         live_class_settings,
-        advanced_settings
+        advanced_settings,
+        zoom_config
       })
       .select()
       .single()
 
     if (error) {
+      console.error('Error saving teacher settings:', error)
       return res.status(500).json({ error: error.message })
     }
+
+    console.log('Teacher settings saved successfully:', { 
+      savedZoomConfig: data.zoom_config 
+    })
 
     res.json({
       theme: data.theme,
@@ -478,7 +497,8 @@ router.put('/:userId', requireAuth, asyncHandler(async (req, res) => {
       course_settings: data.course_settings,
       grading_settings: data.grading_settings,
       live_class_settings: data.live_class_settings,
-      advanced_settings: data.advanced_settings
+      advanced_settings: data.advanced_settings,
+      zoom_config: data.zoom_config
     })
   } else {
     // Check if user is a student

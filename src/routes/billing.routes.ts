@@ -330,6 +330,93 @@ router.get('/status', requireAuth, requireTeacher, asyncHandler(async (req, res)
   }
 }))
 
+// Get available plans
+router.get('/plans', requireAuth, requireTeacher, asyncHandler(async (req, res) => {
+  try {
+    const products = await stripe.products.list({ active: true })
+    const prices = await stripe.prices.list({ active: true, type: 'recurring' })
+
+    type BillingPlan = {
+      id: string
+      name: string
+      description: string | null
+      priceId: string | null
+      unitAmount: number | null
+      currency: string | null
+      interval: Stripe.Price.Recurring.Interval | null
+      features: string[]
+      limitations: string[]
+      students: number | null
+      popular: boolean
+    }
+
+    const parseMetadataArray = (value?: string | null): string[] => {
+      if (!value) return []
+      try {
+        const parsed = JSON.parse(value)
+        return Array.isArray(parsed) ? parsed : []
+      } catch {
+        return []
+      }
+    }
+
+    const plans: BillingPlan[] = products.data
+      .map<BillingPlan | null>(product => {
+        const price = prices.data.find(p => p.product === product.id)
+        if (!price) return null
+
+        return {
+          id: product.id,
+          name: product.name,
+          description: product.description,
+          priceId: price.id,
+          unitAmount: price.unit_amount ?? null,
+          currency: price.currency || null,
+          interval: price.recurring?.interval ?? null,
+          features: parseMetadataArray(product.metadata.features),
+          limitations: parseMetadataArray(product.metadata.limitations),
+          students: product.metadata.students ? parseInt(product.metadata.students, 10) : null,
+          popular: product.metadata.popular === 'true'
+        }
+      })
+      .filter((plan): plan is BillingPlan => plan !== null)
+
+    // Add a free plan manually if not coming from Stripe
+    const freePlanExists = plans.some(plan => plan.id === 'free')
+    if (!freePlanExists) {
+      plans.unshift({
+        id: 'free',
+        name: 'Free Plan',
+        description: 'Basic access to AuraiumLMS',
+        priceId: null,
+        unitAmount: 0,
+        currency: 'gbp',
+        interval: 'month',
+        features: [
+          `Up to ${env.FREE_STUDENTS_LIMIT || 5} students`,
+          'Unlimited courses & modules',
+          'Basic assignments',
+          'Progress tracking',
+          'Community support',
+          'File uploads (10MB)'
+        ],
+        limitations: [
+          'No live video classes',
+          'No interactive whiteboard',
+          'No advanced analytics'
+        ],
+        students: env.FREE_STUDENTS_LIMIT || 5,
+        popular: false
+      })
+    }
+
+    res.json(plans)
+  } catch (error) {
+    console.error('Error fetching plans:', error)
+    res.status(500).json({ error: 'Failed to fetch plans' })
+  }
+}))
+
 // Helper functions for webhook handlers
 async function handleSubscriptionChange(subscription: Stripe.Subscription) {
   const teacherEmail = subscription.metadata.teacher_email

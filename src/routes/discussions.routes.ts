@@ -1,337 +1,310 @@
 import { Router } from 'express'
-import { supabaseAdmin } from '../lib/supabase.js'
-import { asyncHandler } from '../utils/asyncHandler.js'
+import { z } from 'zod'
 import { requireAuth } from '../middlewares/auth.js'
+import {
+  emailSchema,
+  validateBody,
+  validateParams,
+  validateQuery
+} from '../middlewares/validation.js'
+import { asyncHandler } from '../utils/asyncHandler.js'
+import {
+  DiscussionService,
+  CreateDiscussionInput,
+  UpdateDiscussionInput,
+  CreatePostInput,
+  UpdatePostInput
+} from '../services/discussion.service.js'
 
-export const router = Router()
+const router = Router()
 
-// Get discussions for a course
-router.get('/course/:courseId', requireAuth, asyncHandler(async (req, res) => {
-  const { courseId } = req.params
-  const userEmail = (req as any).user?.email
-  const userRole = (req as any).user?.role
+const discussionTypeEnum = z.enum([
+  'direct',
+  'course',
+  'study_group_student',
+  'study_group_course',
+  'forum_bridge'
+])
 
-  try {
-    // Check if user has access to this course
-    if (userRole === 'student') {
-      // Check if student is enrolled in this course
-      const { data: enrollment, error: enrollmentError } = await supabaseAdmin
-        .from('enrollments')
-        .select('id')
-        .eq('student_email', userEmail)
-        .eq('course_id', courseId)
-        .eq('status', 'active')
-        .single()
+const visibilityEnum = z.enum(['private', 'course', 'institution'])
 
-      if (enrollmentError || !enrollment) {
-        return res.status(403).json({ error: 'Access denied - Not enrolled in this course' })
-      }
-    } else if (userRole === 'teacher') {
-      // Check if teacher owns this course
-      const { data: course, error: courseError } = await supabaseAdmin
-        .from('courses')
-        .select('id')
-        .eq('id', courseId)
-        .eq('teacher_email', userEmail)
-        .single()
+const participantRoleEnum = z.enum(['owner', 'moderator', 'participant', 'leader', 'co_leader'])
 
-      if (courseError || !course) {
-        return res.status(403).json({ error: 'Access denied - Not your course' })
-      }
-    }
+const attachmentSchema = z.object({
+  fileUrl: z.string().url(),
+  fileName: z.string().optional(),
+  fileType: z.string().optional(),
+  fileSize: z.number().int().nonnegative().optional(),
+  metadata: z.record(z.any()).optional()
+})
 
-    // Get discussions for the course
-    const { data: discussions, error } = await supabaseAdmin
-      .from('discussions')
-      .select(`
-        *,
-        courses!inner(
-          id,
-          title,
-          teacher_email,
-          teacher_name
-        )
-      `)
-      .eq('course_id', courseId)
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
+const discussionListQuerySchema = z
+  .object({
+    discussionType: discussionTypeEnum.optional(),
+    visibility: visibilityEnum.optional(),
+    contextType: z.string().optional(),
+    contextId: z.string().uuid().optional(),
+    studyGroup: z
+      .enum(['true', 'false'])
+      .optional()
+      .transform((value) => value === 'true'),
+    search: z.string().optional(),
+    limit: z
+      .string()
+      .regex(/^\d+$/)
+      .optional()
+      .transform((value) => (value ? parseInt(value, 10) : undefined)),
+    offset: z
+      .string()
+      .regex(/^\d+$/)
+      .optional()
+      .transform((value) => (value ? parseInt(value, 10) : undefined))
+  })
+  .partial()
 
-    if (error) {
-      console.error('Error fetching discussions:', error)
-      return res.status(500).json({ error: 'Failed to fetch discussions' })
-    }
-
-    res.json(discussions || [])
-  } catch (error) {
-    console.error('Error in get course discussions:', error)
-    res.status(500).json({ error: 'Internal server error' })
-  }
-}))
-
-// Get a specific discussion with posts
-router.get('/:discussionId', requireAuth, asyncHandler(async (req, res) => {
-  const { discussionId } = req.params
-  const userEmail = (req as any).user?.email
-  const userRole = (req as any).user?.role
-
-  try {
-    // Get discussion details
-    const { data: discussion, error: discussionError } = await supabaseAdmin
-      .from('discussions')
-      .select(`
-        *,
-        courses!inner(
-          id,
-          title,
-          teacher_email,
-          teacher_name
-        )
-      `)
-      .eq('id', discussionId)
-      .single()
-
-    if (discussionError || !discussion) {
-      return res.status(404).json({ error: 'Discussion not found' })
-    }
-
-    // Check access permissions
-    if (userRole === 'student') {
-      const { data: enrollment, error: enrollmentError } = await supabaseAdmin
-        .from('enrollments')
-        .select('id')
-        .eq('student_email', userEmail)
-        .eq('course_id', discussion.course_id)
-        .eq('status', 'active')
-        .single()
-
-      if (enrollmentError || !enrollment) {
-        return res.status(403).json({ error: 'Access denied - Not enrolled in this course' })
-      }
-    } else if (userRole === 'teacher') {
-      if (discussion.courses.teacher_email !== userEmail) {
-        return res.status(403).json({ error: 'Access denied - Not your course' })
-      }
-    }
-
-    // Get posts for this discussion
-    const { data: posts, error: postsError } = await supabaseAdmin
-      .from('discussion_posts')
-      .select(`
-        *,
-        students!inner(
-          id,
-          first_name,
-          last_name,
-          email
-        )
-      `)
-      .eq('discussion_id', discussionId)
-      .eq('is_approved', true)
-      .order('created_at', { ascending: true })
-
-    // Transform the data to match frontend expectations
-    const transformedPosts = posts?.map(post => ({
-      ...post,
-      author_email: post.students?.email || post.created_by,
-      author_name: post.students ? `${post.students.first_name} ${post.students.last_name}`.trim() : null,
-      author_role: 'student'
-    })) || []
-
-    if (postsError) {
-      console.error('Error fetching discussion posts:', postsError)
-      return res.status(500).json({ error: 'Failed to fetch discussion posts' })
-    }
-
-    res.json({
-      discussion,
-      posts: transformedPosts
+const createDiscussionSchema = z.object({
+  title: z.string().min(1).max(200).trim(),
+  description: z.string().max(2000).optional(),
+  discussionType: discussionTypeEnum,
+  visibility: visibilityEnum.optional(),
+  context: z
+    .object({
+      type: z.string().min(1),
+      id: z.string().uuid()
     })
-  } catch (error) {
-    console.error('Error in get discussion:', error)
-    res.status(500).json({ error: 'Internal server error' })
-  }
-}))
-
-// Create a new discussion post
-router.post('/:discussionId/posts', requireAuth, asyncHandler(async (req, res) => {
-  const { discussionId } = req.params
-  const { content } = req.body
-  const userEmail = (req as any).user?.email
-  const userRole = (req as any).user?.role
-
-  if (!content || !content.trim()) {
-    return res.status(400).json({ error: 'Content is required' })
-  }
-
-  try {
-    // Get discussion details to check access
-    const { data: discussion, error: discussionError } = await supabaseAdmin
-      .from('discussions')
-      .select(`
-        *,
-        courses!inner(
-          id,
-          teacher_email
-        )
-      `)
-      .eq('id', discussionId)
-      .single()
-
-    if (discussionError || !discussion) {
-      return res.status(404).json({ error: 'Discussion not found' })
-    }
-
-    // Check access permissions
-    if (userRole === 'student') {
-      const { data: enrollment, error: enrollmentError } = await supabaseAdmin
-        .from('enrollments')
-        .select('id')
-        .eq('student_email', userEmail)
-        .eq('course_id', discussion.course_id)
-        .eq('status', 'active')
-        .single()
-
-      if (enrollmentError || !enrollment) {
-        return res.status(403).json({ error: 'Access denied - Not enrolled in this course' })
-      }
-    } else if (userRole === 'teacher') {
-      if (discussion.courses.teacher_email !== userEmail) {
-        return res.status(403).json({ error: 'Access denied - Not your course' })
-      }
-    }
-
-    // Get student details for the post
-    const { data: student, error: studentError } = await supabaseAdmin
-      .from('students')
-      .select('id, first_name, last_name')
-      .eq('email', userEmail)
-      .single()
-
-    if (studentError || !student) {
-      return res.status(404).json({ error: 'Student profile not found' })
-    }
-
-    // Create the post
-    const { data: post, error: postError } = await supabaseAdmin
-      .from('discussion_posts')
-      .insert({
-        discussion_id: discussionId,
-        student_id: student.id,
-        content: content.trim(),
-        is_approved: userRole === 'teacher' || !discussion.require_approval
+    .optional(),
+  metadata: z.record(z.any()).optional(),
+  participants: z
+    .array(
+      z.object({
+        email: emailSchema,
+        role: participantRoleEnum.optional()
       })
-      .select(`
-        *,
-        students!inner(
-          id,
-          first_name,
-          last_name,
-          email
-        )
-      `)
-      .single()
+    )
+    .optional(),
+  initialMessage: z
+    .object({
+      content: z.string().min(1),
+      richContent: z.record(z.any()).optional(),
+      mentions: z.array(z.string()).optional(),
+      attachments: z.array(attachmentSchema).optional()
+    })
+    .optional()
+})
 
-    if (postError) {
-      console.error('Error creating discussion post:', postError)
-      return res.status(500).json({ error: 'Failed to create post' })
+const discussionIdParamsSchema = z.object({
+  discussionId: z.string().uuid()
+})
+
+const discussionPostParamsSchema = z.object({
+  discussionId: z.string().uuid(),
+  postId: z.string().uuid()
+})
+
+const updateDiscussionSchema = z.object({
+  title: z.string().min(1).max(200).optional(),
+  description: z.string().max(2000).optional(),
+  visibility: visibilityEnum.optional(),
+  isArchived: z.boolean().optional(),
+  metadata: z.record(z.any()).optional(),
+  allowTeacherOverride: z.boolean().optional()
+})
+
+const participantUpdateSchema = z.object({
+  participants: z
+    .array(
+      z.object({
+        email: emailSchema,
+        role: participantRoleEnum.optional()
+      })
+    )
+    .min(1)
+})
+
+const createPostSchema = z.object({
+  content: z.string().min(1),
+  richContent: z.record(z.any()).optional(),
+  parentPostId: z.string().uuid().optional(),
+  mentions: z.array(z.string()).optional(),
+  attachments: z.array(attachmentSchema).optional()
+})
+
+const updatePostSchema = z.object({
+  content: z.string().min(1).optional(),
+  richContent: z.record(z.any()).optional(),
+  mentions: z.array(z.string()).optional()
+})
+
+router.get(
+  '/',
+  requireAuth,
+  validateQuery(discussionListQuerySchema),
+  asyncHandler(async (req, res) => {
+    const userEmail = (req as any).user?.email
+    const filters = (req.query || {}) as z.infer<typeof discussionListQuerySchema>
+
+    const items = await DiscussionService.listDiscussions(userEmail, {
+      discussionType: filters.discussionType,
+      visibility: filters.visibility,
+      contextType: filters.contextType,
+      contextId: filters.contextId,
+      studyGroup: filters.studyGroup,
+      search: filters.search,
+      limit: filters.limit,
+      offset: filters.offset
+    })
+
+    res.json({ items })
+  })
+)
+
+router.post(
+  '/',
+  requireAuth,
+  validateBody(createDiscussionSchema),
+  asyncHandler(async (req, res) => {
+    const userEmail = (req as any).user?.email
+    const userRole = (req as any).user?.role || 'teacher'
+    const body = req.body as z.infer<typeof createDiscussionSchema>
+
+    const payload: CreateDiscussionInput = {
+      title: body.title,
+      description: body.description,
+      discussionType: body.discussionType,
+      visibility: body.visibility,
+      contextType: body.context?.type,
+      contextId: body.context?.id,
+      metadata: body.metadata,
+      participants: body.participants,
+      initialMessage: body.initialMessage
     }
 
-    res.json(post)
-  } catch (error) {
-    console.error('Error in create discussion post:', error)
-    res.status(500).json({ error: 'Internal server error' })
-  }
-}))
+    const result = await DiscussionService.createDiscussion(userEmail, userRole, payload)
+    res.status(201).json(result)
+  })
+)
 
-// Like a discussion
-router.post('/:discussionId/like', requireAuth, asyncHandler(async (req, res) => {
-  const { discussionId } = req.params
-  const userEmail = (req as any).user?.email
-  const userRole = (req as any).user?.role
+router.get(
+  '/:discussionId',
+  requireAuth,
+  validateParams(discussionIdParamsSchema),
+  asyncHandler(async (req, res) => {
+    const userEmail = (req as any).user?.email
+    const { discussionId } = req.params as z.infer<typeof discussionIdParamsSchema>
 
-  try {
-    // Check if user has access to this discussion
-    const { data: discussion, error: discussionError } = await supabaseAdmin
-      .from('discussions')
-      .select(`
-        *,
-        courses!inner(
-          id,
-          teacher_email
-        )
-      `)
-      .eq('id', discussionId)
-      .single()
+    const result = await DiscussionService.getDiscussionDetail(discussionId, userEmail)
+    res.json(result)
+  })
+)
 
-    if (discussionError || !discussion) {
-      return res.status(404).json({ error: 'Discussion not found' })
+router.patch(
+  '/:discussionId',
+  requireAuth,
+  validateParams(discussionIdParamsSchema),
+  validateBody(updateDiscussionSchema),
+  asyncHandler(async (req, res) => {
+    const userEmail = (req as any).user?.email
+    const { discussionId } = req.params as z.infer<typeof discussionIdParamsSchema>
+    const body = req.body as z.infer<typeof updateDiscussionSchema>
+
+    const payload: UpdateDiscussionInput = {
+      title: body.title,
+      description: body.description,
+      visibility: body.visibility,
+      isArchived: body.isArchived,
+      metadata: body.metadata,
+      allowTeacherOverride: body.allowTeacherOverride
     }
 
-    // Check access permissions
-    if (userRole === 'student') {
-      const { data: enrollment, error: enrollmentError } = await supabaseAdmin
-        .from('enrollments')
-        .select('id')
-        .eq('student_email', userEmail)
-        .eq('course_id', discussion.course_id)
-        .eq('status', 'active')
-        .single()
+    const result = await DiscussionService.updateDiscussion(discussionId, userEmail, payload)
+    res.json(result)
+  })
+)
 
-      if (enrollmentError || !enrollment) {
-        return res.status(403).json({ error: 'Access denied - Not enrolled in this course' })
-      }
+router.post(
+  '/:discussionId/participants',
+  requireAuth,
+  validateParams(discussionIdParamsSchema),
+  validateBody(participantUpdateSchema),
+  asyncHandler(async (req, res) => {
+    const userEmail = (req as any).user?.email
+    const { discussionId } = req.params as z.infer<typeof discussionIdParamsSchema>
+    const body = req.body as z.infer<typeof participantUpdateSchema>
+
+    const result = await DiscussionService.addParticipants(discussionId, userEmail, body.participants)
+    res.json(result)
+  })
+)
+
+router.post(
+  '/:discussionId/posts',
+  requireAuth,
+  validateParams(discussionIdParamsSchema),
+  validateBody(createPostSchema),
+  asyncHandler(async (req, res) => {
+    const userEmail = (req as any).user?.email
+    const { discussionId } = req.params as z.infer<typeof discussionIdParamsSchema>
+    const body = req.body as z.infer<typeof createPostSchema>
+
+    const payload: CreatePostInput = {
+      content: body.content,
+      richContent: body.richContent,
+      parentPostId: body.parentPostId,
+      mentions: body.mentions,
+      attachments: body.attachments
     }
 
-    // Get student details
-    const { data: student, error: studentError } = await supabaseAdmin
-      .from('students')
-      .select('id')
-      .eq('email', userEmail)
-      .single()
+    const result = await DiscussionService.addPost(discussionId, userEmail, payload)
+    res.status(201).json(result)
+  })
+)
 
-    if (studentError || !student) {
-      return res.status(404).json({ error: 'Student profile not found' })
+router.patch(
+  '/:discussionId/posts/:postId',
+  requireAuth,
+  validateParams(discussionPostParamsSchema),
+  validateBody(updatePostSchema),
+  asyncHandler(async (req, res) => {
+    const userEmail = (req as any).user?.email
+    const { discussionId, postId } = req.params as z.infer<typeof discussionPostParamsSchema>
+    const body = req.body as z.infer<typeof updatePostSchema>
+
+    const payload: UpdatePostInput = {
+      content: body.content,
+      richContent: body.richContent,
+      mentions: body.mentions
     }
 
-    // Check if already liked
-    const { data: existingLike, error: likeError } = await supabaseAdmin
-      .from('discussion_likes')
-      .select('id')
-      .eq('discussion_id', discussionId)
-      .eq('student_id', student.id)
-      .single()
+    const result = await DiscussionService.updatePost(discussionId, postId, userEmail, payload)
+    res.json(result)
+  })
+)
 
-    if (existingLike) {
-      // Unlike
-      const { error: deleteError } = await supabaseAdmin
-        .from('discussion_likes')
-        .delete()
-        .eq('id', existingLike.id)
+router.delete(
+  '/:discussionId/posts/:postId',
+  requireAuth,
+  validateParams(discussionPostParamsSchema),
+  asyncHandler(async (req, res) => {
+    const userEmail = (req as any).user?.email
+    const { discussionId, postId } = req.params as z.infer<typeof discussionPostParamsSchema>
 
-      if (deleteError) {
-        console.error('Error removing like:', deleteError)
-        return res.status(500).json({ error: 'Failed to remove like' })
-      }
+    const result = await DiscussionService.deletePost(discussionId, postId, userEmail)
+    res.json(result)
+  })
+)
 
-      res.json({ liked: false })
-    } else {
-      // Like
-      const { error: insertError } = await supabaseAdmin
-        .from('discussion_likes')
-        .insert({
-          discussion_id: discussionId,
-          student_id: student.id
-        })
+router.post(
+  '/:discussionId/mark-read',
+  requireAuth,
+  validateParams(discussionIdParamsSchema),
+  asyncHandler(async (req, res) => {
+    const userEmail = (req as any).user?.email
+    const { discussionId } = req.params as z.infer<typeof discussionIdParamsSchema>
 
-      if (insertError) {
-        console.error('Error adding like:', insertError)
-        return res.status(500).json({ error: 'Failed to add like' })
-      }
+    const result = await DiscussionService.markDiscussionRead(discussionId, userEmail)
+    res.json(result)
+  })
+)
 
-      res.json({ liked: true })
-    }
-  } catch (error) {
-    console.error('Error in like discussion:', error)
-    res.status(500).json({ error: 'Internal server error' })
-  }
-}))
+export { router }
+

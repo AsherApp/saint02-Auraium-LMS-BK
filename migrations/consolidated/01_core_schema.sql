@@ -359,40 +359,273 @@ CREATE TABLE IF NOT EXISTS recordings (
 -- DISCUSSION & COMMUNICATION TABLES
 -- =====================================================
 
--- Announcements table
-CREATE TABLE IF NOT EXISTS announcements (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    title TEXT NOT NULL,
-    content TEXT NOT NULL,
-    course_id UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
-    teacher_email TEXT NOT NULL REFERENCES teachers(email) ON DELETE CASCADE,
-    is_important BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Discussions table
+-- Discussions table (threads / study groups / direct chats)
 CREATE TABLE IF NOT EXISTS discussions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title TEXT NOT NULL,
     description TEXT,
-    course_id UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
-    created_by TEXT NOT NULL,
-    is_pinned BOOLEAN DEFAULT FALSE,
+    owner_email TEXT NOT NULL,
+    owner_role TEXT DEFAULT 'teacher',
+    discussion_type TEXT NOT NULL DEFAULT 'direct', -- direct, course, study_group_student, study_group_course, forum_bridge
+    visibility TEXT NOT NULL DEFAULT 'private', -- private, course, institution
+    context_type TEXT, -- course, module, lesson, assignment, program, global
+    context_id UUID,
+    context_snapshot JSONB DEFAULT '{}',
+    is_archived BOOLEAN DEFAULT FALSE,
+    allow_teacher_override BOOLEAN DEFAULT TRUE,
+    metadata JSONB DEFAULT '{}',
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    last_activity_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+CREATE INDEX IF NOT EXISTS discussions_owner_email_idx ON discussions(owner_email);
+CREATE INDEX IF NOT EXISTS discussions_context_idx ON discussions(context_type, context_id);
+CREATE INDEX IF NOT EXISTS discussions_visibility_idx ON discussions(visibility);
+
+-- Discussion participants table
+CREATE TABLE IF NOT EXISTS discussion_participants (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    discussion_id UUID NOT NULL REFERENCES discussions(id) ON DELETE CASCADE,
+    user_email TEXT NOT NULL,
+    user_role TEXT, -- teacher, student, admin
+    participant_role TEXT NOT NULL DEFAULT 'participant', -- owner, moderator, participant, leader, co_leader
+    status TEXT NOT NULL DEFAULT 'active', -- active, pending, left, removed
+    invited_by TEXT,
+    invited_at TIMESTAMPTZ DEFAULT NOW(),
+    joined_at TIMESTAMPTZ DEFAULT NOW(),
+    last_seen_at TIMESTAMPTZ,
+    unread_count INTEGER DEFAULT 0,
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE (discussion_id, user_email)
+);
+
+CREATE INDEX IF NOT EXISTS discussion_participants_user_idx ON discussion_participants(user_email, status);
+CREATE INDEX IF NOT EXISTS discussion_participants_role_idx ON discussion_participants(discussion_id, participant_role);
 
 -- Discussion posts table
 CREATE TABLE IF NOT EXISTS discussion_posts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     discussion_id UUID NOT NULL REFERENCES discussions(id) ON DELETE CASCADE,
-    content TEXT NOT NULL,
-    created_by TEXT NOT NULL,
+    author_email TEXT NOT NULL,
+    author_role TEXT,
     parent_post_id UUID REFERENCES discussion_posts(id) ON DELETE CASCADE,
-    is_solution BOOLEAN DEFAULT FALSE,
+    content TEXT,
+    rich_content JSONB DEFAULT '{}',
+    mentions TEXT[] DEFAULT ARRAY[]::TEXT[],
+    metadata JSONB DEFAULT '{}',
+    is_deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    edited_at TIMESTAMPTZ,
+    deleted_at TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS discussion_posts_discussion_idx ON discussion_posts(discussion_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS discussion_posts_parent_idx ON discussion_posts(parent_post_id);
+
+-- Discussion attachments table
+CREATE TABLE IF NOT EXISTS discussion_attachments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    post_id UUID NOT NULL REFERENCES discussion_posts(id) ON DELETE CASCADE,
+    file_url TEXT NOT NULL,
+    file_name TEXT,
+    file_type TEXT,
+    file_size BIGINT,
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS discussion_attachments_post_idx ON discussion_attachments(post_id);
+
+-- Discussion post reactions table
+CREATE TABLE IF NOT EXISTS discussion_post_reactions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    post_id UUID NOT NULL REFERENCES discussion_posts(id) ON DELETE CASCADE,
+    user_email TEXT NOT NULL,
+    reaction_type TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE (post_id, user_email, reaction_type)
+);
+
+CREATE INDEX IF NOT EXISTS discussion_post_reactions_user_idx ON discussion_post_reactions(user_email);
+
+-- Study group tasks / notes (optional extension point)
+CREATE TABLE IF NOT EXISTS discussion_action_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    discussion_id UUID NOT NULL REFERENCES discussions(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    description TEXT,
+    assigned_to TEXT[],
+    due_at TIMESTAMPTZ,
+    status TEXT NOT NULL DEFAULT 'open', -- open, in_progress, completed, cancelled
+    created_by TEXT NOT NULL,
+    metadata JSONB DEFAULT '{}',
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS discussion_action_items_discussion_idx ON discussion_action_items(discussion_id);
+
+-- =====================================================
+-- FORUM TABLES
+-- =====================================================
+
+CREATE TABLE IF NOT EXISTS forum_categories (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title TEXT NOT NULL,
+    description TEXT,
+    context_type TEXT,
+    context_id UUID,
+    visibility TEXT NOT NULL DEFAULT 'course', -- course, institution, public
+    created_by TEXT NOT NULL,
+    is_locked BOOLEAN DEFAULT FALSE,
+    order_index INTEGER DEFAULT 0,
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS forum_categories_context_idx ON forum_categories(context_type, context_id);
+
+CREATE TABLE IF NOT EXISTS forum_threads (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    category_id UUID NOT NULL REFERENCES forum_categories(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    author_email TEXT NOT NULL,
+    author_role TEXT,
+    content TEXT,
+    rich_content JSONB DEFAULT '{}',
+    context_type TEXT,
+    context_id UUID,
+    is_pinned BOOLEAN DEFAULT FALSE,
+    is_locked BOOLEAN DEFAULT FALSE,
+    last_activity_at TIMESTAMPTZ DEFAULT NOW(),
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS forum_threads_category_idx ON forum_threads(category_id, last_activity_at DESC);
+CREATE INDEX IF NOT EXISTS forum_threads_context_idx ON forum_threads(context_type, context_id);
+
+CREATE TABLE IF NOT EXISTS forum_posts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    thread_id UUID NOT NULL REFERENCES forum_threads(id) ON DELETE CASCADE,
+    author_email TEXT NOT NULL,
+    author_role TEXT,
+    parent_post_id UUID REFERENCES forum_posts(id) ON DELETE CASCADE,
+    content TEXT,
+    rich_content JSONB DEFAULT '{}',
+    mentions TEXT[] DEFAULT ARRAY[]::TEXT[],
+    is_deleted BOOLEAN DEFAULT FALSE,
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    edited_at TIMESTAMPTZ,
+    deleted_at TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS forum_posts_thread_idx ON forum_posts(thread_id, created_at ASC);
+CREATE INDEX IF NOT EXISTS forum_posts_parent_idx ON forum_posts(parent_post_id);
+
+CREATE TABLE IF NOT EXISTS forum_post_reactions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    post_id UUID NOT NULL REFERENCES forum_posts(id) ON DELETE CASCADE,
+    user_email TEXT NOT NULL,
+    reaction_type TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE (post_id, user_email, reaction_type)
+);
+
+CREATE INDEX IF NOT EXISTS forum_post_reactions_user_idx ON forum_post_reactions(user_email);
+
+CREATE TABLE IF NOT EXISTS forum_thread_subscriptions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    thread_id UUID NOT NULL REFERENCES forum_threads(id) ON DELETE CASCADE,
+    user_email TEXT NOT NULL,
+    notify BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE (thread_id, user_email)
+);
+
+CREATE INDEX IF NOT EXISTS forum_thread_subscriptions_user_idx ON forum_thread_subscriptions(user_email);
+
+-- =====================================================
+-- ANNOUNCEMENT TABLES
+-- =====================================================
+
+CREATE TABLE IF NOT EXISTS announcements (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title TEXT NOT NULL,
+    content TEXT NOT NULL,
+    rich_content JSONB DEFAULT '{}',
+    author_email TEXT NOT NULL,
+    author_role TEXT DEFAULT 'teacher',
+    context_type TEXT,
+    context_id UUID,
+    priority TEXT DEFAULT 'normal', -- normal, high, critical
+    display_type TEXT DEFAULT 'banner', -- banner, modal, email
+    status TEXT NOT NULL DEFAULT 'draft', -- draft, scheduled, published, cancelled, expired
+    starts_at TIMESTAMPTZ,
+    ends_at TIMESTAMPTZ,
+    published_at TIMESTAMPTZ,
+    is_recurring BOOLEAN DEFAULT FALSE,
+    recurrence_rule TEXT,
+    recurrence_ends_at TIMESTAMPTZ,
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS announcements_author_idx ON announcements(author_email);
+CREATE INDEX IF NOT EXISTS announcements_context_idx ON announcements(context_type, context_id);
+CREATE INDEX IF NOT EXISTS announcements_status_idx ON announcements(status, starts_at, ends_at);
+
+CREATE TABLE IF NOT EXISTS announcement_audience (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    announcement_id UUID NOT NULL REFERENCES announcements(id) ON DELETE CASCADE,
+    audience_type TEXT NOT NULL, -- course, module, lesson, role, cohort, custom
+    audience_id UUID,
+    audience_value TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS announcement_audience_type_idx ON announcement_audience(audience_type, audience_id);
+
+CREATE TABLE IF NOT EXISTS announcement_reads (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    announcement_id UUID NOT NULL REFERENCES announcements(id) ON DELETE CASCADE,
+    user_email TEXT NOT NULL,
+    read_at TIMESTAMPTZ,
+    dismissed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE (announcement_id, user_email)
+);
+
+CREATE INDEX IF NOT EXISTS announcement_reads_user_idx ON announcement_reads(user_email);
+
+CREATE TABLE IF NOT EXISTS announcement_recurrences (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    announcement_id UUID NOT NULL REFERENCES announcements(id) ON DELETE CASCADE,
+    next_run_at TIMESTAMPTZ NOT NULL,
+    last_run_at TIMESTAMPTZ,
+    status TEXT DEFAULT 'scheduled', -- scheduled, running, complete, cancelled
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS announcement_recurrences_next_run_idx ON announcement_recurrences(next_run_at);
+
+CREATE TABLE IF NOT EXISTS announcement_audit_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    announcement_id UUID REFERENCES announcements(id) ON DELETE CASCADE,
+    action TEXT NOT NULL,
+    performed_by TEXT NOT NULL,
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- =====================================================
@@ -645,19 +878,6 @@ CREATE INDEX IF NOT EXISTS idx_live_classwork_submissions_classwork_id ON live_c
 -- Recordings indexes
 CREATE INDEX IF NOT EXISTS idx_recordings_session_id ON recordings(session_id);
 CREATE INDEX IF NOT EXISTS idx_recordings_status ON recordings(status);
-
--- Announcements indexes
-CREATE INDEX IF NOT EXISTS idx_announcements_course_id ON announcements(course_id);
-CREATE INDEX IF NOT EXISTS idx_announcements_teacher_email ON announcements(teacher_email);
-CREATE INDEX IF NOT EXISTS idx_announcements_created_at ON announcements(created_at);
-
--- Discussions indexes
-CREATE INDEX IF NOT EXISTS idx_discussions_course_id ON discussions(course_id);
-CREATE INDEX IF NOT EXISTS idx_discussions_created_by ON discussions(created_by);
-
--- Discussion posts indexes
-CREATE INDEX IF NOT EXISTS idx_discussion_posts_discussion_id ON discussion_posts(discussion_id);
-CREATE INDEX IF NOT EXISTS idx_discussion_posts_created_by ON discussion_posts(created_by);
 
 -- Polls indexes
 CREATE INDEX IF NOT EXISTS idx_polls_course_id ON polls(course_id);

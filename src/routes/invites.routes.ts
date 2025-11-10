@@ -95,7 +95,7 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
   if (!teacher_email) {
     return res.status(401).json({ error: 'Unauthorized' })
   }
-  const { student_email, student_name, email, name, course_id } = req.body
+  const { student_email, student_name, email, name, course_id, access_type } = req.body
   
   // Handle both field name variations
   const finalStudentEmail = student_email || email
@@ -132,6 +132,7 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
       name: finalStudentName,
       role: 'student',
       course_id,
+      access_type: access_type || 'full', // Store access type from invite
       created_by: teacher_email,
       used: false,
       expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
