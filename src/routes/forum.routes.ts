@@ -7,8 +7,8 @@ import {
   validateParams,
   validateQuery
 } from '../middlewares/validation.js'
+import { ForumService } from '../services/forum.service'
 import {
-  ForumService,
   CreateCategoryInput,
   UpdateCategoryInput,
   CreateThreadInput,

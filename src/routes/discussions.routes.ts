@@ -14,7 +14,7 @@ import {
   UpdateDiscussionInput,
   CreatePostInput,
   UpdatePostInput
-} from '../services/discussion.service.js'
+} from '../services/discussion.service'
 
 const router = Router()
 
