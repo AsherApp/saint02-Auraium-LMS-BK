@@ -14,10 +14,10 @@ import {
   logSecurityEvent,
   preventBruteForce 
 } from './middlewares/security.js'
-import { ChatService } from './services/chat.service'
-import { AttendanceService } from './services/attendance.service'
-import { ParticipantService } from './services/participant.service'
-import { setSocketServer } from './lib/socket.io'
+import { ChatService } from './services/chat.service.js'
+import { AttendanceService } from './services/attendance.service.js'
+import { ParticipantService } from './services/participant.service.js'
+import { setSocketServer } from './lib/socket.io.js'
 
 const app = express()
 
@@ -283,11 +283,23 @@ interface SendMessagePayload extends JoinRoomPayload {
 
 interface WhiteboardPayload {
   liveClassId: string
-  action: WhiteboardAction
+  action: unknown
 }
 
 interface LiveClassOnlyPayload {
   liveClassId: string
+}
+
+interface WhiteboardVisibilityPayload {
+  liveClassId: string
+  isVisible: boolean
+  userId?: string
+}
+
+interface ScreenSharePayload {
+  liveClassId: string
+  userId: string
+  isSharing: boolean
 }
 
 interface WhiteboardPoint {
@@ -302,6 +314,8 @@ interface WhiteboardAction {
 
 const WHITEBOARD_MAX_ACTIONS = 500
 const whiteboardState = new Map<string, WhiteboardAction[]>()
+const whiteboardVisibility = new Map<string, boolean>()
+const screenShareState = new Map<string, { liveClassId: string; userId: string; isSharing: boolean }>()
 
 io.on('connection', (socket: Socket) => {
   console.log(`⚡ User connected: ${socket.id}`)
