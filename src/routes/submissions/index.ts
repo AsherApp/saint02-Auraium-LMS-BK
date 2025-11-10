@@ -1,12 +1,13 @@
 import { Router } from 'express'
-import { supabaseAdmin } from '../../lib/supabase'
-import { requireAuth } from '../../middlewares/auth'
-import { asyncHandler } from '../../utils/asyncHandler'
+import type { Request, Response } from 'express'
+import { supabaseAdmin } from '../../lib/supabase.js'
+import { requireAuth } from '../../middlewares/auth.js'
+import { asyncHandler } from '../../utils/asyncHandler.js'
 
 const router = Router()
 
 // Get submissions for an assignment (teachers only)
-router.get('/assignment/:assignmentId', requireAuth, asyncHandler(async (req, res) => {
+router.get('/assignment/:assignmentId', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   const { assignmentId } = req.params
   const userId = (req as any).user?.id
   const userRole = (req as any).user?.role
@@ -47,7 +48,7 @@ router.get('/assignment/:assignmentId', requireAuth, asyncHandler(async (req, re
     }
 
     // Transform the data to include student information
-    const transformedSubmissions = submissions?.map(submission => ({
+    const transformedSubmissions = submissions?.map((submission: any) => ({
       ...submission,
       student_name: submission.students?.name || 
                    `${submission.students?.first_name || ''} ${submission.students?.last_name || ''}`.trim() ||
@@ -63,7 +64,7 @@ router.get('/assignment/:assignmentId', requireAuth, asyncHandler(async (req, re
 }))
 
 // Get single submission
-router.get('/:submissionId', requireAuth, asyncHandler(async (req, res) => {
+router.get('/:submissionId', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   const { submissionId } = req.params
   const userId = (req as any).user?.id
   const userRole = (req as any).user?.role
@@ -131,7 +132,7 @@ router.get('/:submissionId', requireAuth, asyncHandler(async (req, res) => {
 }))
 
 // Create new submission
-router.post('/', requireAuth, asyncHandler(async (req, res) => {
+router.post('/', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   const userId = (req as any).user?.id
   const userRole = (req as any).user?.role
 
@@ -191,7 +192,7 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
       .order('attempt_number', { ascending: false })
 
     // If there's a draft submission (submitted status), update it instead of creating new one
-    const draftSubmission = existingSubmissions?.find(s => s.status === 'submitted')
+    const draftSubmission = existingSubmissions?.find((s: any) => s.status === 'submitted')
     if (draftSubmission) {
       // Update existing draft submission
       const { data: updatedSubmission, error: updateError } = await supabaseAdmin
@@ -222,7 +223,7 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
 
     // Calculate next attempt number for new submission
     const attemptNumber = existingSubmissions && existingSubmissions.length > 0 
-      ? Math.max(...existingSubmissions.map(s => s.attempt_number)) + 1 
+      ? Math.max(...existingSubmissions.map((s: any) => s.attempt_number)) + 1 
       : 1
 
     // Check if assignment is overdue (for now, allow late submissions)
@@ -270,7 +271,7 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
 }))
 
 // Update submission (for resubmissions)
-router.put('/:submissionId', requireAuth, asyncHandler(async (req, res) => {
+router.put('/:submissionId', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   const { submissionId } = req.params
   const userEmail = (req as any).user?.email
   const userRole = (req as any).user?.role
@@ -353,7 +354,7 @@ router.put('/:submissionId', requireAuth, asyncHandler(async (req, res) => {
 }))
 
 // Grade submission (teachers only)
-router.put('/:submissionId/grade', requireAuth, asyncHandler(async (req, res) => {
+router.put('/:submissionId/grade', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   const { submissionId } = req.params
   const userId = (req as any).user?.id
   const userRole = (req as any).user?.role
@@ -416,7 +417,7 @@ router.put('/:submissionId/grade', requireAuth, asyncHandler(async (req, res) =>
 }))
 
 // Delete submission
-router.delete('/:submissionId', requireAuth, asyncHandler(async (req, res) => {
+router.delete('/:submissionId', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   const { submissionId } = req.params
   const userEmail = (req as any).user?.email
   const userRole = (req as any).user?.role

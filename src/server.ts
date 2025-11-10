@@ -14,10 +14,10 @@ import {
   logSecurityEvent,
   preventBruteForce
 } from './middlewares/security.js'
-import { ChatService } from './services/chat.service'
-import { AttendanceService } from './services/attendance.service'
-import { ParticipantService } from './services/participant.service'
-import { setSocketServer } from './lib/socket.io'
+import { ChatService } from './services/chat.service.js'
+import { AttendanceService } from './services/attendance.service.js'
+import { ParticipantService } from './services/participant.service.js'
+import { setSocketServer } from './lib/socket.io.js'
 
 const app = express()
 
