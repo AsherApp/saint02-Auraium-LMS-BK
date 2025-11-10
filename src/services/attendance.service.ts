@@ -153,6 +153,54 @@ export class AttendanceService {
   }
 
   /**
+   * Finalises any open attendance records for a live class.
+   * Used when a session is force-ended to ensure duration totals are stored.
+   * @param liveClassId - The ID of the live class.
+   * @param endedAt - Optional ISO timestamp to use as the leave time (defaults to now).
+   */
+  static async finalizeOpenAttendance(liveClassId: string, endedAt?: string): Promise<void> {
+    const cutoff = endedAt ? new Date(endedAt) : new Date()
+
+    const { data: openRecords, error: openError } = await supabaseAdmin
+      .from('live_class_attendance')
+      .select('id, join_time')
+      .eq('live_class_id', liveClassId)
+      .is('leave_time', null)
+
+    if (openError) {
+      console.error('Error retrieving open attendance records:', openError)
+      throw createHttpError(500, 'failed_to_finalize_attendance')
+    }
+
+    if (!openRecords || openRecords.length === 0) {
+      return
+    }
+
+    for (const record of openRecords) {
+      if (!record?.id || !record?.join_time) continue
+
+      const joinTime = new Date(record.join_time)
+      const durationMinutes = Math.max(
+        0,
+        Math.round((cutoff.getTime() - joinTime.getTime()) / (1000 * 60))
+      )
+
+      const { error: updateError } = await supabaseAdmin
+        .from('live_class_attendance')
+        .update({
+          leave_time: cutoff.toISOString(),
+          duration_minutes: durationMinutes,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', record.id)
+
+      if (updateError) {
+        console.error(`Error finalising attendance record ${record.id}:`, updateError)
+      }
+    }
+  }
+
+  /**
    * Retrieves attendance records for a specific live class.
    * @param liveClassId - The ID of the live class.
    * @returns A list of attendance records.

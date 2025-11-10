@@ -7,12 +7,12 @@ import fs from 'fs'
 import rateLimit from 'express-rate-limit'
 import http from 'http'
 import { Server, Socket } from 'socket.io'
-import { router } from './routes/index'
-import {
-  securityMiddleware,
-  preventParameterPollution,
+import { router } from './routes/index.js'
+import { 
+  securityMiddleware, 
+  preventParameterPollution, 
   logSecurityEvent,
-  preventBruteForce
+  preventBruteForce 
 } from './middlewares/security.js'
 import { ChatService } from './services/chat.service'
 import { AttendanceService } from './services/attendance.service'
@@ -283,12 +283,25 @@ interface SendMessagePayload extends JoinRoomPayload {
 
 interface WhiteboardPayload {
   liveClassId: string
-  action: unknown
+  action: WhiteboardAction
 }
 
 interface LiveClassOnlyPayload {
   liveClassId: string
 }
+
+interface WhiteboardPoint {
+  x: number
+  y: number
+}
+
+interface WhiteboardAction {
+  type: 'draw'
+  path: WhiteboardPoint[]
+}
+
+const WHITEBOARD_MAX_ACTIONS = 500
+const whiteboardState = new Map<string, WhiteboardAction[]>()
 
 io.on('connection', (socket: Socket) => {
   console.log(`⚡ User connected: ${socket.id}`)
@@ -419,19 +432,36 @@ io.on('connection', (socket: Socket) => {
   })
 
   // --- Whiteboard Event Handlers ---
+  socket.on('request_whiteboard_state', ({ liveClassId }: LiveClassOnlyPayload) => {
+    const history = whiteboardState.get(liveClassId) ?? []
+    socket.emit('sync_whiteboard_state', history)
+  })
+
   socket.on('draw_action', ({ liveClassId, action }: WhiteboardPayload) => {
-    // Broadcast drawing action to all clients in the room except the sender
+    const existingHistory = whiteboardState.get(liveClassId) ?? []
+    const updatedHistory = [...existingHistory, action]
+    if (updatedHistory.length > WHITEBOARD_MAX_ACTIONS) {
+      updatedHistory.splice(0, updatedHistory.length - WHITEBOARD_MAX_ACTIONS)
+    }
+    whiteboardState.set(liveClassId, updatedHistory)
     socket.to(liveClassId).emit('receive_draw_action', action)
   })
 
   socket.on('clear_whiteboard', ({ liveClassId }: LiveClassOnlyPayload) => {
-    // Broadcast clear whiteboard command to all clients in the room except the sender
+    whiteboardState.set(liveClassId, [])
     socket.to(liveClassId).emit('receive_clear_whiteboard')
   })
 
   socket.on('undo_draw', ({ liveClassId }: LiveClassOnlyPayload) => {
-    // Broadcast undo command to all clients in the room except the sender
+    const existingHistory = whiteboardState.get(liveClassId) ?? []
+    if (existingHistory.length) {
+      whiteboardState.set(liveClassId, existingHistory.slice(0, -1))
+    }
     socket.to(liveClassId).emit('receive_undo_draw')
+  })
+
+  socket.on('live_class_ended', ({ liveClassId }: LiveClassOnlyPayload) => {
+    whiteboardState.delete(liveClassId)
   })
 })
 

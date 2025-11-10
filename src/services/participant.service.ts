@@ -15,6 +15,8 @@ export interface LiveClassParticipant {
   role: 'teacher' | 'student'
   user_type: 'teacher' | 'student'
   joined_at: string
+  left_at: string | null
+  is_active: boolean
   displayName: string
 }
 
@@ -36,7 +38,7 @@ export class ParticipantService {
   static async getParticipants(liveClassId: string): Promise<LiveClassParticipant[]> {
     const { data, error } = await supabaseAdmin
       .from('live_class_participants')
-      .select('id, user_id, email, user_type, joined_at, left_at, is_active')
+      .select('id, user_id, email, user_type, joined_at, left_at, is_active, updated_at')
       .eq('live_class_id', liveClassId)
       .order('joined_at', { ascending: true })
 
@@ -45,21 +47,24 @@ export class ParticipantService {
       throw createHttpError(500, 'failed_to_fetch_participants')
     }
 
-    const activeParticipants = (data || []).filter((row) => row && row.is_active && !row.left_at)
+    const participants = (data || []).filter((row): row is typeof data[number] => Boolean(row))
 
-    if (activeParticipants.length === 0) {
+    if (participants.length === 0) {
       return []
     }
 
     const userIds = Array.from(
       new Set(
-        activeParticipants
-          .map((row) => row.user_id)
+        participants
+          .map((row) => row?.user_id)
           .filter((value): value is string => typeof value === 'string' && value.length > 0)
       )
     )
 
-    let profileMap = new Map<string, { first_name: string | null; last_name: string | null; email: string | null }>()
+    let profileMap = new Map<
+      string,
+      { first_name: string | null; last_name: string | null; email: string | null }
+    >()
 
     if (userIds.length > 0) {
       const { data: profiles, error: profileError } = await supabaseAdmin
@@ -73,20 +78,25 @@ export class ParticipantService {
       }
 
       profileMap = new Map(
-        (profiles || []).map((profile) => [profile.id as string, {
-          first_name: profile.first_name ?? null,
-          last_name: profile.last_name ?? null,
-          email: profile.email ?? null
-        }])
+        (profiles || []).map((profile) => [
+          profile.id as string,
+          {
+            first_name: profile.first_name ?? null,
+            last_name: profile.last_name ?? null,
+            email: profile.email ?? null
+          }
+        ])
       )
     }
 
-    return activeParticipants.map((row) => {
+    return participants.map((row) => {
       const profile = row.user_id ? profileMap.get(row.user_id) : undefined
       const firstName = profile?.first_name?.trim() ?? ''
       const lastName = profile?.last_name?.trim() ?? ''
       const fullName = [firstName, lastName].filter(Boolean).join(' ').trim()
       const fallback = profile?.email ?? row.email
+
+      const isActive = Boolean(row.is_active) && row.left_at === null
 
       return {
         id: row.id,
@@ -95,6 +105,8 @@ export class ParticipantService {
         role: row.user_type,
         user_type: row.user_type,
         joined_at: row.joined_at,
+        left_at: row.left_at ?? null,
+        is_active: isActive,
         displayName: fullName || fallback || row.email
       }
     })
@@ -184,6 +196,25 @@ export class ParticipantService {
     if (error) {
       console.error('Error recording participant leave:', error)
       throw createHttpError(500, 'failed_to_update_participants')
+    }
+  }
+
+  static async finalizeParticipants(liveClassId: string, endedAt?: string): Promise<void> {
+    const timestamp = endedAt ? new Date(endedAt).toISOString() : new Date().toISOString()
+
+    const { error } = await supabaseAdmin
+      .from('live_class_participants')
+      .update({
+        left_at: timestamp,
+        is_active: false,
+        updated_at: timestamp
+      })
+      .eq('live_class_id', liveClassId)
+      .is('left_at', null)
+
+    if (error) {
+      console.error('Error finalising live class participants:', error)
+      throw createHttpError(500, 'failed_to_finalize_participants')
     }
   }
 }
