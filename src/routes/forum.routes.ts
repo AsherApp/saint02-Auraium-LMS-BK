@@ -7,7 +7,7 @@ import {
   validateParams,
   validateQuery
 } from '../middlewares/validation.js'
-import { ForumService } from '../services/forum.service'
+import { ForumService } from '../services/forum.service.js'
 import {
   CreateCategoryInput,
   UpdateCategoryInput,
@@ -15,7 +15,7 @@ import {
   UpdateThreadInput,
   CreatePostInput,
   UpdatePostInput
-} from '../services/forum.service'
+} from '../services/forum.service.js'
 
 const router = Router()
 

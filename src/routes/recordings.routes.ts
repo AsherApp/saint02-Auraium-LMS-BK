@@ -3,7 +3,7 @@ import { supabaseAdmin } from '../lib/supabase.js'
 import { requireAuth } from '../middlewares/auth.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { validateBody } from '../middlewares/validation.js' // Import the shared validation middleware
-import { createRecordingSchema, updateRecordingSchema } from '../validation/recording.validation'
+import { createRecordingSchema, updateRecordingSchema } from '../validation/recording.validation.js'
 import { z } from 'zod'
 
 const router = Router()
