@@ -1,9 +1,9 @@
 import { Router } from 'express'
 import { z } from 'zod'
-import { requireAuth } from '../middlewares/auth.js'
-import { validateBody, validateParams } from '../middlewares/validation.js'
-import { asyncHandler } from '../utils/asyncHandler.js'
-import { NotesService, CreateLiveClassNoteInput, UpdateLiveClassNoteInput } from '../services/notes.service.js'
+import { requireAuth } from '../middlewares/auth'
+import { validateBody, validateParams } from '../middlewares/validation'
+import { asyncHandler } from '../utils/asyncHandler'
+import { NotesService, CreateLiveClassNoteInput, UpdateLiveClassNoteInput } from '../services/notes.service'
 
 const router = Router()
 
