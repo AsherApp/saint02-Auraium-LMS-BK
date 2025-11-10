@@ -1,13 +1,13 @@
 import { Router } from 'express'
 import { z } from 'zod'
-import { requireAuth, requireTeacher } from '../middlewares/auth'
-import { asyncHandler } from '../utils/asyncHandler'
+import { requireAuth, requireTeacher } from '../middlewares/auth.js'
+import { asyncHandler } from '../utils/asyncHandler.js'
 import {
   validateBody,
   validateParams,
   validateQuery
-} from '../middlewares/validation'
-import { ForumService } from '../services/forum.service'
+} from '../middlewares/validation.js'
+import { ForumService } from '../services/forum.service.js'
 import {
   CreateCategoryInput,
   UpdateCategoryInput,
@@ -15,7 +15,7 @@ import {
   UpdateThreadInput,
   CreatePostInput,
   UpdatePostInput
-} from '../services/forum.service'
+} from '../services/forum.service.js'
 
 const router = Router()
 
