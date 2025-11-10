@@ -6,14 +6,14 @@ import path from 'path'
 import fs from 'fs'
 import rateLimit from 'express-rate-limit'
 import http from 'http'
-import { Server, type Socket } from 'socket.io'
-import { router } from './routes/index'
+import { Server, Socket } from 'socket.io'
+import { router } from './routes/index.js'
 import {
   securityMiddleware,
   preventParameterPollution,
   logSecurityEvent,
   preventBruteForce
-} from './middlewares/security'
+} from './middlewares/security.js'
 import { ChatService } from './services/chat.service'
 import { AttendanceService } from './services/attendance.service'
 import { ParticipantService } from './services/participant.service'
