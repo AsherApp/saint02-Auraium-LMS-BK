@@ -6,18 +6,18 @@ import path from 'path'
 import fs from 'fs'
 import rateLimit from 'express-rate-limit'
 import http from 'http'
-import { Server } from 'socket.io'
-import { router } from './routes/index.js'
+import { Server, type Socket } from 'socket.io'
+import { router } from './routes/index'
 import {
   securityMiddleware,
   preventParameterPollution,
   logSecurityEvent,
   preventBruteForce
-} from './middlewares/security.js'
-import { ChatService } from './services/chat.service.js'
-import { AttendanceService } from './services/attendance.service.js'
-import { ParticipantService } from './services/participant.service.js'
-import { setSocketServer } from './lib/socket.io.js'
+} from './middlewares/security'
+import { ChatService } from './services/chat.service'
+import { AttendanceService } from './services/attendance.service'
+import { ParticipantService } from './services/participant.service'
+import { setSocketServer } from './lib/socket.io'
 
 const app = express()
 
@@ -290,7 +290,7 @@ interface LiveClassOnlyPayload {
   liveClassId: string
 }
 
-io.on('connection', (socket) => {
+io.on('connection', (socket: Socket) => {
   console.log(`⚡ User connected: ${socket.id}`)
 
   socket.on('join_room', async ({ liveClassId, userId, userEmail }: JoinRoomPayload) => {

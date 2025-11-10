@@ -5,6 +5,139 @@ import { asyncHandler } from '../utils/asyncHandler.js'
 
 export const router = Router()
 
+// DEBUG: Check what's actually in the database for a teacher
+router.get('/debug/check-name', requireAuth, asyncHandler(async (req, res) => {
+  const userEmail = req.user?.email
+
+  if (!userEmail) {
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from('teachers')
+    .select('*')
+    .eq('email', userEmail.toLowerCase())
+    .single()
+
+  if (error) {
+    return res.status(404).json({ error: 'Teacher not found', details: error })
+  }
+
+  // Return ALL fields so we can see exactly what's in the database
+  res.json({
+    database_fields: data,
+    computed_name: `${data.first_name || ''} ${data.last_name || ''}`.trim() || data.email,
+    email_prefix: data.email.split('@')[0]
+  })
+}))
+
+// Get current teacher's own profile
+router.get('/me/profile', requireAuth, asyncHandler(async (req, res) => {
+  const userEmail = req.user?.email
+  const userRole = req.user?.role
+
+  if (!userEmail) {
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
+
+  // Only teachers can access their own profile
+  if (userRole !== 'teacher') {
+    return res.status(403).json({ error: 'Access denied - Teachers only' })
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from('teachers')
+    .select('*')
+    .eq('email', userEmail.toLowerCase())
+    .single()
+
+  if (error) return res.status(404).json({ error: 'Teacher not found' })
+
+  // Combine first_name and last_name into name for backward compatibility
+  const response = {
+    ...data,
+    name: `${data.first_name || ''} ${data.last_name || ''}`.trim() || data.email
+  }
+
+  res.json(response)
+}))
+
+// Update current teacher's own profile
+router.put('/me/profile', requireAuth, asyncHandler(async (req, res) => {
+  const userEmail = req.user?.email
+  const userRole = req.user?.role
+
+  if (!userEmail) {
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
+
+  // Only teachers can update their own profile
+  if (userRole !== 'teacher') {
+    return res.status(403).json({ error: 'Access denied - Teachers only' })
+  }
+
+  const {
+    first_name,
+    last_name,
+    bio,
+    avatar_url,
+    website,
+    location,
+    expertise,
+    education,
+    experience
+  } = req.body
+
+  // Validate required fields
+  if (!first_name || !last_name) {
+    return res.status(400).json({ error: 'First name and last name are required' })
+  }
+
+  // Validate first_name and last_name are not just email prefix
+  const emailPrefix = userEmail.split('@')[0]
+  if (first_name.toLowerCase() === emailPrefix.toLowerCase() && last_name.toLowerCase() === 'user') {
+    return res.status(400).json({
+      error: 'Please provide a valid name instead of your email address'
+    })
+  }
+
+  // Build update object with all provided fields
+  const updateData: any = {
+    first_name: first_name.trim(),
+    last_name: last_name.trim(),
+    updated_at: new Date().toISOString()
+  }
+
+  // Add optional fields if provided
+  if (bio !== undefined) updateData.bio = bio
+  if (avatar_url !== undefined) updateData.avatar_url = avatar_url
+  if (website !== undefined) updateData.website = website
+  if (location !== undefined) updateData.location = location
+  if (expertise !== undefined) updateData.expertise = expertise
+  if (education !== undefined) updateData.education = education
+  if (experience !== undefined) updateData.experience = experience
+
+  const { data, error } = await supabaseAdmin
+    .from('teachers')
+    .update(updateData)
+    .eq('email', userEmail.toLowerCase())
+    .select('*')
+    .single()
+
+  if (error) {
+    console.error('Error updating teacher profile:', error)
+    return res.status(500).json({ error: 'Failed to update profile' })
+  }
+
+  // Return updated profile with name field
+  const response = {
+    ...data,
+    name: `${data.first_name || ''} ${data.last_name || ''}`.trim() || data.email
+  }
+
+  res.json(response)
+}))
+
 // Get comprehensive teacher analytics
 router.get('/analytics', requireAuth, asyncHandler(async (req, res) => {
   const teacherEmail = req.user?.email
@@ -143,6 +276,12 @@ router.get('/analytics', requireAuth, asyncHandler(async (req, res) => {
 
     const validCoursePerformance = coursePerformance.filter(Boolean)
 
+    // Placeholder for Recent Reports
+    const recentReports = [
+      { name: 'Student Progress Report - Q3', generatedAt: '2023-09-30', url: '#' },
+      { name: 'Course Analytics Summary - October', generatedAt: '2023-10-31', url: '#' },
+    ]
+
     res.json({
       totalStudents,
       totalCourses: activeCourses,
@@ -150,6 +289,9 @@ router.get('/analytics', requireAuth, asyncHandler(async (req, res) => {
       averageCompletion,
       recentActivity: formattedActivity,
       coursePerformance: validCoursePerformance,
+      pollParticipation: [],
+      discussionParticipation: [],
+      recentReports: recentReports,
       // Additional metrics
       totalEnrollments: enrollments?.length || 0,
       draftCourses: courses?.filter(c => c.status === 'draft').length || 0,
@@ -160,6 +302,171 @@ router.get('/analytics', requireAuth, asyncHandler(async (req, res) => {
     console.error('Analytics error:', error)
     res.status(500).json({ error: error.message })
   }
+}))
+
+// New endpoint for generating reports
+router.get('/reports/export', requireAuth, asyncHandler(async (req, res) => {
+  const teacherEmail = req.user?.email
+  const { reportType } = req.query
+
+  if (!teacherEmail) {
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
+
+  let csvContent = ""
+  let filename = ""
+
+  switch (reportType) {
+    case 'Student Progress':
+      filename = 'student_progress_report.csv'
+      csvContent = "Student Name,Student Email,Course Title,Completion %,Lessons Completed,Total Lessons,Assignments Completed,Total Assignments,Quizzes Passed,Total Quizzes,Average Grade\n"
+
+      // Fetch all student progress data for the teacher's courses
+      const { data: teacherCourses, error: coursesError } = await supabaseAdmin
+        .from('courses')
+        .select('id, title')
+        .eq('teacher_email', teacherEmail)
+
+      if (coursesError) throw coursesError
+
+      const teacherCourseIds = teacherCourses?.map(c => c.id) || []
+
+      const { data: progressData, error: progressError } = await supabaseAdmin
+        .from('student_course_progress')
+        .select(`
+          student_email,
+          course_id,
+          completion_percentage,
+          completed_lessons,
+          total_lessons,
+          completed_assignments,
+          total_assignments,
+          passed_quizzes,
+          total_quizzes,
+          average_grade,
+          students(name)
+        `)
+        .in('course_id', teacherCourseIds)
+
+      if (progressError) throw progressError
+
+      progressData?.forEach((item: any) => {
+        const courseTitle = teacherCourses?.find(c => c.id === item.course_id)?.title || 'N/A'
+        const studentName = item.students?.name || 'N/A'
+        const completionPercent = Math.round(item.completion_percentage || 0)
+        const lessonsCompleted = `${item.completed_lessons || 0}/${item.total_lessons || 0}`
+        const assignmentsCompleted = `${item.completed_assignments || 0}/${item.total_assignments || 0}`
+        const quizzesPassed = `${item.passed_quizzes || 0}/${item.total_quizzes || 0}`
+        const avgGrade = Math.round(item.average_grade || 0)
+
+        csvContent += `${studentName},${item.student_email},${courseTitle},${completionPercent},${lessonsCompleted},${assignmentsCompleted},${quizzesPassed},${avgGrade}\n`
+      })
+      break
+    case 'Course Analytics':
+      filename = 'course_analytics_report.csv'
+      csvContent = "Course Title,Total Students,Avg. Completion %,Avg. Grade\n"
+
+      // Fetch all courses for the teacher
+      const { data: analyticsCourses, error: analyticsCoursesError } = await supabaseAdmin
+        .from('courses')
+        .select('id, title')
+        .eq('teacher_email', teacherEmail)
+
+      if (analyticsCoursesError) throw analyticsCoursesError
+
+      for (const course of analyticsCourses || []) {
+        // Get enrollment count
+        const { count: enrollmentCount, error: enrollmentError } = await supabaseAdmin
+          .from('enrollments')
+          .select('*', { count: 'exact', head: true })
+          .eq('course_id', course.id)
+
+        if (enrollmentError) throw enrollmentError
+
+        // Get completion statistics
+        const { data: completionStats, error: completionStatsError } = await supabaseAdmin
+          .from('student_course_progress')
+          .select('completion_percentage, average_grade')
+          .eq('course_id', course.id)
+
+        if (completionStatsError) throw completionStatsError
+
+        const totalStudents = enrollmentCount || 0
+        const averageCompletion = completionStats?.length > 0 
+          ? completionStats.reduce((sum, c) => sum + c.completion_percentage, 0) / completionStats.length 
+          : 0
+        const averageGrade = completionStats?.length > 0 
+          ? completionStats.reduce((sum, c) => sum + (c.average_grade || 0), 0) / completionStats.length 
+          : 0
+
+        csvContent += `${course.title},${totalStudents},${Math.round(averageCompletion)},${Math.round(averageGrade)}\n`
+      }
+      break
+    case 'Performance Analytics':
+      filename = 'performance_analytics_report.csv'
+      csvContent = "Metric,Value\n"
+
+      // Reuse analytics logic to get overall metrics
+      const { data: perfEnrollments, error: perfEnrollmentsError } = await supabaseAdmin
+        .from('enrollments')
+        .select(`
+          student_email,
+          courses!inner(teacher_email)
+        `)
+        .eq('courses.teacher_email', teacherEmail)
+
+      if (perfEnrollmentsError) throw perfEnrollmentsError
+
+      const uniqueStudents = new Set(perfEnrollments?.map(e => e.student_email) || [])
+      const totalStudents = uniqueStudents.size
+
+      const { data: perfCourses, error: perfCoursesError } = await supabaseAdmin
+        .from('courses')
+        .select('id, status')
+        .eq('teacher_email', teacherEmail)
+
+      if (perfCoursesError) throw perfCoursesError
+
+      const activeCourses = perfCourses?.filter(c => c.status === 'published').length || 0
+
+      const { data: assignments, error: assignmentsError } = await supabaseAdmin
+        .from('assignments')
+        .select('id')
+        .in('course_id', perfCourses?.map(c => c.id) || [])
+
+      if (assignmentsError) throw assignmentsError
+
+      const totalAssignments = assignments?.length || 0
+
+      let averageCompletion = 0
+      if (perfCourses && perfCourses.length > 0) {
+        const courseIds = perfCourses.map(c => c.id)
+        const { data: perfProgressData, error: perfProgressError } = await supabaseAdmin
+          .from('student_progress')
+          .select('course_id, progress_percentage')
+          .in('course_id', courseIds)
+
+        if (!perfProgressError && perfProgressData && perfProgressData.length > 0) {
+          const totalProgress = perfProgressData.reduce((sum, p) => sum + (p.progress_percentage || 0), 0)
+          averageCompletion = Math.round(totalProgress / perfProgressData.length)
+        }
+      }
+
+      csvContent += `Total Students,${totalStudents}\n`
+      csvContent += `Total Courses,${activeCourses}\n`
+      csvContent += `Total Assignments,${totalAssignments}\n`
+      csvContent += `Average Completion,${averageCompletion}%\n`
+      break
+    default:
+      filename = 'report.csv'
+      csvContent = "Report Type,Status\n"
+      csvContent += `${reportType || 'Unknown'},Not Implemented\n`
+      break
+  }
+
+  res.setHeader('Content-Type', 'text/csv')
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+  res.status(200).send(csvContent)
 }))
 
 // Get detailed course analytics

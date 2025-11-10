@@ -17,6 +17,8 @@ node_modules/
 *.3gp
 *.ogv
 *.ts
+!src/**/*.ts
+!migrations/**/*.ts
 *.mts
 *.m2ts
 *.vob
