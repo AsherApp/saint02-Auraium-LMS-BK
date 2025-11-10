@@ -4,7 +4,11 @@ import { requireAuth } from '../middlewares/auth'
 import { validateBody } from '../middlewares/validation'
 import { asyncHandler } from '../utils/asyncHandler'
 import { RecordingService } from '../services/recording.service'
-import { startRecordingSchema, stopRecordingSchema } from '../validation/recording.validation'
+import {
+  createRecordingSchema,
+  updateRecordingSchema,
+  recordingIdSchema,
+} from '../validation/recording.validation'
 import { z } from 'zod'
 
 const router = Router()
