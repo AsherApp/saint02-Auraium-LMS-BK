@@ -1,9 +1,10 @@
 import { Router } from 'express'
 import { supabaseAdmin } from '../lib/supabase'
-import { requireAuth } from '../middlewares/auth.js'
-import { asyncHandler } from '../utils/asyncHandler.js'
-import { validateBody } from '../middlewares/validation.js' // Import the shared validation middleware
-import { createRecordingSchema, updateRecordingSchema } from '../validation/recording.validation.js'
+import { requireAuth } from '../middlewares/auth'
+import { validateBody } from '../middlewares/validation'
+import { asyncHandler } from '../utils/asyncHandler'
+import { RecordingService } from '../services/recording.service'
+import { startRecordingSchema, stopRecordingSchema } from '../validation/recording.validation'
 import { z } from 'zod'
 
 const router = Router()

@@ -1,20 +1,20 @@
 import { Router } from 'express'
 import { z } from 'zod'
-import { requireAuth } from '../middlewares/auth.js'
+import { requireAuth } from '../middlewares/auth'
 import {
   emailSchema,
   validateBody,
   validateParams,
   validateQuery
-} from '../middlewares/validation.js'
-import { asyncHandler } from '../utils/asyncHandler.js'
+} from '../middlewares/validation'
+import { asyncHandler } from '../utils/asyncHandler'
 import {
   DiscussionService,
   CreateDiscussionInput,
   UpdateDiscussionInput,
   CreatePostInput,
   UpdatePostInput
-} from '../services/discussion.service.js'
+} from '../services/discussion.service'
 
 const router = Router()
 
