@@ -7,7 +7,7 @@ import {
   validateParams,
   validateQuery
 } from '../middlewares/validation.js'
-import { ForumService } from '../services/forum.service'
+import { ForumService } from '../services/forum.service.js'
 import {
   CreateCategoryInput,
   UpdateCategoryInput,
