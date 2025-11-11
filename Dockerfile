@@ -1,45 +1,25 @@
 # Use a base Node.js image
 FROM node:20-alpine
 
+# Set a build argument so the Dockerfile works whether the context is the repo root or Endubackend/
+ARG PROJECT_ROOT=Endubackend
+
 # Set the working directory inside the container
 WORKDIR /usr/src/app
 
 # Install dumb-init for proper signal handling
 RUN apk add --no-cache dumb-init curl
 
-# Copy package.json and package-lock.json
-COPY package*.json ./
+# Copy package.json and package-lock.json from the backend project directory
+COPY ${PROJECT_ROOT}/package*.json ./
 
 # Install ALL dependencies (including devDependencies for building)
 RUN npm ci
 
-# Copy tsconfig.json
-COPY tsconfig.json ./
-
-# Copy the application code
-COPY src/ ./src/
-
-# COMPREHENSIVE DEBUGGING
-RUN echo "=== Debugging File Structure ===" && \
-    echo "1. Checking if services directory exists:" && \
-    ls -la src/services/ && \
-    echo "2. Checking specific missing service files:" && \
-    find src/services/ -name "*discussion*" -o -name "*forum*" -o -name "*notes*" -o -name "*recording*" | sort && \
-    echo "3. Checking validation directory:" && \
-    ls -la src/validation/ && \
-    echo "4. Checking routes directory:" && \
-    ls -la src/routes/ | grep -E "(resource|poll|quiz|attendance|participant|recording|liveClasses|announcements|enrollments)" && \
-    echo "5. All .ts files count:" && \
-    find src/ -name "*.ts" | wc -l
-
-# Check file contents of problematic files
-RUN echo "=== Checking imports in problematic files ===" && \
-    echo "discussions.routes.ts imports:" && \
-    grep "from.*service" src/routes/discussions.routes.ts || echo "No service imports found" && \
-    echo "forum.routes.ts imports:" && \
-    grep "from.*service" src/routes/forum.routes.ts || echo "No service imports found" && \
-    echo "recordings.routes.ts imports:" && \
-    grep "from.*service\|from.*validation" src/routes/recordings.routes.ts || echo "No imports found"
+# Copy configuration and source code
+COPY ${PROJECT_ROOT}/tsconfig.json ./
+COPY ${PROJECT_ROOT}/post-build.js ./
+COPY ${PROJECT_ROOT}/src ./src
 
 # Build the TypeScript code
 RUN npm run build
