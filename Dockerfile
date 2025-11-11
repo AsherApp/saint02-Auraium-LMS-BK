@@ -2,7 +2,7 @@
 FROM node:20-alpine
 
 # Set a build argument so the Dockerfile works whether the context is the repo root or Endubackend/
-ARG PROJECT_ROOT=Endubackend
+ARG PROJECT_ROOT=.
 
 # Set the working directory inside the container
 WORKDIR /usr/src/app
