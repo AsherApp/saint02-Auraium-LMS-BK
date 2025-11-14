@@ -90,7 +90,7 @@ export class ParticipantService {
       )
     }
 
-    return participants.map((row) => {
+    const result = participants.map((row) => {
       const participantEmail = row.user_email || row.email
       const profile = participantEmail ? profileMap.get(participantEmail) : undefined
       const firstName = profile?.first_name?.trim() ?? ''
@@ -113,6 +113,13 @@ export class ParticipantService {
         displayName: fullName || fallback || row.email
       }
     })
+    
+    console.log(`[PARTICIPANT SERVICE] Returning ${result.length} participants for class ${liveClassId}:`)
+    result.forEach(p => {
+      console.log(`  - ${p.displayName} (userId: ${p.userId}, email: ${p.email}, active: ${p.is_active})`)
+    })
+    
+    return result
   }
 
   static async recordJoin(payload: RecordParticipantJoinInput): Promise<void> {
