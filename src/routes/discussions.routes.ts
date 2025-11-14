@@ -175,8 +175,13 @@ router.post(
       contextType: body.context?.type,
       contextId: body.context?.id,
       metadata: body.metadata,
-      participants: body.participants,
-      initialMessage: body.initialMessage
+      participants: body.participants?.filter(p => p.email) as any,
+      initialMessage: body.initialMessage && body.initialMessage.content ? {
+        content: body.initialMessage.content,
+        richContent: body.initialMessage.richContent,
+        mentions: body.initialMessage.mentions,
+        attachments: body.initialMessage.attachments?.filter(a => a.fileUrl) as any
+      } : undefined
     }
 
     const result = await DiscussionService.createDiscussion(userEmail, userRole, payload)
@@ -231,7 +236,7 @@ router.post(
     const { discussionId } = req.params as z.infer<typeof discussionIdParamsSchema>
     const body = req.body as z.infer<typeof participantUpdateSchema>
 
-    const result = await DiscussionService.addParticipants(discussionId, userEmail, body.participants)
+    const result = await DiscussionService.addParticipants(discussionId, userEmail, body.participants?.filter(p => p.email) as any)
     res.json(result)
   })
 )
@@ -251,7 +256,7 @@ router.post(
       richContent: body.richContent,
       parentPostId: body.parentPostId,
       mentions: body.mentions,
-      attachments: body.attachments
+      attachments: body.attachments?.filter(a => a.fileUrl) as any
     }
 
     const result = await DiscussionService.addPost(discussionId, userEmail, payload)

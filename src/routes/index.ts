@@ -42,6 +42,7 @@ import { router as enrollmentsRoutes } from './enrollments.routes'
 
 export const router = Router()
 
+// Core routes
 router.use('/courses', courseRoutes)
 router.use('/assignments', assignmentRoutes)
 router.use('/submissions', submissionRoutes)
@@ -56,6 +57,8 @@ router.use('/settings', settingsRoutes)
 router.use('/lessons', lessonsRoutes)
 router.use('/modules', modulesRoutes)
 router.use('/upload', uploadRoutes)
+
+// Live class features
 router.use('/notes', notesRoutes)
 router.use('/resources', resourceRoutes)
 router.use('/polls', pollRoutes)
@@ -63,22 +66,31 @@ router.use('/quizzes', quizRoutes)
 router.use('/attendance', attendanceRoutes)
 router.use('/participants', participantRoutes)
 router.use('/recordings', recordingRoutes)
+router.use('/live-classes', liveClassesRoutes)
+
+// Student features
 router.use('/student-progress', studentProgressRoutes)
+router.use('/student-activity', studentActivityRoutes)
+router.use('/student', studentAnalyticsRoutes)
+
+// Teacher features
 router.use('/teacher', teacherRoutes)
+router.use('/classwork', classworkRoutes)
+
+// Communication
+router.use('/discussions', discussionsRoutes)
+router.use('/announcements', announcementsRoutes)
+router.use('/forum', forumRoutes)
+router.use('/messages', messagesRoutes)
+
+// Other features
 router.use('/events', eventsRoutes)
 router.use('/quizzes', quizzesRoutes)
 router.use('/polls', pollsRoutes)
-router.use('/student', studentAnalyticsRoutes)
 router.use('/notifications', notificationsRoutes)
 router.use('/transactions', transactionRoutes)
 router.use('/certificates', certificateRoutes)
 router.use('/bulk-courses', bulkCoursesRoutes)
-router.use('/messages', messagesRoutes)
 router.use('/recordings', recordingsRoutes)
-router.use('/classwork', classworkRoutes)
-router.use('/student-activity', studentActivityRoutes)
-router.use('/live-classes', liveClassesRoutes)
-router.use('/discussions', discussionsRoutes)
-router.use('/announcements', announcementsRoutes)
-router.use('/forum', forumRoutes)
 router.use('/agora', agoraRoutes)
+
