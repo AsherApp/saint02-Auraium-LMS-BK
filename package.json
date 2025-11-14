@@ -4,11 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "ls -R src && tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js"
   },
   "dependencies": {
-    "@stream-io/video-react-sdk": "^1.25.1",
     "@supabase/supabase-js": "^2.45.0",
     "@types/bcrypt": "^6.0.0",
     "@types/cors": "^2.8.19",

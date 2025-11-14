@@ -22,15 +22,12 @@ import { recordingRoutes } from './recording.routes'
 import studentProgressRoutes from './student-progress.routes'
 import { router as teacherRoutes } from './teacher.routes'
 import eventsRoutes from './events.routes'
-import quizzesRoutes from './quizzes.routes'
-import pollsRoutes from './polls.routes'
 import studentAnalyticsRoutes from './student.routes'
 import { router as notificationsRoutes } from './notifications.routes'
 import transactionRoutes from './transactions.routes'
 import { router as certificateRoutes } from './certificates.routes'
 import { router as bulkCoursesRoutes } from './bulk-courses.routes'
 import { router as messagesRoutes } from './messages.routes'
-import recordingsRoutes from './recordings.routes'
 import { router as classworkRoutes } from './classwork.routes'
 import { router as studentActivityRoutes } from './student-activity.routes'
 import { liveClassesRoutes } from './liveClasses.routes'
@@ -85,12 +82,9 @@ router.use('/messages', messagesRoutes)
 
 // Other features
 router.use('/events', eventsRoutes)
-router.use('/quizzes', quizzesRoutes)
-router.use('/polls', pollsRoutes)
 router.use('/notifications', notificationsRoutes)
 router.use('/transactions', transactionRoutes)
 router.use('/certificates', certificateRoutes)
 router.use('/bulk-courses', bulkCoursesRoutes)
-router.use('/recordings', recordingsRoutes)
 router.use('/agora', agoraRoutes)
 

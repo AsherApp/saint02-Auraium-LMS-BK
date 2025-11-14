@@ -3,7 +3,7 @@ uploads/
 dist/
 *.log
 
-# Exclude large files
+# Exclude large files (video/audio)
 uploads/
 node_modules/
 *.mp4
@@ -16,8 +16,8 @@ node_modules/
 *.m4v
 *.3gp
 *.ogv
-*.ts
-*.mts
+# *.ts  # DISABLED - was blocking TypeScript source files!
+# *.mts # DISABLED - was blocking TypeScript source files!
 *.m2ts
 *.vob
 *.asf
@@ -87,7 +87,7 @@ node_modules/
 *.thp
 *.tod
 *.tp
-*.ts
+# *.ts  # DISABLED - duplicate, was blocking TypeScript source files!
 *.tts
 *.txd
 *.vob
