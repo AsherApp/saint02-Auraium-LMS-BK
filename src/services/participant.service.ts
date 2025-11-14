@@ -136,9 +136,22 @@ export class ParticipantService {
     const now = new Date().toISOString()
 
     if (existingError?.code === 'PGRST116' || !existing) {
+      // Get user_id (UUID) from user_profiles using email
+      const { data: userProfile, error: profileError } = await supabaseAdmin
+        .from('user_profiles')
+        .select('id')
+        .eq('email', email)
+        .single()
+
+      if (profileError || !userProfile) {
+        console.error('Error fetching user profile for participant:', profileError)
+        throw createHttpError(404, 'user_not_found')
+      }
+
       const { error: insertError } = await supabaseAdmin.from('live_class_participants').insert({
         live_class_id: liveClassId,
-        user_email: email, // Use email instead of UUID
+        user_id: userProfile.id, // UUID from user_profiles
+        user_email: email,
         user_type: role,
         email,
         joined_at: now,
