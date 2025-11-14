@@ -21,6 +21,21 @@ COPY ${PROJECT_ROOT}/tsconfig.json ./
 COPY ${PROJECT_ROOT}/post-build.js ./
 COPY ${PROJECT_ROOT}/src ./src
 
+# Debug: Verify critical files are copied
+RUN echo "=== Verifying copied files ===" && \
+    echo "Services directory:" && \
+    ls -la src/services/ | head -20 && \
+    echo "Checking for discussion.service.ts:" && \
+    test -f src/services/discussion.service.ts && echo "✓ discussion.service.ts exists" || echo "✗ discussion.service.ts MISSING" && \
+    echo "Checking for forum.service.ts:" && \
+    test -f src/services/forum.service.ts && echo "✓ forum.service.ts exists" || echo "✗ forum.service.ts MISSING" && \
+    echo "Checking for notes.service.ts:" && \
+    test -f src/services/notes.service.ts && echo "✓ notes.service.ts exists" || echo "✗ notes.service.ts MISSING" && \
+    echo "Checking for recording.service.ts:" && \
+    test -f src/services/recording.service.ts && echo "✓ recording.service.ts exists" || echo "✗ recording.service.ts MISSING" && \
+    echo "Validation directory:" && \
+    ls -la src/validation/ 2>&1 || echo "Validation directory not found"
+
 # Build the TypeScript code
 RUN npm run build
 
