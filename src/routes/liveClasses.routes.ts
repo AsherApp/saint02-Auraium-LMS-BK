@@ -157,6 +157,7 @@ router.patch(
   validateBody(updateLiveClassSchema),
   asyncHandler(async (req, res) => {
     const teacherId = (req as any).user?.id // Assuming user ID is available on req.user
+    const teacherEmail = (req as any).user?.email
     const { liveClassId } = req.params as z.infer<typeof liveClassIdParams>
     const body = req.body as z.infer<typeof updateLiveClassSchema>
 
@@ -175,7 +176,8 @@ router.patch(
     const updatedLiveClass = await LiveClassService.updateLiveClass(
       liveClassId,
       teacherId,
-      payload
+      payload,
+      teacherEmail
     )
     res.json(updatedLiveClass)
   })
@@ -192,9 +194,10 @@ router.delete(
   validateParams(liveClassIdParams),
   asyncHandler(async (req, res) => {
     const teacherId = (req as any).user?.id // Assuming user ID is available on req.user
+    const teacherEmail = (req as any).user?.email
     const { liveClassId } = req.params as z.infer<typeof liveClassIdParams>
 
-    const result = await LiveClassService.deleteLiveClass(liveClassId, teacherId)
+    const result = await LiveClassService.deleteLiveClass(liveClassId, teacherId, teacherEmail)
     res.json(result)
   })
 )
@@ -210,9 +213,10 @@ router.post(
   validateParams(liveClassIdParams),
   asyncHandler(async (req, res) => {
     const teacherId = (req as any).user?.id
+    const teacherEmail = (req as any).user?.email
     const { liveClassId } = req.params as z.infer<typeof liveClassIdParams>
 
-    const startedLiveClass = await LiveClassService.startLiveClass(liveClassId, teacherId)
+    const startedLiveClass = await LiveClassService.startLiveClass(liveClassId, teacherId, teacherEmail)
     
     // Emit socket event to notify all users
     const io = getSocketServer()
@@ -239,9 +243,10 @@ router.post(
   validateParams(liveClassIdParams),
   asyncHandler(async (req, res) => {
     const teacherId = (req as any).user?.id
+    const teacherEmail = (req as any).user?.email
     const { liveClassId } = req.params as z.infer<typeof liveClassIdParams>
 
-    const endedLiveClass = await LiveClassService.endLiveClass(liveClassId, teacherId)
+    const endedLiveClass = await LiveClassService.endLiveClass(liveClassId, teacherId, teacherEmail)
     
     // Emit socket event to notify all users
     const io = getSocketServer()

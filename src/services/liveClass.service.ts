@@ -194,14 +194,16 @@ export class LiveClassService {
    * @param liveClassId - The ID of the live class to update.
    * @param teacherId - The ID of the teacher performing the update (for access control).
    * @param payload - The data to update the live class with.
+   * @param teacherEmail - Optional email of the teacher for fallback check.
    * @returns The updated live class object.
    */
   static async updateLiveClass(
     liveClassId: string,
     teacherId: string,
-    payload: UpdateLiveClassInput
+    payload: UpdateLiveClassInput,
+    teacherEmail?: string
   ) {
-    await this.assertTeacherAccess(liveClassId, teacherId) // Ensure only the teacher can update their class
+    await this.assertTeacherAccess(liveClassId, teacherId, teacherEmail) // Ensure only the teacher can update their class
 
     const updates: Record<string, any> = {}
 
@@ -241,10 +243,11 @@ export class LiveClassService {
    * Deletes a live class.
    * @param liveClassId - The ID of the live class to delete.
    * @param teacherId - The ID of the teacher performing the delete (for access control).
+   * @param teacherEmail - Optional email of the teacher for fallback check.
    * @returns Success status.
    */
-  static async deleteLiveClass(liveClassId: string, teacherId: string) {
-    await this.assertTeacherAccess(liveClassId, teacherId) // Ensure only the teacher can delete their class
+  static async deleteLiveClass(liveClassId: string, teacherId: string, teacherEmail?: string) {
+    await this.assertTeacherAccess(liveClassId, teacherId, teacherEmail) // Ensure only the teacher can delete their class
 
     const { error } = await supabaseAdmin
       .from('live_classes')
@@ -265,10 +268,11 @@ export class LiveClassService {
    * Marks a live class as ONGOING.
    * @param liveClassId - The ID of the live class to start.
    * @param teacherId - The ID of the teacher starting the class.
+   * @param teacherEmail - Optional email of the teacher for fallback check.
    * @returns The updated live class object.
    */
-  static async startLiveClass(liveClassId: string, teacherId: string) {
-    await this.assertTeacherAccess(liveClassId, teacherId)
+  static async startLiveClass(liveClassId: string, teacherId: string, teacherEmail?: string) {
+    await this.assertTeacherAccess(liveClassId, teacherId, teacherEmail)
 
     const { data: liveClass, error } = await supabaseAdmin
       .from('live_classes')
@@ -292,10 +296,11 @@ export class LiveClassService {
    * Marks a live class as PAST.
    * @param liveClassId - The ID of the live class to end.
    * @param teacherId - The ID of the teacher ending the class.
+   * @param teacherEmail - Optional email of the teacher for fallback check.
    * @returns The updated live class object.
    */
-  static async endLiveClass(liveClassId: string, teacherId: string) {
-    await this.assertTeacherAccess(liveClassId, teacherId)
+  static async endLiveClass(liveClassId: string, teacherId: string, teacherEmail?: string) {
+    await this.assertTeacherAccess(liveClassId, teacherId, teacherEmail)
 
     const endedAt = new Date().toISOString()
 
@@ -327,17 +332,18 @@ export class LiveClassService {
   /**
    * Asserts that the actor is the teacher of the specified live class.
    * @param liveClassId - The ID of the live class.
-   * @param teacherId - The ID of the teacher.
+   * @param teacherId - The ID of the teacher (UUID).
+   * @param teacherEmail - Optional email of the teacher for fallback check.
    * @throws HttpError if the live class is not found or access is denied.
    */
-  private static async assertTeacherAccess(liveClassId: string, teacherId: string) {
-    if (!teacherId) {
-      throw createHttpError(401, 'teacher_id_required')
+  private static async assertTeacherAccess(liveClassId: string, teacherId: string, teacherEmail?: string) {
+    if (!teacherId && !teacherEmail) {
+      throw createHttpError(401, 'teacher_identification_required')
     }
 
     const { data: liveClass, error } = await supabaseAdmin
       .from('live_classes')
-      .select('id, teacher_id')
+      .select('id, teacher_id, teacher_email')
       .eq('id', liveClassId)
       .single()
 
@@ -345,7 +351,13 @@ export class LiveClassService {
       throw createHttpError(404, 'live_class_not_found')
     }
 
-    if (liveClass.teacher_id !== teacherId) {
+    // Check both UUID and email for maximum compatibility
+    const isAuthorized = 
+      (teacherId && liveClass.teacher_id === teacherId) ||
+      (teacherEmail && liveClass.teacher_email === teacherEmail)
+
+    if (!isAuthorized) {
+      console.error(`Access denied: teacherId=${teacherId}, teacher_id=${liveClass.teacher_id}, teacherEmail=${teacherEmail}, teacher_email=${liveClass.teacher_email}`)
       throw createHttpError(403, 'insufficient_permissions')
     }
   }
