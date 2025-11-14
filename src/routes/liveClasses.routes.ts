@@ -14,6 +14,7 @@ import {
   CreateLiveClassInput,
   UpdateLiveClassInput
 } from '../services/liveClass.service.js'
+import { getSocketServer } from '../lib/socket.io.js'
 
 const router = Router()
 
@@ -212,6 +213,17 @@ router.post(
     const { liveClassId } = req.params as z.infer<typeof liveClassIdParams>
 
     const startedLiveClass = await LiveClassService.startLiveClass(liveClassId, teacherId)
+    
+    // Emit socket event to notify all users
+    const io = getSocketServer()
+    if (io) {
+      io.emit('live_class_status_changed', {
+        liveClassId,
+        status: 'ONGOING',
+        liveClass: startedLiveClass
+      })
+    }
+    
     res.json(startedLiveClass)
   })
 )
@@ -230,6 +242,19 @@ router.post(
     const { liveClassId } = req.params as z.infer<typeof liveClassIdParams>
 
     const endedLiveClass = await LiveClassService.endLiveClass(liveClassId, teacherId)
+    
+    // Emit socket event to notify all users
+    const io = getSocketServer()
+    if (io) {
+      io.emit('live_class_status_changed', {
+        liveClassId,
+        status: 'PAST',
+        liveClass: endedLiveClass
+      })
+      // Also emit to the specific room
+      io.to(liveClassId).emit('class_ended', { liveClassId })
+    }
+    
     res.json(endedLiveClass)
   })
 )
