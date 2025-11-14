@@ -2,7 +2,8 @@
 FROM node:20-alpine
 
 # Set a build argument so the Dockerfile works whether the context is the repo root or Endubackend/
-ARG PROJECT_ROOT=.
+# Default to Endubackend since Railway builds from repo root
+ARG PROJECT_ROOT=Endubackend
 
 # Set the working directory inside the container
 WORKDIR /usr/src/app
