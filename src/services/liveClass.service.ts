@@ -147,12 +147,27 @@ export class LiveClassService {
       throw createHttpError(401, 'teacher_email_required')
     }
 
+    // Fetch teacher UUID from user_profiles using email
+    const { data: userProfile, error: profileError } = await supabaseAdmin
+      .from('user_profiles')
+      .select('id')
+      .eq('email', teacherEmail)
+      .single()
+
+    if (profileError || !userProfile) {
+      console.error('Error fetching teacher profile:', profileError)
+      throw createHttpError(404, 'teacher_not_found')
+    }
+
+    const teacherId = userProfile.id
+
     const agoraChannelName = `live-class-${uuidv4()}` // Generate a unique Agora channel name
 
     const { data: liveClass, error} = await supabaseAdmin
       .from('live_classes')
       .insert({
-        teacher_email: teacherEmail, // Use email instead of UUID
+        teacher_id: teacherId, // UUID for foreign key constraint
+        teacher_email: teacherEmail, // Email for convenience
         title: payload.title,
         description: payload.description || null,
         course_id: payload.courseId || null,
