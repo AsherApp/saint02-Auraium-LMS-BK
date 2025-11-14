@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { z } from 'zod'
+import createHttpError from 'http-errors'
 import { requireAuth, requireTeacher } from '../middlewares/auth.js'
 import {
   validateBody,
@@ -106,8 +107,12 @@ router.post(
   requireTeacher, // Only teachers can create live classes
   validateBody(createLiveClassSchema),
   asyncHandler(async (req, res) => {
-    const teacherId = (req as any).user?.id // Assuming user ID is available on req.user
+    const teacherEmail = (req as any).user?.email // Use email instead of ID
     const body = req.body as z.infer<typeof createLiveClassSchema>
+
+    if (!teacherEmail) {
+      throw createHttpError(401, 'teacher_email_required')
+    }
 
     const payload: CreateLiveClassInput = {
       title: body.title,
@@ -117,7 +122,7 @@ router.post(
       endTime: body.endTime
     }
 
-    const newLiveClass = await LiveClassService.createLiveClass(teacherId, payload)
+    const newLiveClass = await LiveClassService.createLiveClass(teacherEmail, payload)
     res.status(201).json(newLiveClass)
   })
 )

@@ -38,7 +38,7 @@ export class ParticipantService {
   static async getParticipants(liveClassId: string): Promise<LiveClassParticipant[]> {
     const { data, error } = await supabaseAdmin
       .from('live_class_participants')
-      .select('id, user_id, email, user_type, joined_at, left_at, is_active, updated_at')
+      .select('id, user_email, email, user_type, joined_at, left_at, is_active, updated_at')
       .eq('live_class_id', liveClassId)
       .order('joined_at', { ascending: true })
 
@@ -53,24 +53,24 @@ export class ParticipantService {
       return []
     }
 
-    const userIds = Array.from(
+    const userEmails = Array.from(
       new Set(
         participants
-          .map((row) => row?.user_id)
+          .map((row) => row?.user_email || row?.email)
           .filter((value): value is string => typeof value === 'string' && value.length > 0)
       )
     )
 
     let profileMap = new Map<
       string,
-      { first_name: string | null; last_name: string | null; email: string | null }
+      { id: string | null; first_name: string | null; last_name: string | null; email: string | null }
     >()
 
-    if (userIds.length > 0) {
+    if (userEmails.length > 0) {
       const { data: profiles, error: profileError } = await supabaseAdmin
         .from('user_profiles')
         .select('id, email, first_name, last_name')
-        .in('id', userIds)
+        .in('email', userEmails)
 
       if (profileError) {
         console.error('Error fetching participant profiles:', profileError)
@@ -79,8 +79,9 @@ export class ParticipantService {
 
       profileMap = new Map(
         (profiles || []).map((profile) => [
-          profile.id as string,
+          profile.email as string,
           {
+            id: profile.id ?? null,
             first_name: profile.first_name ?? null,
             last_name: profile.last_name ?? null,
             email: profile.email ?? null
@@ -90,18 +91,20 @@ export class ParticipantService {
     }
 
     return participants.map((row) => {
-      const profile = row.user_id ? profileMap.get(row.user_id) : undefined
+      const participantEmail = row.user_email || row.email
+      const profile = participantEmail ? profileMap.get(participantEmail) : undefined
       const firstName = profile?.first_name?.trim() ?? ''
       const lastName = profile?.last_name?.trim() ?? ''
       const fullName = [firstName, lastName].filter(Boolean).join(' ').trim()
-      const fallback = profile?.email ?? row.email
+      const fallback = participantEmail
 
       const isActive = Boolean(row.is_active) && row.left_at === null
 
       return {
         id: row.id,
-        userId: row.user_id ?? null,
-        email: row.email,
+        userId: profile?.id ?? null, // Return UUID for Agora matching
+        userUuid: profile?.id ?? null, // Explicit UUID field
+        email: participantEmail ?? row.email,
         role: row.user_type,
         user_type: row.user_type,
         joined_at: row.joined_at,
@@ -119,7 +122,7 @@ export class ParticipantService {
       .from('live_class_participants')
       .select('*')
       .eq('live_class_id', liveClassId)
-      .eq('user_id', userId)
+      .eq('user_email', email) // Use email for lookups
       .eq('user_type', role)
       .order('joined_at', { ascending: false })
       .limit(1)
@@ -135,7 +138,7 @@ export class ParticipantService {
     if (existingError?.code === 'PGRST116' || !existing) {
       const { error: insertError } = await supabaseAdmin.from('live_class_participants').insert({
         live_class_id: liveClassId,
-        user_id: userId,
+        user_email: email, // Use email instead of UUID
         user_type: role,
         email,
         joined_at: now,
@@ -189,7 +192,7 @@ export class ParticipantService {
         updated_at: now
       })
       .eq('live_class_id', liveClassId)
-      .eq('user_id', userId)
+      .eq('user_email', userId) // userId now contains email
       .eq('user_type', role)
       .is('left_at', null)
 

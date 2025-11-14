@@ -11,7 +11,7 @@ function createHttpError(statusCode: number, message: string) {
 export interface LiveClassAttendance {
   id: string
   live_class_id: string
-  student_id: string
+  student_email: string // Changed from student_id to student_email
   join_time: string
   leave_time: string | null
   duration_minutes: number | null
@@ -21,12 +21,12 @@ export interface LiveClassAttendance {
 
 export interface RecordJoinInput {
   liveClassId: string
-  studentId: string
+  studentEmail: string // Changed from studentId to studentEmail
 }
 
 export interface RecordLeaveInput {
   liveClassId: string
-  studentId: string
+  studentEmail: string // Changed from studentId to studentEmail
 }
 
 // --- AttendanceService ---
@@ -39,13 +39,13 @@ export class AttendanceService {
    * @returns The attendance record.
    */
   static async recordJoin(payload: RecordJoinInput): Promise<LiveClassAttendance> {
-    const { liveClassId, studentId } = payload
+    const { liveClassId, studentEmail } = payload
 
     const { data: existingRecord, error: fetchError } = await supabaseAdmin
       .from('live_class_attendance')
       .select('*')
       .eq('live_class_id', liveClassId)
-      .eq('student_id', studentId)
+      .eq('student_email', studentEmail) // Use email instead of UUID
       .order('join_time', { ascending: false })
       .limit(1)
       .single()
@@ -62,7 +62,7 @@ export class AttendanceService {
         .from('live_class_attendance')
         .insert({
           live_class_id: liveClassId,
-          student_id: studentId,
+          student_email: studentEmail, // Use email instead of UUID
           join_time: joinTime,
         })
         .select('*')
@@ -105,7 +105,7 @@ export class AttendanceService {
    * @returns The updated attendance record.
    */
   static async recordLeave(payload: RecordLeaveInput): Promise<LiveClassAttendance | null> {
-    const { liveClassId, studentId } = payload
+    const { liveClassId, studentEmail } = payload
     const leaveTime = new Date()
 
     // Find the most recent open attendance record for this student in this class
@@ -113,7 +113,7 @@ export class AttendanceService {
       .from('live_class_attendance')
       .select('*')
       .eq('live_class_id', liveClassId)
-      .eq('student_id', studentId)
+      .eq('student_email', studentEmail) // Use email instead of UUID
       .is('leave_time', null)
       .order('join_time', { ascending: false })
       .limit(1)
@@ -126,7 +126,7 @@ export class AttendanceService {
     }
 
     if (!existingRecord) {
-      console.warn(`No open attendance record found for student ${studentId} in live class ${liveClassId} to record leave time.`)
+      console.warn(`No open attendance record found for student ${studentEmail} in live class ${liveClassId} to record leave time.`)
       return null
     }
 

@@ -142,17 +142,17 @@ export class LiveClassService {
    * @param payload - The data for the new live class.
    * @returns The newly created live class object.
    */
-  static async createLiveClass(teacherId: string, payload: CreateLiveClassInput) {
-    if (!teacherId) {
-      throw createHttpError(401, 'teacher_id_required')
+  static async createLiveClass(teacherEmail: string, payload: CreateLiveClassInput) {
+    if (!teacherEmail) {
+      throw createHttpError(401, 'teacher_email_required')
     }
 
     const agoraChannelName = `live-class-${uuidv4()}` // Generate a unique Agora channel name
 
-    const { data: liveClass, error } = await supabaseAdmin
+    const { data: liveClass, error} = await supabaseAdmin
       .from('live_classes')
       .insert({
-        teacher_id: teacherId,
+        teacher_email: teacherEmail, // Use email instead of UUID
         title: payload.title,
         description: payload.description || null,
         course_id: payload.courseId || null,

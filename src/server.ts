@@ -346,12 +346,12 @@ io.on('connection', (socket: Socket) => {
 
         // Only record attendance for students
         if (!isTeacher) {
-          await AttendanceService.recordJoin({ liveClassId, studentId: userId })
+          await AttendanceService.recordJoin({ liveClassId, studentEmail: userEmail })
         }
 
         await ParticipantService.recordJoin({
           liveClassId,
-          userId,
+          userId: userEmail, // Pass email as userId (will be used as identifier)
           email: userEmail,
           role: isTeacher ? 'teacher' : 'student'
         })
@@ -416,15 +416,15 @@ io.on('connection', (socket: Socket) => {
         const isTeacher = liveClass?.teacher_id === socketData.userId
 
         // Only record leave time for students
-        if (!isTeacher) {
-          await AttendanceService.recordLeave({ liveClassId: socketData.liveClassId, studentId: socketData.userId })
+        if (!isTeacher && socketData.userEmail) {
+          await AttendanceService.recordLeave({ liveClassId: socketData.liveClassId, studentEmail: socketData.userEmail })
         }
 
-        if (socketData.userRole) {
+        if (socketData.userRole && socketData.userEmail) {
           try {
             await ParticipantService.recordLeave({
               liveClassId: socketData.liveClassId,
-              userId: socketData.userId,
+              userId: socketData.userEmail, // Pass email as userId
               role: socketData.userRole
             })
           } catch (participantError) {
